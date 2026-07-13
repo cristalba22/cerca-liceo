@@ -1,13 +1,411 @@
 <!doctype html>
-<html lang="en">
+<html lang="es-AR">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cerca Liceo</title>
+    <meta name="theme-color" content="#f8f2df" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Cerca Liceo reune ofertas vigentes, locales abiertos, direcciones, horarios y contacto por WhatsApp para vecinos de Liceo Procrear, 1ra, 2da y 3ra seccion en Cordoba."
+    />
+    <meta
+      name="keywords"
+      content="Cerca Liceo, Liceo Procrear, Barrio Liceo, ofertas Liceo, comercios Liceo, comida Liceo, despensa Liceo, Cordoba"
+    />
+    <meta name="author" content="Cristian Eduardo Alba" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://cercaliceo.com.ar/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:site_name" content="Cerca Liceo" />
+    <meta property="og:title" content="Cerca Liceo - Ofertas y locales del barrio" />
+    <meta
+      property="og:description"
+      content="Mira ofertas actuales, locales cerca, horarios, direcciones y WhatsApp directo en Liceo."
+    />
+    <meta property="og:url" content="https://cercaliceo.com.ar/" />
+    <meta property="og:image" content="https://cercaliceo.com.ar/og-cerca-liceo.svg" />
+    <meta property="og:image:alt" content="Cerca Liceo, radar vivo de ofertas y locales del barrio." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Cerca Liceo - Ofertas y locales del barrio" />
+    <meta
+      name="twitter:description"
+      content="Ofertas vigentes, locales abiertos, direccion y WhatsApp directo para vecinos de Liceo."
+    />
+    <meta name="twitter:image" content="https://cercaliceo.com.ar/og-cerca-liceo.svg" />
+    <title>Cerca Liceo - Ofertas y locales del barrio</title>
+    <style>
+      :root {
+        color: #10150f;
+        background: #f8f2df;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 320px;
+        margin: 0;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(156, 241, 18, 0.42), transparent 28rem),
+          radial-gradient(circle at 88% 30%, rgba(112, 223, 210, 0.36), transparent 24rem),
+          linear-gradient(145deg, #fff9df 0%, #f8f2df 48%, #f5e7cf 100%);
+      }
+
+      .initial-shell {
+        min-height: 100svh;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+
+      .initial-phone {
+        width: min(100%, 430px);
+        min-height: min(860px, calc(100svh - 36px));
+        position: relative;
+        overflow: hidden;
+        padding: 22px 20px 24px;
+        border: 10px solid #10150f;
+        border-radius: 42px;
+        background:
+          linear-gradient(rgba(56, 125, 99, 0.16) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(56, 125, 99, 0.16) 1px, transparent 1px),
+          linear-gradient(155deg, #fbf7e9, #f4edd7 62%, #eaffb1);
+        background-size: 44px 44px, 44px 44px, 100% 100%;
+        box-shadow: 0 28px 80px rgba(16, 21, 15, 0.24);
+      }
+
+      .initial-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 28px;
+      }
+
+      .initial-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .initial-logo {
+        width: 52px;
+        height: 52px;
+        display: grid;
+        place-items: center;
+        color: #10150f;
+        font-size: 24px;
+        font-weight: 1000;
+        border-radius: 16px;
+        background: linear-gradient(145deg, #9cf112, #72dfd3);
+      }
+
+      .initial-brand strong,
+      .initial-kicker,
+      .initial-card strong,
+      .initial-chip,
+      .initial-loading span {
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .initial-brand strong {
+        display: block;
+        font-size: 24px;
+        line-height: 0.9;
+      }
+
+      .initial-brand small,
+      .initial-card small {
+        color: rgba(16, 21, 15, 0.64);
+        font-size: 10px;
+        font-weight: 950;
+      }
+
+      .initial-zone,
+      .initial-chip {
+        border-radius: 999px;
+        background: rgba(255, 253, 247, 0.78);
+        border: 1px solid rgba(16, 21, 15, 0.08);
+      }
+
+      .initial-zone {
+        padding: 12px 14px;
+        font-size: 11px;
+        font-weight: 1000;
+        white-space: nowrap;
+      }
+
+      .initial-hero {
+        position: relative;
+        margin-bottom: 18px;
+        padding: 24px 18px;
+        color: #fffbea;
+        border-radius: 28px;
+        background:
+          radial-gradient(circle at 86% 6%, rgba(156, 241, 18, 0.28), transparent 13rem),
+          linear-gradient(rgba(112, 223, 210, 0.18) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(112, 223, 210, 0.18) 1px, transparent 1px),
+          #10150f;
+        background-size: 100% 100%, 38px 38px, 38px 38px, 100% 100%;
+      }
+
+      .initial-kicker,
+      .initial-chip {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        min-height: 32px;
+        padding: 0 12px;
+        color: #10150f;
+        font-size: 10px;
+        font-weight: 1000;
+        border-radius: 999px;
+        background: #9cf112;
+      }
+
+      .initial-hero h1 {
+        max-width: 330px;
+        margin: 18px 0 12px;
+        color: #fffbea;
+        font-size: clamp(38px, 12vw, 58px);
+        line-height: 0.9;
+        letter-spacing: 0;
+      }
+
+      .initial-hero p {
+        max-width: 320px;
+        margin: 0;
+        color: rgba(255, 251, 234, 0.78);
+        font-size: 16px;
+        line-height: 1.45;
+      }
+
+      .initial-feed {
+        display: grid;
+        gap: 10px;
+        margin: 20px 0 16px;
+      }
+
+      .initial-card {
+        display: grid;
+        grid-template-columns: 62px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+        border-radius: 22px;
+        background: rgba(255, 253, 247, 0.88);
+        border: 1px solid rgba(16, 21, 15, 0.08);
+        box-shadow: 0 16px 32px rgba(16, 21, 15, 0.08);
+      }
+
+      .initial-photo {
+        width: 62px;
+        height: 62px;
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 38% 34%, rgba(255, 253, 247, 0.98) 0 9px, transparent 10px),
+          linear-gradient(135deg, #ff7043, #ffd43b);
+      }
+
+      .initial-card:nth-child(2) .initial-photo {
+        background:
+          radial-gradient(circle at 34% 34%, rgba(255, 253, 247, 0.86) 0 8px, transparent 9px),
+          linear-gradient(135deg, #6ce05f, #9cf112);
+      }
+
+      .initial-card strong {
+        display: block;
+        color: #10150f;
+        font-size: 15px;
+        line-height: 1;
+      }
+
+      .initial-pill {
+        padding: 8px 10px;
+        color: #10150f;
+        font-size: 10px;
+        font-weight: 1000;
+        border-radius: 999px;
+        background: #9cf112;
+        white-space: nowrap;
+      }
+
+      .initial-benefits {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .initial-loading {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .initial-loading span {
+        color: rgba(16, 21, 15, 0.58);
+        font-size: 10px;
+        font-weight: 1000;
+      }
+
+      .initial-progress {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(16, 21, 15, 0.1);
+      }
+
+      .initial-progress::before {
+        content: "";
+        display: block;
+        width: 42%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #9cf112, #72dfd3);
+        animation: initial-load 1.15s ease-in-out infinite alternate;
+      }
+
+      .initial-noscript {
+        margin-top: 14px;
+        padding: 12px;
+        color: #10150f;
+        font-size: 13px;
+        font-weight: 800;
+        border-radius: 18px;
+        background: rgba(255, 253, 247, 0.82);
+      }
+
+      @keyframes initial-load {
+        from {
+          transform: translateX(0);
+        }
+
+        to {
+          transform: translateX(140%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .initial-progress::before {
+          animation: none;
+          width: 100%;
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #070b08;
+        }
+
+        .initial-phone {
+          background:
+            linear-gradient(rgba(112, 223, 210, 0.12) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(112, 223, 210, 0.12) 1px, transparent 1px),
+            linear-gradient(155deg, #10150f, #1e2619 62%, #0b120d);
+        }
+
+        .initial-zone,
+        .initial-card,
+        .initial-noscript {
+          background: rgba(255, 251, 234, 0.9);
+        }
+
+        .initial-loading span {
+          color: rgba(255, 251, 234, 0.68);
+        }
+      }
+    </style>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Cerca Liceo",
+        "url": "https://cercaliceo.com.ar/",
+        "description": "Ofertas vigentes, locales del barrio, horarios, direcciones y contacto por WhatsApp para vecinos de Liceo, Cordoba.",
+        "inLanguage": "es-AR",
+        "creator": {
+          "@type": "Person",
+          "name": "Cristian Eduardo Alba"
+        },
+        "areaServed": {
+          "@type": "Place",
+          "name": "Barrio Liceo, Cordoba, Argentina"
+        }
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="initial-shell" aria-label="Cerca Liceo cargando">
+        <section class="initial-phone">
+          <header class="initial-topbar">
+            <div class="initial-brand">
+              <div class="initial-logo" aria-hidden="true">C</div>
+              <div>
+                <strong>Cerca</strong>
+                <small>Liceo</small>
+              </div>
+            </div>
+            <div class="initial-zone">Liceo Procrear</div>
+          </header>
+
+          <section class="initial-hero">
+            <span class="initial-kicker">Radar vivo del barrio</span>
+            <h1>Ofertas y locales de Liceo, en un solo lugar.</h1>
+            <p>
+              Mira que esta abierto, que promo sigue vigente, donde queda cada comercio y
+              contacta directo por WhatsApp.
+            </p>
+          </section>
+
+          <section class="initial-feed" aria-label="Vista previa de ofertas">
+            <article class="initial-card">
+              <div class="initial-photo" aria-hidden="true"></div>
+              <div>
+                <small>Comida cerca</small>
+                <strong>Promos del dia</strong>
+              </div>
+              <span class="initial-pill">3 dias</span>
+            </article>
+            <article class="initial-card">
+              <div class="initial-photo" aria-hidden="true"></div>
+              <div>
+                <small>Locales del barrio</small>
+                <strong>Horarios y direccion</strong>
+              </div>
+              <span class="initial-pill">Maps</span>
+            </article>
+          </section>
+
+          <div class="initial-benefits" aria-label="Beneficios">
+            <span class="initial-chip">Ofertas que vencen solas</span>
+            <span class="initial-chip">Locales verificados</span>
+            <span class="initial-chip">WhatsApp directo</span>
+          </div>
+
+          <div class="initial-loading" role="status" aria-live="polite">
+            <span>Cargando ofertas y locales del barrio</span>
+            <div class="initial-progress" aria-hidden="true"></div>
+          </div>
+
+          <noscript>
+            <p class="initial-noscript">
+              Para usar Cerca Liceo necesitas activar JavaScript. La pagina muestra ofertas,
+              locales, horarios, direcciones y contacto directo por WhatsApp.
+            </p>
+          </noscript>
+        </section>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

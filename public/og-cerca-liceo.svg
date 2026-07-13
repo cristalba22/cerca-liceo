@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Cerca Liceo</title>
+  <desc id="desc">Ofertas y locales del barrio Liceo en tiempo real.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbf7e9"/>
+      <stop offset="0.52" stop-color="#f8f2df"/>
+      <stop offset="1" stop-color="#dfff76"/>
+    </linearGradient>
+    <linearGradient id="lime" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9cf112"/>
+      <stop offset="1" stop-color="#72dfd3"/>
+    </linearGradient>
+    <pattern id="grid" width="58" height="58" patternUnits="userSpaceOnUse">
+      <path d="M58 0H0V58" fill="none" stroke="#397d63" stroke-opacity=".16" stroke-width="2"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="26" flood-color="#10150f" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+  <circle cx="1005" cy="95" r="138" fill="#72dfd3" opacity=".42"/>
+  <circle cx="130" cy="510" r="180" fill="#9cf112" opacity=".28"/>
+  <g transform="translate(88 72)">
+    <rect x="0" y="0" width="1024" height="486" rx="54" fill="#10150f" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="1024" height="486" rx="54" fill="url(#grid)" opacity=".9"/>
+    <circle cx="884" cy="82" r="120" fill="#9cf112" opacity=".18"/>
+    <g transform="translate(58 58)">
+      <rect width="92" height="92" rx="26" fill="url(#lime)"/>
+      <text x="46" y="61" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="900" fill="#10150f">C</text>
+      <text x="120" y="42" font-family="Arial, sans-serif" font-size="48" font-weight="900" fill="#fffbea">Cerca</text>
+      <text x="123" y="70" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#dfff76">LICEO</text>
+      <rect x="690" y="8" width="206" height="52" rx="26" fill="#fffbea"/>
+      <text x="793" y="41" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="900" fill="#10150f">LICEO PROCREAR</text>
+    </g>
+    <g transform="translate(58 184)">
+      <rect width="232" height="42" rx="21" fill="#9cf112"/>
+      <text x="116" y="28" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="900" fill="#10150f">RADAR VIVO DEL BARRIO</text>
+      <text x="0" y="118" font-family="Arial, sans-serif" font-size="76" font-weight="900" fill="#fffbea">Todo Liceo,</text>
+      <text x="0" y="194" font-family="Arial, sans-serif" font-size="76" font-weight="900" fill="#fffbea">cerca y actualizado.</text>
+      <text x="4" y="248" font-family="Arial, sans-serif" font-size="28" font-weight="500" fill="#fffbea" opacity=".74">Ofertas vigentes, locales abiertos, direcciones y WhatsApp directo.</text>
+    </g>
+    <g transform="translate(720 206)">
+      <rect width="224" height="104" rx="28" fill="#ff6138"/>
+      <rect x="18" y="18" width="68" height="68" rx="18" fill="#fffbea" opacity=".92"/>
+      <text x="104" y="48" font-family="Arial, sans-serif" font-size="22" font-weight="900" fill="#10150f">Promo del dia</text>
+      <rect x="104" y="60" width="82" height="30" rx="15" fill="#fffbea"/>
+      <text x="145" y="81" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="900" fill="#10150f">3 dias</text>
+      <rect y="128" width="224" height="104" rx="28" fill="#72dfd3"/>
+      <rect x="18" y="146" width="68" height="68" rx="18" fill="#fffbea" opacity=".92"/>
+      <text x="104" y="178" font-family="Arial, sans-serif" font-size="22" font-weight="900" fill="#10150f">Locales cerca</text>
+      <rect x="104" y="190" width="82" height="30" rx="15" fill="#fffbea"/>
+      <text x="145" y="211" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="900" fill="#10150f">Maps</text>
+    </g>
+  </g>
+</svg>

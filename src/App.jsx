@@ -340,11 +340,11 @@ function App() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setFeaturedBusinessIndex((index) => (index + 1) % Math.max(feedBusinesses.length, 1))
+      setFeaturedBusinessIndex((index) => (index + 1) % Math.max(feedBusinesses.length, feedOffers.length, 1))
     }, 3600)
 
     return () => window.clearInterval(timer)
-  }, [feedBusinesses.length])
+  }, [feedBusinesses.length, feedOffers.length])
 
   useEffect(() => {
     let ignore = false
@@ -652,9 +652,8 @@ function App() {
   }, [publicFeedOffers, query, selectedCategory, selectedSection])
 
   const visibleFeedOffers = publicFeedOffers.filter((offer) => offer.open !== false)
-  const openOffers = visibleFeedOffers.filter((offer) => getOfferOpenStatus(offer).open)
-  const safeOpenOffers = openOffers.length ? openOffers : visibleFeedOffers
-  const heroOffer = safeOpenOffers[featuredBusinessIndex % Math.max(safeOpenOffers.length, 1)]
+  const heroOffers = visibleFeedOffers
+  const heroOffer = heroOffers[featuredBusinessIndex % Math.max(heroOffers.length, 1)]
   const liveMapBusinesses = useMemo(() => mergeUniqueById([
     ...feedBusinesses,
     ...visibleFeedOffers.map((offer) => ({

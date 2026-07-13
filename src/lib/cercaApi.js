@@ -65,9 +65,11 @@ const writeStorage = (key, value) => {
 const normalizeBusiness = (business) => ({
   id: business.id,
   name: business.name || 'Mi local',
+  businessType: business.businessType || business.business_type || 'local',
+  hasPublicAddress: business.hasPublicAddress ?? business.has_public_address ?? Boolean(business.address),
   category: business.category || 'Comida',
   section: business.section || 'Liceo Procrear',
-  address: business.address || 'Direccion a completar',
+  address: business.address || '',
   reference: business.reference || 'Referencia a completar',
   hours: business.hours || 'Horario a completar',
   openDays: business.openDays || business.open_days || ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
@@ -129,6 +131,8 @@ const mapBusinessRow = (row) => ({
   id: row.id,
   ownerId: row.owner_id,
   name: row.name,
+  businessType: row.business_type || 'local',
+  hasPublicAddress: row.has_public_address ?? Boolean(row.address),
   category: row.category,
   section: row.section,
   address: cleanText(row.address),
@@ -173,6 +177,8 @@ const mapOfferRow = (row) => ({
   title: row.title,
   business: row.businesses?.name || row.business_name || 'Comercio',
   businessId: row.business_id,
+  businessType: row.businesses?.business_type || 'local',
+  hasPublicAddress: row.businesses?.has_public_address ?? Boolean(row.businesses?.address || row.address),
   category: row.category || row.businesses?.category,
   section: row.section || row.businesses?.section,
   price: row.price_label || (row.price ? `$${Number(row.price).toLocaleString('es-AR')}` : 'Consultar'),
@@ -187,6 +193,7 @@ const mapOfferRow = (row) => ({
   tone: row.tone || row.businesses?.tone || 'orange',
   image: row.image_key || row.businesses?.image_key || 'milanesa',
   whatsapp: row.businesses?.whatsapp || row.whatsapp || '',
+  instagram: row.businesses?.instagram || '',
   open: row.businesses?.is_open ?? true,
   distance: row.distance_label || row.businesses?.distance_label || 'cerca',
   saves: row.saves_count || 0,
@@ -213,6 +220,7 @@ const accountFromProfile = (profile, user) => ({
   email: user.email,
   section: profile?.section || user.user_metadata?.section || 'Liceo Procrear',
   role: profile?.role || 'user',
+  businessType: user.user_metadata?.business_type || 'local',
   interests: profile?.interests || user.user_metadata?.interests || '',
 })
 
@@ -310,6 +318,33 @@ export const cercaApi = {
     }
   },
 
+  async requestPasswordReset(email) {
+    if (!email) {
+      return { error: new Error('Escribi tu email para mandarte el enlace de recuperacion.') }
+    }
+
+    if (!hasSupabaseConfig) {
+      return { error: new Error('La recuperacion de clave funciona cuando la app esta conectada a Supabase.') }
+    }
+
+    const redirectTo = `${siteUrl}/?reset=password`
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    return { error }
+  },
+
+  async updatePassword(password) {
+    if (!password || password.length < 6) {
+      return { error: new Error('La nueva clave tiene que tener al menos 6 caracteres.') }
+    }
+
+    if (!hasSupabaseConfig) {
+      return { error: new Error('La recuperacion de clave funciona cuando la app esta conectada a Supabase.') }
+    }
+
+    const { error } = await supabase.auth.updateUser({ password })
+    return { error }
+  },
+
   async signOut() {
     if (hasSupabaseConfig) {
       await supabase.auth.signOut()
@@ -341,6 +376,7 @@ export const cercaApi = {
         data: {
           full_name: form.name,
           account_type: form.type,
+          business_type: form.businessType,
           whatsapp: form.whatsapp,
           section: form.section || 'Liceo Procrear',
           interests: form.interests,
@@ -381,6 +417,7 @@ export const cercaApi = {
         section: form.section,
         role: 'user',
         businessName: form.businessName,
+        businessType: form.businessType,
         category: form.category,
         salesMode: form.salesMode,
         interests: form.interests,
@@ -594,6 +631,8 @@ export const cercaApi = {
     const payload = {
       owner_id: auth.user.id,
       name: draft.name,
+      business_type: draft.businessType || 'local',
+      has_public_address: draft.hasPublicAddress ?? Boolean(draft.address),
       category: draft.category,
       section: draft.section,
       address: draft.address,
@@ -620,11 +659,22 @@ export const cercaApi = {
       updated_at: new Date().toISOString(),
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('businesses')
       .upsert(payload, { onConflict: 'owner_id' })
       .select('*, products(*)')
       .single()
+
+    if (error && /business_type|has_public_address/i.test(error.message || '')) {
+      const { business_type: _businessType, has_public_address: _hasPublicAddress, ...compatiblePayload } = payload
+      const retry = await supabase
+        .from('businesses')
+        .upsert(compatiblePayload, { onConflict: 'owner_id' })
+        .select('*, products(*)')
+        .single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error || !data) return { business: null, error }
 
@@ -676,6 +726,8 @@ export const cercaApi = {
         title,
         business: business.name,
         businessId: business.id,
+        businessType: business.businessType || 'local',
+        hasPublicAddress: business.hasPublicAddress ?? Boolean(business.address),
         category: business.category,
         section: business.section,
         price: priceLabel || 'Consultar',
@@ -690,6 +742,7 @@ export const cercaApi = {
         tone: business.tone || 'orange',
         image: imageKey || business.image || 'milanesa',
         whatsapp: business.whatsapp || '',
+        instagram: business.instagram || '',
         open: true,
         distance: business.distance || 'cerca',
         saves: 0,

@@ -99,6 +99,23 @@ const makeWhatsAppUrl = (phone, message) => {
   return normalizedPhone ? `https://wa.me/${normalizedPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`
 }
 
+const normalizeInstagramHandle = (value = '') => String(value)
+  .trim()
+  .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+  .replace(/^@/, '')
+  .replace(/\/$/, '')
+
+const makeInstagramUrl = (value = '') => {
+  const handle = normalizeInstagramHandle(value)
+  return handle ? `https://instagram.com/${handle}` : ''
+}
+
+const hasBusinessPublicAddress = (business = {}) => (
+  business.hasPublicAddress !== false &&
+  Boolean(String(business.address || '').trim()) &&
+  !String(business.address || '').toLowerCase().includes('completar')
+)
+
 const getOpenStatus = (business = {}) => {
   const days = business.openDays || business.open_days || []
   const openTime = business.openTime || business.open_time
@@ -193,6 +210,8 @@ const mergeUniqueById = (items) => {
 
 const buildLocalDraft = (local, account) => ({
   name: local?.name || account?.businessName || '',
+  businessType: local?.businessType || account?.businessType || 'local',
+  hasPublicAddress: local?.hasPublicAddress ?? true,
   category: local?.category || account?.category || 'Comida',
   section: local?.section || account?.section || 'Liceo Procrear',
   address: local?.address || '',
@@ -306,6 +325,16 @@ function App() {
 
     return () => {
       ignore = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const isPasswordRecovery = params.get('reset') === 'password' || hashParams.get('type') === 'recovery'
+    if (isPasswordRecovery) {
+      setAuthNotice('Crea una nueva clave para volver a entrar a Cerca Liceo.')
+      setScreen('reset-password')
     }
   }, [])
 
@@ -451,6 +480,26 @@ function App() {
     setMerchantLocal(null)
     setAuthNotice('Sesion iniciada correctamente.')
     setScreen('profile')
+  }
+
+  const requestPasswordReset = async (email) => {
+    const { error } = await cercaApi.requestPasswordReset(email)
+    if (error) {
+      setAuthNotice(error.message || 'No pudimos enviar el correo de recuperacion.')
+      return
+    }
+    setAuthNotice('Te mandamos un correo de Cerca Liceo para crear una nueva clave. Revisa Recibidos y Spam.')
+  }
+
+  const updatePassword = async (password) => {
+    const { error } = await cercaApi.updatePassword(password)
+    if (error) {
+      setAuthNotice(error.message || 'No pudimos guardar la nueva clave.')
+      return
+    }
+    setAuthNotice('Clave actualizada. Ya podes iniciar sesion con tu nueva clave.')
+    setScreen('login')
+    window.history.replaceState({}, '', window.location.pathname)
   }
 
   const saveMerchantLocal = async (draft) => {
@@ -757,12 +806,31 @@ function App() {
             authNotice={authNotice}
             onBack={() => setScreen('profile')}
             onLogin={loginAccount}
+            onForgotPassword={() => setScreen('forgot-password')}
             onQuickAccess={loginQuick}
             allowQuickAccess={!cercaApi.isSupabaseEnabled()}
             onRegister={(type) => {
               setRegisterType(type)
               setScreen('register')
             }}
+            onToggleTheme={() => setDarkMode((value) => !value)}
+          />
+        )}
+
+        {screen === 'forgot-password' && (
+          <ForgotPasswordScreen
+            authNotice={authNotice}
+            onBack={() => setScreen('login')}
+            onSubmit={requestPasswordReset}
+            onToggleTheme={() => setDarkMode((value) => !value)}
+          />
+        )}
+
+        {screen === 'reset-password' && (
+          <ResetPasswordScreen
+            authNotice={authNotice}
+            onBack={() => setScreen('login')}
+            onSubmit={updatePassword}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
         )}
@@ -1228,7 +1296,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
     business: local?.name || account?.businessName || 'Mi local',
     category: local?.category || account?.category || 'Comida',
     section: local?.section || account?.section || 'Liceo Procrear',
-    address: local?.address || 'Direccion a completar',
+    address: local?.address || '',
     reference: local?.reference || 'Referencia a completar',
     hours: local?.hours || 'Horario a confirmar',
     tone: local?.tone || 'orange',
@@ -1499,6 +1567,16 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
     setSaveStatus('')
   }
 
+  const updateBusinessType = (businessType) => {
+    setLocalDraft((current) => ({
+      ...current,
+      businessType,
+      hasPublicAddress: businessType === 'local' ? current.hasPublicAddress !== false : false,
+      delivery: businessType === 'entrepreneur' && current.delivery === 'Retiro y delivery' ? 'Por encargo' : current.delivery,
+    }))
+    setSaveStatus('')
+  }
+
   const handleLocalPhoto = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -1538,10 +1616,11 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
   }
 
   const saveLocal = async () => {
+    const needsPublicAddress = localDraft.businessType !== 'entrepreneur' && localDraft.hasPublicAddress !== false
     const missing = [
-      !localDraft.name.trim() && 'nombre del local',
+      !localDraft.name.trim() && (localDraft.businessType === 'entrepreneur' ? 'nombre del emprendimiento' : 'nombre del local'),
       !localDraft.whatsapp.trim() && 'WhatsApp',
-      !localDraft.address.trim() && 'direccion o referencia',
+      needsPublicAddress && !localDraft.address.trim() && 'direccion o referencia',
       !localDraft.openDays.length && 'dias que abre',
       (!localDraft.openTime.trim() || !localDraft.closeTime.trim()) && 'horario',
     ].filter(Boolean)
@@ -1572,9 +1651,10 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
 
   const completedFields = [
     localDraft.name,
+    localDraft.businessType,
     localDraft.category,
     localDraft.section,
-    localDraft.address,
+    hasBusinessPublicAddress(localDraft) || localDraft.businessType === 'entrepreneur',
     localDraft.openDays.length,
     localDraft.openTime,
     localDraft.closeTime,
@@ -1582,7 +1662,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
     isUploadedImage(localDraft.image),
     ensureMenuSlots(localDraft.menu).some((item) => item.name && item.name !== 'Producto principal'),
   ].filter(Boolean).length
-  const completion = Math.round((completedFields / 10) * 100)
+  const completion = Math.round((completedFields / 11) * 100)
   const scheduleLabel = formatSchedule(localDraft)
   const dashboardTasks = [
     {
@@ -1599,9 +1679,9 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
     },
     {
       id: 'location',
-      done: Boolean(localDraft.address && localDraft.openDays.length && localDraft.openTime && localDraft.closeTime),
-      title: 'Direccion y horario',
-      meta: localDraft.address ? scheduleLabel : 'Direccion, dias y horas',
+      done: Boolean((hasBusinessPublicAddress(localDraft) || localDraft.businessType === 'entrepreneur') && localDraft.openDays.length && localDraft.openTime && localDraft.closeTime),
+      title: localDraft.businessType === 'entrepreneur' ? 'Zona y horario' : 'Direccion y horario',
+      meta: hasBusinessPublicAddress(localDraft) || localDraft.businessType === 'entrepreneur' ? scheduleLabel : 'Direccion, dias y horas',
     },
     {
       id: 'menu',
@@ -1781,10 +1861,34 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
           {panelButton('basic', 'Paso 1', 'Datos basicos', localDraft.name ? 'Completo' : 'Pendiente', Store)}
           {openPanel === 'basic' && (
             <div className="merchant-panel-body">
+              <section className="presence-selector" aria-label="Tipo de comercio">
+                <button
+                  className={localDraft.businessType !== 'entrepreneur' ? 'active' : ''}
+                  type="button"
+                  onClick={() => updateBusinessType('local')}
+                >
+                  <Store size={17} />
+                  <span>Tengo local</span>
+                  <small>Muestro direccion y como llegar.</small>
+                </button>
+                <button
+                  className={localDraft.businessType === 'entrepreneur' ? 'active' : ''}
+                  type="button"
+                  onClick={() => updateBusinessType('entrepreneur')}
+                >
+                  <UserRound size={17} />
+                  <span>Soy emprendedor</span>
+                  <small>Sin direccion publica. Contacto directo.</small>
+                </button>
+              </section>
+              <div className="presence-note">
+                <ShieldCheck size={16} />
+                <span>{localDraft.businessType === 'entrepreneur' ? 'No hace falta tener local fisico. Tu ficha puede mostrar WhatsApp, Instagram, zona y horarios.' : 'La direccion ayuda a que el vecino llegue facil. Si vendes desde casa, elegi emprendedor.'}</span>
+              </div>
               <div className="local-builder-fields">
                 <label>
-                  <span>Nombre del local</span>
-                  <input value={localDraft.name} onChange={(event) => updateLocalDraft('name', event.target.value)} placeholder="Ej: Lo de Meli" />
+                  <span>{localDraft.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre del local'}</span>
+                  <input value={localDraft.name} onChange={(event) => updateLocalDraft('name', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' ? 'Ej: Dulces de Lau' : 'Ej: Lo de Meli'} />
                 </label>
                 <label>
                   <span>Rubro</span>
@@ -1868,21 +1972,25 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
             </div>
           )}
 
-          {panelButton('location', 'Paso 3', 'Direccion, dias y horario', localDraft.address && localDraft.openDays.length ? 'Completo' : 'Pendiente', MapPin)}
+          {panelButton('location', 'Paso 3', localDraft.businessType === 'entrepreneur' ? 'Zona, dias y horario' : 'Direccion, dias y horario', dashboardTasks.find((task) => task.id === 'location')?.done ? 'Completo' : 'Pendiente', MapPin)}
           {openPanel === 'location' && (
             <div className="merchant-panel-body">
-              <section className="local-map-editor">
+              <section className={`local-map-editor ${localDraft.businessType === 'entrepreneur' ? 'contact-first' : ''}`}>
                 <div className="local-map-preview">
-                  <MapPin size={24} />
+                  {localDraft.businessType === 'entrepreneur' ? <MessageCircle size={24} /> : <MapPin size={24} />}
                   <strong>{localDraft.section}</strong>
-                  <span>{localDraft.address || 'Direccion pendiente'}</span>
+                  <span>
+                    {localDraft.businessType === 'entrepreneur'
+                      ? 'Sin direccion publica'
+                      : localDraft.address || 'Direccion pendiente'}
+                  </span>
                   <small>{scheduleLabel}</small>
                   <i></i>
                 </div>
                 <div className="local-map-copy">
-                  <span>Ubicacion publica</span>
-                  <h3>Que el vecino sepa donde queda antes de escribir.</h3>
-                  <p>Carga direccion exacta o referencia. Despues se puede abrir directo en Google Maps.</p>
+                  <span>{localDraft.businessType === 'entrepreneur' ? 'Contacto directo' : 'Ubicacion publica'}</span>
+                  <h3>{localDraft.businessType === 'entrepreneur' ? 'Que te consulten sin exponer una direccion.' : 'Que el vecino sepa donde queda antes de escribir.'}</h3>
+                  <p>{localDraft.businessType === 'entrepreneur' ? 'Ideal para venta por encargo, servicios a domicilio, Instagram o WhatsApp. La direccion queda opcional.' : 'Carga direccion exacta o referencia. Despues se puede abrir directo en Google Maps.'}</p>
                 </div>
               </section>
               <div className="local-builder-fields compact">
@@ -1895,13 +2003,29 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                     <option>Liceo 3ra</option>
                   </select>
                 </label>
+                {localDraft.businessType !== 'entrepreneur' && (
+                  <label className="inline-toggle-field">
+                    <span>Mostrar direccion publica</span>
+                    <button
+                      className={localDraft.hasPublicAddress !== false ? 'active' : ''}
+                      type="button"
+                      onClick={() => updateLocalDraft('hasPublicAddress', localDraft.hasPublicAddress === false)}
+                    >
+                      {localDraft.hasPublicAddress !== false ? 'Si' : 'No'}
+                    </button>
+                  </label>
+                )}
                 <label>
-                  <span>Direccion</span>
-                  <input value={localDraft.address} onChange={(event) => updateLocalDraft('address', event.target.value)} placeholder="Mza, calle o referencia" />
+                  <span>{localDraft.businessType === 'entrepreneur' || localDraft.hasPublicAddress === false ? 'Zona o referencia' : 'Direccion'}</span>
+                  <input
+                    value={localDraft.address}
+                    onChange={(event) => updateLocalDraft('address', event.target.value)}
+                    placeholder={localDraft.businessType === 'entrepreneur' || localDraft.hasPublicAddress === false ? 'Ej: Liceo Procrear, entrego por zona' : 'Mza, calle o referencia'}
+                  />
                 </label>
                 <label className="wide">
                   <span>Referencia para llegar</span>
-                  <input value={localDraft.reference} onChange={(event) => updateLocalDraft('reference', event.target.value)} placeholder="Ej: frente a la plaza, porton negro..." />
+                  <input value={localDraft.reference} onChange={(event) => updateLocalDraft('reference', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' ? 'Ej: coordino punto de entrega o envio por zona' : 'Ej: frente a la plaza, porton negro...'} />
                 </label>
                 <div className="open-days-field wide">
                   <span>Dias que abre</span>
@@ -2050,7 +2174,10 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                     <h3>{localDraft.name || 'Nombre del local'}</h3>
                     <p>{localDraft.description || 'Descripcion breve del local.'}</p>
                     <div className="public-local-tags">
-                      <span><MapPin size={12} /> {localDraft.address || 'Direccion pendiente'}</span>
+                      <span>
+                        {hasBusinessPublicAddress(localDraft) ? <MapPin size={12} /> : <MessageCircle size={12} />}
+                        {hasBusinessPublicAddress(localDraft) ? localDraft.address : 'Sin direccion publica'}
+                      </span>
                       <span><Navigation size={12} /> {localDraft.reference || 'Referencia pendiente'}</span>
                       <span><Clock3 size={12} /> {scheduleLabel}</span>
                       <span><MessageCircle size={12} /> {localDraft.whatsapp || 'WhatsApp pendiente'}</span>
@@ -2095,7 +2222,9 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
               name: local.name,
               category: local.category,
               section: local.section,
-              address: local.address || 'Direccion a completar',
+              businessType: local.businessType,
+              hasPublicAddress: local.hasPublicAddress,
+              address: local.address || '',
               reference: local.reference || 'Referencia a completar',
               hours: local.hours || formatSchedule(local),
               tone: 'orange',
@@ -2215,8 +2344,7 @@ function AdminScreen({
   const [notesDraft, setNotesDraft] = useState({})
   const needsReview = businesses.filter((business) => (
     !business.whatsapp ||
-    !business.address ||
-    business.address.includes('completar') ||
+    (business.businessType !== 'entrepreneur' && !hasBusinessPublicAddress(business)) ||
     !business.verified ||
     business.isPublic === false
   ))
@@ -2226,8 +2354,7 @@ function AdminScreen({
   const visibleBusinesses = businesses.filter((business) => business.isPublic !== false)
   const readyBusinesses = businesses.filter((business) => (
     business.whatsapp &&
-    business.address &&
-    !business.address.includes('completar') &&
+    (business.businessType === 'entrepreneur' || hasBusinessPublicAddress(business)) &&
     business.verified &&
     business.isPublic !== false
   ))
@@ -2254,7 +2381,7 @@ function AdminScreen({
   const getBusinessQuality = (business) => {
     const issues = []
     if (!business.whatsapp) issues.push('WhatsApp')
-    if (!business.address || business.address.includes('completar')) issues.push('direccion')
+    if (business.businessType !== 'entrepreneur' && !hasBusinessPublicAddress(business)) issues.push('direccion')
     if (!business.openDays?.length) issues.push('dias')
     if (!business.hours || business.hours.includes('completar')) issues.push('horario')
     if (!business.menu?.filter((item) => item.name).length) issues.push('mini carta')
@@ -2362,7 +2489,7 @@ function AdminScreen({
               <div>
                 <strong>{business.name}</strong>
                 <small>{business.category} - {business.section}</small>
-                <small>{business.address || 'Sin direccion'} - {business.whatsapp || 'Sin WhatsApp'}</small>
+                <small>{hasBusinessPublicAddress(business) ? business.address : 'Sin direccion publica'} - {business.whatsapp || 'Sin WhatsApp'}</small>
               </div>
               <em>{getStatusLabel(business)}</em>
             </div>
@@ -2431,7 +2558,7 @@ function AdminScreen({
   )
 }
 
-function LoginScreen({ authNotice, onBack, onLogin, onQuickAccess, allowQuickAccess, onRegister, onToggleTheme }) {
+function LoginScreen({ authNotice, onBack, onLogin, onForgotPassword, onQuickAccess, allowQuickAccess, onRegister, onToggleTheme }) {
   const [credentials, setCredentials] = useState({ email: '', password: '' })
 
   return (
@@ -2468,7 +2595,10 @@ function LoginScreen({ authNotice, onBack, onLogin, onQuickAccess, allowQuickAcc
           <span>Clave</span>
           <input value={credentials.password} onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))} placeholder="Tu clave" type="password" />
         </label>
-        <button type="button" onClick={() => onLogin(credentials)}>Iniciar sesion</button>
+        <div className="auth-form-actions">
+          <button type="button" onClick={() => onLogin(credentials)}>Iniciar sesion</button>
+          <button className="link-button" type="button" onClick={onForgotPassword}>Olvide mi clave</button>
+        </div>
       </section>
 
       {allowQuickAccess && (
@@ -2502,6 +2632,104 @@ function LoginScreen({ authNotice, onBack, onLogin, onQuickAccess, allowQuickAcc
           <span>Aparecer en la guia puede ser gratis.</span>
         </div>
         <button type="button" onClick={() => onRegister('merchant')}>Registrar comercio</button>
+      </section>
+    </div>
+  )
+}
+
+function ForgotPasswordScreen({ authNotice, onBack, onSubmit, onToggleTheme }) {
+  const [email, setEmail] = useState('')
+
+  return (
+    <div className="utility-screen auth-screen">
+      <header className="detail-header">
+        <button type="button" onClick={onBack} aria-label="Volver">
+          <ArrowLeft size={22} />
+        </button>
+        <strong>Recuperar clave</strong>
+        <ThemeToggle onToggleTheme={onToggleTheme} />
+      </header>
+
+      <section className="auth-hero">
+        <span>Acceso seguro</span>
+        <h1>Volver a entrar sin vueltas.</h1>
+        <p>Escribi el email de tu cuenta y te mandamos un enlace para crear una clave nueva.</p>
+      </section>
+
+      {authNotice && (
+        <section className={`auth-notice ${authNotice.toLowerCase().includes('correo') ? 'mail-note' : ''}`}>
+          <Check size={16} />
+          <span>{authNotice}</span>
+        </section>
+      )}
+
+      <section className="auth-form-card recovery-card">
+        <span>Recuperacion</span>
+        <h2>Te enviamos un mail de Cerca Liceo.</h2>
+        <label>
+          <span>Email de la cuenta</span>
+          <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nombre@email.com" type="email" />
+        </label>
+        <button type="button" onClick={() => onSubmit(email)}>Mandar enlace</button>
+        <p>Si no aparece en unos minutos, revisa Spam o Promociones. El enlace sirve para crear una clave nueva.</p>
+      </section>
+
+      <section className="auth-register-strip">
+        <div>
+          <strong>Te acordaste?</strong>
+          <span>Volver a probar con email y clave.</span>
+        </div>
+        <button type="button" onClick={onBack}>Iniciar sesion</button>
+      </section>
+    </div>
+  )
+}
+
+function ResetPasswordScreen({ authNotice, onBack, onSubmit, onToggleTheme }) {
+  const [form, setForm] = useState({ password: '', confirm: '' })
+  const keysMismatch = form.password && form.confirm && form.password !== form.confirm
+
+  const savePassword = () => {
+    if (keysMismatch) return
+    onSubmit(form.password)
+  }
+
+  return (
+    <div className="utility-screen auth-screen">
+      <header className="detail-header">
+        <button type="button" onClick={onBack} aria-label="Volver">
+          <ArrowLeft size={22} />
+        </button>
+        <strong>Nueva clave</strong>
+        <ThemeToggle onToggleTheme={onToggleTheme} />
+      </header>
+
+      <section className="auth-hero">
+        <span>Cuenta verificada</span>
+        <h1>Crea tu nueva clave.</h1>
+        <p>Usa una clave de al menos 6 caracteres. Despues vas a poder entrar normalmente.</p>
+      </section>
+
+      {authNotice && (
+        <section className="auth-notice mail-note">
+          <Check size={16} />
+          <span>{authNotice}</span>
+        </section>
+      )}
+
+      <section className="auth-form-card recovery-card">
+        <span>Ultimo paso</span>
+        <h2>Elegir nueva clave.</h2>
+        <label>
+          <span>Nueva clave</span>
+          <input value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} placeholder="Minimo 6 caracteres" type="password" />
+        </label>
+        <label>
+          <span>Repetir clave</span>
+          <input value={form.confirm} onChange={(event) => setForm((current) => ({ ...current, confirm: event.target.value }))} placeholder="Escribila otra vez" type="password" />
+        </label>
+        {keysMismatch && <p className="form-warning">Las claves no coinciden.</p>}
+        <button type="button" onClick={savePassword}>Guardar clave</button>
       </section>
     </div>
   )
@@ -2618,8 +2846,8 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
       {isMerchant && (
         <section className="merchant-entry-card">
           <span>{local ? 'Local publicado' : 'Para comercios'}</span>
-          <h2>{local ? local.name : 'Carga tu local y apareces en la guia.'}</h2>
-          <p>{local ? `${local.category} en ${local.section}. ${local.address || 'Direccion pendiente.'}` : 'Completa foto, direccion, horarios, WhatsApp y mini carta para que los vecinos encuentren tu local.'}</p>
+          <h2>{local ? local.name : 'Carga tu ficha y apareces en la guia.'}</h2>
+          <p>{local ? `${local.category} en ${local.section}. ${hasBusinessPublicAddress(local) ? local.address : 'Contacto directo por WhatsApp o Instagram.'}` : 'Completa foto, zona, horarios, WhatsApp y mini carta para que los vecinos te encuentren.'}</p>
           <div>
             <button type="button" onClick={onMerchantPanel}>{local ? 'Editar local' : 'Cargar local'}</button>
           </div>
@@ -2679,6 +2907,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
     password: '',
     section: '',
     businessName: '',
+    businessType: 'local',
     category: '',
     salesMode: '',
     interests: '',
@@ -2694,6 +2923,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
       name: form.name || (isMerchant ? 'Comerciante' : 'Vecino'),
       section: form.section || 'Liceo Procrear',
       businessName: form.businessName || '',
+      businessType: form.businessType,
       category: form.category || 'Comida',
     })
     if (created === 'pending-confirmation') {
@@ -2809,7 +3039,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
         <h1>{isMerchant ? 'Crea tu comercio sin pagar nada.' : 'Usa Cerca Liceo a tu manera.'}</h1>
         <p>
           {isMerchant
-            ? 'Primero registras datos basicos. Despues completas la ficha del local y ya podes aparecer gratis en la guia.'
+            ? 'Primero registras datos basicos. Puede ser local fisico o emprendimiento sin direccion publica.'
             : 'Para buscar ofertas no hace falta registrarse. La cuenta sirve para guardar favoritos, seguir locales y recibir avisos utiles.'}
         </p>
       </section>
@@ -2878,8 +3108,28 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
           <>
             <label className="wide">
               <span>Nombre comercial si ya lo tenes</span>
-              <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder="Ej: Lo de Meli" />
+              <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder={form.businessType === 'entrepreneur' ? 'Ej: Dulces de Lau' : 'Ej: Lo de Meli'} />
             </label>
+            <div className="merchant-type-register wide">
+              <span>Tipo de comercio</span>
+              <div>
+                <button
+                  className={form.businessType !== 'entrepreneur' ? 'active' : ''}
+                  type="button"
+                  onClick={() => updateForm('businessType', 'local')}
+                >
+                  Tengo local
+                </button>
+                <button
+                  className={form.businessType === 'entrepreneur' ? 'active' : ''}
+                  type="button"
+                  onClick={() => updateForm('businessType', 'entrepreneur')}
+                >
+                  Emprendo sin local
+                </button>
+              </div>
+              <small>{form.businessType === 'entrepreneur' ? 'Despues podes mostrar WhatsApp, Instagram, zona y horarios sin publicar tu direccion.' : 'Despues podes mostrar direccion y abrir Maps.'}</small>
+            </div>
             <label>
               <span>Rubro principal</span>
               <select value={form.category} onChange={(event) => updateForm('category', event.target.value)}>
@@ -2917,7 +3167,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
         <h2>{isMerchant ? 'Primero entrar, despues vender.' : 'Podes entrar sin cuenta.'}</h2>
         <p>
           {isMerchant
-            ? 'Desde el panel cargas la ficha gratis del local. Solo pagas si queres mas publicaciones o activar mini menu con pedidos por WhatsApp.'
+            ? 'Desde el panel cargas tu ficha gratis. Si no tenes local, dejas la direccion vacia y te contactan por WhatsApp o Instagram.'
             : 'La cuenta no bloquea el uso de la app. Solo mejora favoritos, avisos y preferencias del barrio.'}
         </p>
       </section>
@@ -2959,7 +3209,7 @@ function DirectoryScreen({ businesses, onBack, onOpen, onToggleTheme }) {
       const byOpen = !openOnly || getOpenStatus(business).open
       const byQuery =
         normalizedQuery.length === 0 ||
-        `${business.name} ${business.category} ${business.address} ${business.menu.map((item) => item.name).join(' ')}`.toLowerCase().includes(normalizedQuery)
+        `${business.name} ${business.category} ${business.address} ${business.instagram || ''} ${business.menu.map((item) => item.name).join(' ')}`.toLowerCase().includes(normalizedQuery)
 
       return byCategory && bySection && byOpen && byQuery
     })
@@ -3067,11 +3317,13 @@ function DirectoryScreen({ businesses, onBack, onOpen, onToggleTheme }) {
 
 function BusinessCard({ business, onOpen, large = false }) {
   const openStatus = getOpenStatus(business)
+  const publicAddress = hasBusinessPublicAddress(business)
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${business.address || business.section}, Cordoba, Argentina`)}`
   const whatsappUrl = makeWhatsAppUrl(
     business.whatsapp,
     `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar por productos y horarios.`,
   )
+  const instagramUrl = makeInstagramUrl(business.instagram)
 
   return (
     <article className={`business-card business-${business.tone} ${large ? 'large' : ''}`} onClick={onOpen}>
@@ -3094,8 +3346,8 @@ function BusinessCard({ business, onOpen, large = false }) {
           {openStatus.open ? 'Abierto' : 'Cerrado'}
         </div>
         <p>
-          <MapPin size={13} />
-          {business.address}
+          {publicAddress ? <MapPin size={13} /> : <MessageCircle size={13} />}
+          {publicAddress ? business.address : 'Coordina por WhatsApp o Instagram'}
         </p>
         {large && (
           <div className="business-extra-line">
@@ -3123,9 +3375,16 @@ function BusinessCard({ business, onOpen, large = false }) {
             <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
               WhatsApp
             </a>
-            <a href={mapUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
-              Como llegar
-            </a>
+            {instagramUrl && (
+              <a href={instagramUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+                Instagram
+              </a>
+            )}
+            {publicAddress && (
+              <a href={mapUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+                Como llegar
+              </a>
+            )}
           </div>
         )}
       </div>
@@ -3134,9 +3393,11 @@ function BusinessCard({ business, onOpen, large = false }) {
 }
 
 function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
+  const publicAddress = hasBusinessPublicAddress(business)
   const mapQuery = `${business.address || business.section}, Cordoba, Argentina`
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`
+  const instagramUrl = makeInstagramUrl(business.instagram)
   const openStatus = getOpenStatus(business)
   const [cart, setCart] = useState({})
   const [orderMode, setOrderMode] = useState('Retiro')
@@ -3157,7 +3418,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
   const orderText = encodeURIComponent(
     `Hola ${business.name}, quiero hacer este pedido desde Cerca Liceo:\n\n${cartItems
       .map((item) => `- ${item.quantity}x ${item.name}${item.price ? ` (${item.price})` : ' (consultar precio)'}`)
-      .join('\n')}\n\nTotal: ${formattedTotal}\nEntrega: ${orderMode}\nNota: ${note || 'Sin nota'}\nDireccion del local: ${business.address}`,
+      .join('\n')}\n\nTotal: ${formattedTotal}\nEntrega: ${orderMode}\nNota: ${note || 'Sin nota'}\n${publicAddress ? `Direccion del local: ${business.address}` : `Zona: ${business.section}. Coordinar entrega o consulta por mensaje.`}`,
   )
   const whatsappUrl = makeWhatsAppUrl(business.whatsapp, decodeURIComponent(orderText))
   const updateQuantity = (itemName, change) => {
@@ -3226,7 +3487,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
           </article>
         </section>
         <div className="detail-grid">
-          <InfoItem icon={<MapPin size={18} />} label="Direccion" value={business.address} />
+          <InfoItem icon={publicAddress ? <MapPin size={18} /> : <MessageCircle size={18} />} label={publicAddress ? 'Direccion' : 'Contacto'} value={publicAddress ? business.address : 'Sin direccion publica'} />
           <InfoItem icon={<Clock3 size={18} />} label="Horario" value={business.hours} />
           <InfoItem icon={<Store size={18} />} label="Rubro" value={business.category} />
         </div>
@@ -3316,16 +3577,36 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
             />
           </label>
         </div>
-        <section className="real-location-map">
-          <div>
-            <span>Ubicacion</span>
-            <strong>{business.address || business.section}</strong>
-          </div>
-          <iframe title={`Mapa de ${business.name}`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
-          <a className="map-link-button" href={mapUrl} target="_blank" rel="noreferrer">
-            <Navigation size={14} /> Abrir en Google Maps
-          </a>
-        </section>
+        {publicAddress ? (
+          <section className="real-location-map">
+            <div>
+              <span>Ubicacion</span>
+              <strong>{business.address || business.section}</strong>
+            </div>
+            <iframe title={`Mapa de ${business.name}`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+            <a className="map-link-button" href={mapUrl} target="_blank" rel="noreferrer">
+              <Navigation size={14} /> Abrir en Google Maps
+            </a>
+          </section>
+        ) : (
+          <section className="real-location-map contact-location-card">
+            <div>
+              <span>Emprendimiento sin local publico</span>
+              <strong>Coordina directo por mensaje</strong>
+            </div>
+            <p>Esta ficha no muestra direccion. Podes consultar disponibilidad, punto de entrega o envio por WhatsApp.</p>
+            <div className="contact-location-actions">
+              <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar.`)} target="_blank" rel="noreferrer">
+                <MessageCircle size={14} /> WhatsApp
+              </a>
+              {instagramUrl && (
+                <a className="map-link-button secondary" href={instagramUrl} target="_blank" rel="noreferrer">
+                  Instagram
+                </a>
+              )}
+            </div>
+          </section>
+        )}
         <a className={`detail-whatsapp ${cartItems.length ? '' : 'is-disabled'}`} href={cartItems.length ? whatsappUrl : undefined} target="_blank" rel="noreferrer" aria-disabled={!cartItems.length}>
           <MessageCircle size={19} />
           {cartItems.length ? 'Consultar por WhatsApp' : 'Elegir productos primero'}
@@ -3418,8 +3699,10 @@ function WelcomeScreen({ onEnter }) {
 }
 
 function DetailScreen({ offer, relatedOffers = [], onBack, onToggleTheme }) {
+  const publicAddress = hasBusinessPublicAddress(offer)
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${offer.address}, Cordoba, Argentina`)}`
   const whatsappUrl = getOfferWhatsappUrl(offer)
+  const instagramUrl = makeInstagramUrl(offer.instagram)
   const openStatus = getOfferOpenStatus(offer)
 
   return (
@@ -3486,16 +3769,27 @@ function DetailScreen({ offer, relatedOffers = [], onBack, onToggleTheme }) {
         <p>{offer.description}</p>
 
         <div className="detail-grid">
-          <InfoItem icon={<MapPin size={18} />} label="Ubicacion" value={offer.address} />
+          <InfoItem icon={publicAddress ? <MapPin size={18} /> : <MessageCircle size={18} />} label={publicAddress ? 'Ubicacion' : 'Contacto'} value={publicAddress ? offer.address : 'Coordinar por WhatsApp'} />
           <InfoItem icon={<Store size={18} />} label="Referencia" value={offer.reference} />
           <InfoItem icon={<Clock3 size={18} />} label="Horario" value={offer.hours} />
           <InfoItem icon={<Bell size={18} />} label="Vigencia" value={`Vence en ${offer.expires}`} />
         </div>
 
-        <a className="map-preview map-link" href={mapUrl} target="_blank" rel="noreferrer">
-          <span></span>
-          <b><Navigation size={14} /> Como llegar</b>
-        </a>
+        {publicAddress ? (
+          <a className="map-preview map-link" href={mapUrl} target="_blank" rel="noreferrer">
+            <span></span>
+            <b><Navigation size={14} /> Como llegar</b>
+          </a>
+        ) : (
+          <section className="map-preview contact-offer-card">
+            <div>
+              <MessageCircle size={18} />
+              <strong>Sin direccion publica</strong>
+            </div>
+            <p>Consultale al emprendimiento y coordina entrega, retiro o disponibilidad.</p>
+            {instagramUrl && <a href={instagramUrl} target="_blank" rel="noreferrer">Ver Instagram</a>}
+          </section>
+        )}
 
         <section className="related-block">
           <div className="feed-head compact">

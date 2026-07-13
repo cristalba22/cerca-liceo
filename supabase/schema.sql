@@ -44,6 +44,8 @@ create table if not exists public.businesses (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references public.profiles(id) on delete cascade,
   name text not null,
+  business_type text not null default 'local' check (business_type in ('local', 'entrepreneur')),
+  has_public_address boolean not null default true,
   category text not null,
   section text not null,
   address text,
@@ -83,6 +85,8 @@ create table if not exists public.businesses (
 );
 
 alter table if exists public.businesses
+  add column if not exists business_type text not null default 'local',
+  add column if not exists has_public_address boolean not null default true,
   add column if not exists open_days text[] not null default array['Lun','Mar','Mie','Jue','Vie','Sab'],
   add column if not exists open_time text,
   add column if not exists close_time text,

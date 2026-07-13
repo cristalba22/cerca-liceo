@@ -127,13 +127,21 @@ const cleanText = (value) => String(value || '')
   .replace(/\s+\uFFFD\s+/g, ' - ')
   .replace(/\s·\s/g, ' - ')
 
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase()
+
+const isValidEmail = (value) => /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(normalizeEmail(value))
+
 const authErrorMessage = (error, fallback = 'No se pudo completar la accion.') => {
   if (!error) return ''
   const raw = typeof error === 'string'
     ? error
     : error.message || error.error_description || error.error || ''
+  if (raw === '{}' || raw === '[object Object]') return fallback
   if (/email rate limit exceeded|rate limit/i.test(raw)) {
     return 'Se alcanzo el limite temporal de emails. Proba de nuevo en unos minutos o escribi al soporte 351 766 2142.'
+  }
+  if (/internal server error|500/i.test(raw)) {
+    return 'No pudimos crear la cuenta porque fallo el envio del email de verificacion. Proba de nuevo en unos minutos o escribi al soporte 351 766 2142.'
   }
   if (raw) return raw
   return fallback
@@ -371,8 +379,14 @@ export const cercaApi = {
       return { account: form, error: null }
     }
 
-    if (!form.email || !form.password) {
+    const email = normalizeEmail(form.email)
+
+    if (!email || !form.password) {
       return { account: null, error: new Error('Email y clave son obligatorios.') }
+    }
+
+    if (!isValidEmail(email)) {
+      return { account: null, error: new Error('Revisa el email. Tiene que ser algo como nombre@gmail.com, con punto antes de com.') }
     }
 
     if (form.password.length < 6) {
@@ -381,7 +395,7 @@ export const cercaApi = {
 
     const password = form.password
     const { data, error } = await supabase.auth.signUp({
-      email: form.email,
+      email,
       password,
       options: {
         emailRedirectTo: siteUrl,

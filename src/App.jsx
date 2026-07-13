@@ -104,8 +104,12 @@ const toNoticeText = (value, fallback = 'Ocurrio un problema. Proba de nuevo.') 
   const raw = typeof value === 'string'
     ? value
     : value.message || value.error_description || value.error || ''
+  if (raw === '{}' || raw === '[object Object]') return fallback
   if (/email rate limit exceeded|rate limit/i.test(raw)) {
     return 'Se alcanzo el limite temporal de emails. Proba de nuevo en unos minutos o escribi al soporte 351 766 2142.'
+  }
+  if (/internal server error|500/i.test(raw)) {
+    return 'No pudimos crear la cuenta porque fallo el envio del email de verificacion. Proba de nuevo en unos minutos o escribi al soporte 351 766 2142.'
   }
   if (raw) return raw
   return fallback
@@ -3099,7 +3103,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
         </label>
         <label>
           <span>Email</span>
-          <input value={form.email} onChange={(event) => updateForm('email', event.target.value)} placeholder="nombre@email.com" />
+          <input value={form.email} onChange={(event) => updateForm('email', event.target.value)} placeholder="nombre@gmail.com" type="email" inputMode="email" autoComplete="email" />
         </label>
         <label>
           <span>Clave</span>

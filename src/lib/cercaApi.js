@@ -691,7 +691,9 @@ export const cercaApi = {
       image_zoom: draft.imageZoom,
       image_position: draft.imagePosition,
       plan: draft.plan === 'pedidos' ? 'orders' : 'free',
-      plan_status: draft.planStatus || (draft.plan === 'pedidos' ? 'manual_pending' : 'free'),
+      plan_status: draft.plan === 'pedidos'
+        ? (draft.planStatus === 'active' ? 'active' : 'manual_pending')
+        : 'free',
       paid_until: draft.paidUntil || null,
       admin_notes: draft.adminNotes || null,
       is_public: true,
@@ -717,7 +719,8 @@ export const cercaApi = {
 
     if (error || !data) return { business: null, error }
 
-    const menu = (draft.menu || [])
+    const planIsActive = draft.plan === 'pedidos' && draft.planStatus === 'active'
+    const menu = (planIsActive ? (draft.menu || []) : [])
       .slice(0, 10)
       .filter((item) => item.name?.trim())
       .map((item, index) => ({

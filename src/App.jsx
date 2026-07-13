@@ -132,6 +132,14 @@ const hasBusinessPublicAddress = (business = {}) => (
   !String(business.address || '').toLowerCase().includes('completar')
 )
 
+const isFounderPlanActive = (business = {}) => (
+  business.plan === 'pedidos' && business.planStatus === 'active'
+)
+
+const isFounderPlanRequested = (business = {}) => (
+  business.plan === 'pedidos' && business.planStatus !== 'active'
+)
+
 const getOpenStatus = (business = {}) => {
   const days = business.openDays || business.open_days || []
   const openTime = business.openTime || business.open_time
@@ -778,8 +786,10 @@ function App() {
             )}
             onActivateOrders={(business) => updateAdminBusiness(
               business,
-              { plan: business.plan === 'pedidos' ? 'gratis' : 'pedidos', planStatus: business.plan === 'pedidos' ? 'free' : 'active' },
-              business.plan === 'pedidos' ? 'Plan pedidos desactivado.' : 'Plan pedidos activado.',
+              isFounderPlanActive(business)
+                ? { plan: 'gratis', planStatus: 'free' }
+                : { plan: 'pedidos', planStatus: 'active' },
+              isFounderPlanActive(business) ? 'Plan fundador desactivado.' : 'Plan fundador activado.',
             )}
             onSaveNote={(business, adminNotes) => updateAdminBusiness(
               business,
@@ -1324,7 +1334,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
     image: template?.image || local?.image || suggestedOffer.image,
     expiresInDays: 4,
     hasPrice: (template?.price || suggestedOffer.price) !== 'Consultar',
-    ordersEnabled: local?.plan === 'pedidos',
+    ordersEnabled: isFounderPlanActive(local),
     hasDelivery: String(local?.delivery || '').toLowerCase().includes('delivery'),
     orderHours: local?.hours || '20:00 a 00:30',
     deliveryZone: local?.section || 'Liceo Procrear',
@@ -1352,6 +1362,12 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
     new Date(offer.createdAt || Date.now()).getTime() >= weekStart
   ))
   const freePostUsed = weeklyPosts.length > 0 && !template
+  const founderActive = isFounderPlanActive(local)
+  const canUseExtraPost = !freePostUsed || founderActive
+  const founderPlanUrl = makeWhatsAppUrl(
+    '3517662142',
+    `Hola Cristian, quiero pedir el plan fundador Liceo para ${local?.name || account?.businessName || 'mi comercio'}. Necesito mini carta, 4 publicaciones extra al mes y pedidos por WhatsApp.`,
+  )
   const [publishStatus, setPublishStatus] = useState('')
   const publishMissing = [
     !String(offerDraft.title || '').trim() && 'titulo',
@@ -1359,7 +1375,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
     !String(offerDraft.description || '').trim() && 'descripcion corta',
     !local?.whatsapp && 'WhatsApp del local',
   ].filter(Boolean)
-  const canSendOffer = canPublish && publishMissing.length === 0
+  const canSendOffer = canPublish && publishMissing.length === 0 && canUseExtraPost
   const updateOfferDraft = (field, value) => {
     setOfferDraft((current) => ({ ...current, [field]: value }))
     setPublishStatus('')
@@ -1418,7 +1434,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
         <div>
           <span>Estado para publicar</span>
           <h2>{canPublish ? `${local.name} puede publicar hoy.` : hasMerchantAccount ? 'Falta cargar la ficha del local.' : 'Falta crear cuenta comercio.'}</h2>
-        <p>{canPublish ? (freePostUsed ? 'Ya usaste la promo gratis de esta semana. Podes dejarla preparada y coordinar el extra manualmente.' : 'Tenes 1 publicacion semanal gratis. Si queres publicar mas en la misma semana, ahi recien se cobra un extra.') : 'No se pide tarjeta ni pago para empezar. La ficha del local queda gratis y visible para vecinos.'}</p>
+        <p>{canPublish ? (freePostUsed ? (founderActive ? 'Ya usaste la gratis. Como tenes plan fundador, podes usar una publicacion extra del mes.' : 'Ya usaste la promo gratis de esta semana. Para publicar extras, pedi el plan fundador y te lo activa el admin.') : 'Tenes 1 publicacion semanal gratis. Dura 3 o 4 dias y se baja sola.') : 'No se pide tarjeta ni pago para empezar. La ficha del local queda gratis y visible para vecinos.'}</p>
         </div>
         <button type="button" onClick={onMerchantPanel}>
           {canPublish ? 'Ver panel' : 'Completar local'}
@@ -1441,7 +1457,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
         <div className="template-card wide">
           <span>{freePostUsed ? 'Publicacion extra' : 'Publicacion semanal gratis'}</span>
           <strong>{freePostUsed ? 'Ya usaste la gratis de esta semana.' : 'Carga una promo simple y clara.'}</strong>
-          <p>{freePostUsed ? 'Podes prepararla y coordinar el extra manualmente.' : 'La promo queda visible 3 o 4 dias y despues se baja sola.'}</p>
+          <p>{freePostUsed ? (founderActive ? 'Esta sale como extra del plan fundador.' : 'Disponible cuando el admin active tu plan fundador.') : 'La promo queda visible 3 o 4 dias y despues se baja sola.'}</p>
         </div>
         <div className="fake-field wide progress-field">
           <span>Calidad de publicacion</span>
@@ -1493,7 +1509,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
         </div>
       </section>
 
-      {local?.plan === 'pedidos' && (
+      {founderActive && (
       <section className="delivery-setup">
         <div className="delivery-setup-copy">
           <span>Para comida nocturna</span>
@@ -1555,12 +1571,12 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
       <button
         className="primary-action"
         type="button"
-        disabled={canPublish && !canSendOffer}
+        disabled={canPublish && !canSendOffer && canUseExtraPost}
         onClick={canPublish
-          ? publishPreparedOffer
+          ? (freePostUsed && !founderActive ? () => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer') : publishPreparedOffer)
           : onMerchantPanel}
       >
-        {canPublish ? (canSendOffer ? (freePostUsed ? 'Preparar promo extra' : 'Publicar gratis') : `Completar ${publishMissing[0]}`) : 'Completar local primero'}
+        {canPublish ? (canSendOffer ? (freePostUsed ? 'Publicar extra fundador' : 'Publicar gratis') : freePostUsed && !founderActive ? 'Pedir plan fundador' : `Completar ${publishMissing[0]}`) : 'Completar local primero'}
       </button>
     </div>
   )
@@ -1675,10 +1691,11 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
     localDraft.closeTime,
     localDraft.whatsapp,
     isUploadedImage(localDraft.image),
-    ensureMenuSlots(localDraft.menu).some((item) => item.name && item.name !== 'Producto principal'),
   ].filter(Boolean).length
-  const completion = Math.round((completedFields / 11) * 100)
+  const completion = Math.round((completedFields / 10) * 100)
   const scheduleLabel = formatSchedule(localDraft)
+  const founderActive = isFounderPlanActive(localDraft)
+  const founderRequested = isFounderPlanRequested(localDraft)
   const dashboardTasks = [
     {
       id: 'basic',
@@ -1700,15 +1717,15 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
     },
     {
       id: 'menu',
-      done: localDraft.plan === 'pedidos' || ensureMenuSlots(localDraft.menu).some((item) => item.name && item.name !== 'Producto principal'),
+      done: founderActive,
       title: 'Mini carta',
-      meta: localDraft.plan === 'pedidos' ? 'Pedidos activados' : 'Opcional para vender mas',
+      meta: founderActive ? 'Plan fundador activo' : founderRequested ? 'Solicitud pendiente' : 'Plan fundador',
     },
     {
       id: 'plan',
       done: Boolean(localDraft.plan),
       title: 'Plan',
-      meta: localDraft.plan === 'pedidos' ? 'Plan pedidos elegido' : 'Ficha gratis',
+      meta: founderActive ? 'Fundador activo' : founderRequested ? 'Fundador pendiente' : 'Ficha gratis',
     },
   ]
   const pendingTasks = dashboardTasks.filter((task) => !task.done)
@@ -1719,7 +1736,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
       ? 'Visible con pendientes'
       : 'Local completo'
     : 'Alta pendiente'
-  const planLabel = localDraft.plan === 'pedidos' ? 'Mini menu + pedidos' : 'Ficha gratis'
+  const planLabel = founderActive ? 'Plan fundador activo' : founderRequested ? 'Fundador pendiente' : 'Ficha gratis'
   const founderPlanUrl = makeWhatsAppUrl(
     '3517662142',
     `Hola Cristian, quiero activar el plan fundador Liceo para ${localDraft.name || account?.businessName || 'mi comercio'}. Me interesa mini carta, 4 publicaciones extra al mes y pedidos por WhatsApp.`
@@ -1802,9 +1819,9 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
           <Flame size={18} />
           <span>Publicar promo</span>
         </button>
-        <button type="button" onClick={() => setOpenPanel('menu')}>
+        <button type="button" onClick={() => setOpenPanel(founderActive ? 'menu' : 'plan')}>
           <ShoppingBasket size={18} />
-          <span>Mini carta</span>
+          <span>{founderActive ? 'Mini carta' : 'Plan fundador'}</span>
         </button>
       </section>
 
@@ -1812,7 +1829,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
         <div>
           <span>Estado actual</span>
           <strong>{planLabel}</strong>
-          <p>{localIsPublic ? 'Tu ficha queda gratis. Pagas solo si queres mas publicaciones o pedidos armados por WhatsApp.' : 'Todavia no esta publicada. Guardala cuando completes los datos basicos.'}</p>
+          <p>{localIsPublic ? (founderActive ? 'Mini carta, pedidos y publicaciones extra estan activos.' : founderRequested ? 'Tu ficha gratis sigue visible. El plan fundador queda pendiente hasta que el admin lo active.' : 'Tu ficha queda gratis con 1 promo semanal. Mini carta, pedidos y extras se piden aparte.') : 'Todavia no esta publicada. Guardala cuando completes los datos basicos.'}</p>
         </div>
         <button type="button" onClick={saveLocal}>{localIsPublic ? 'Actualizar' : 'Guardar'}</button>
       </section>
@@ -2077,10 +2094,30 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
             </div>
           )}
 
-          {panelButton('menu', 'Paso 4', 'Mini carta', `${filledMenuItems.length}/5 productos`, ShoppingBasket)}
+          {panelButton('menu', 'Paso 4', 'Mini carta', founderActive ? `${filledMenuItems.length}/5 productos` : founderRequested ? 'Pendiente' : 'Bloqueada', ShoppingBasket)}
           {openPanel === 'menu' && (
             <div className="merchant-panel-body">
-              <section className="menu-editor menu-editor-standalone" aria-label="Mini carta del local">
+              {!founderActive ? (
+                <section className="paid-feature-preview locked-feature">
+                  <div>
+                    <span>{founderRequested ? 'Solicitud pendiente' : 'Plan fundador'}</span>
+                    <h3>La mini carta se activa cuando el admin habilita el plan.</h3>
+                    <p>
+                      Tu ficha gratis puede aparecer igual con foto, WhatsApp, horario y 1 promo semanal.
+                      La mini carta, pedidos por WhatsApp y 4 publicaciones extra quedan reservados para el plan fundador.
+                    </p>
+                  </div>
+                  <ul>
+                    <li><Check size={14} /> Mini carta de productos</li>
+                    <li><Check size={14} /> Pedido armado por WhatsApp</li>
+                    <li><Check size={14} /> 4 publicaciones extra por mes</li>
+                  </ul>
+                  <button type="button" onClick={() => setOpenPanel('plan')}>
+                    {founderRequested ? 'Ver solicitud' : 'Pedir plan fundador'}
+                  </button>
+                </section>
+              ) : (
+                <section className="menu-editor menu-editor-standalone" aria-label="Mini carta del local">
                 <div>
                   <span>Mini carta editable</span>
                   <h3>Productos simples, precio opcional y disponibilidad.</h3>
@@ -2110,17 +2147,21 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                   <button type="button" onClick={saveLocal}>Guardar mini carta</button>
                 </div>
               </section>
+              )}
             </div>
           )}
 
-          {panelButton('plan', 'Paso 5', 'Gratis o con pedidos', localDraft.plan === 'pedidos' ? 'Pedidos' : 'Gratis', ShoppingBasket)}
+          {panelButton('plan', 'Paso 5', 'Gratis o fundador', founderActive ? 'Activo' : founderRequested ? 'Pendiente' : 'Gratis', ShoppingBasket)}
           {openPanel === 'plan' && (
             <div className="merchant-panel-body">
               <section className="local-plan-selector" aria-label="Plan del comercio">
                 <button
-                  className={localDraft.plan === 'gratis' ? 'active' : ''}
+                  className={!founderActive && !founderRequested ? 'active' : ''}
                   type="button"
-                  onClick={() => updateLocalDraft('plan', 'gratis')}
+                  onClick={() => {
+                    updateLocalDraft('plan', 'gratis')
+                    updateLocalDraft('planStatus', 'free')
+                  }}
                 >
                   <span>Gratis</span>
                   <strong>Ficha + 1 promo semanal</strong>
@@ -2128,22 +2169,27 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                   <b>$0</b>
                 </button>
                 <button
-                  className={localDraft.plan === 'pedidos' ? 'active paid' : 'paid'}
+                  className={founderActive || founderRequested ? 'active paid' : 'paid'}
                   type="button"
-                  onClick={() => updateLocalDraft('plan', 'pedidos')}
+                  onClick={() => {
+                    if (!founderActive) {
+                      updateLocalDraft('plan', 'pedidos')
+                      updateLocalDraft('planStatus', 'manual_pending')
+                    }
+                  }}
                 >
-                  <span>Pago opcional</span>
-                  <strong>Mini carta + pedidos</strong>
+                  <span>{founderActive ? 'Activo por admin' : founderRequested ? 'Pendiente de admin' : 'Pago opcional'}</span>
+                  <strong>Plan fundador Liceo</strong>
                   <small>Mini carta, 4 publicaciones extra al mes y pedido armado para mandar por WhatsApp.</small>
                   <b>$8.000 fundador Liceo</b>
                 </button>
               </section>
 
-              <section className={`paid-feature-preview ${localDraft.plan === 'pedidos' ? 'is-active' : ''}`}>
+              <section className={`paid-feature-preview ${founderActive ? 'is-active' : ''}`}>
                 <div>
-                  <span>{localDraft.plan === 'pedidos' ? 'Activo en plan pago' : 'Disponible si activa plan'}</span>
+                  <span>{founderActive ? 'Activo en plan fundador' : founderRequested ? 'Solicitud pendiente' : 'Disponible al pedir plan'}</span>
                   <h3>Mini carta y pedido por WhatsApp</h3>
-                  <p>{localDraft.plan === 'pedidos' ? 'El vecino elige productos, suma el pedido y lo manda listo al comercio.' : 'En el plan gratis la ficha aparece igual, con 1 publicacion semanal que dura 3 dias.'}</p>
+                  <p>{founderActive ? 'El vecino elige productos, suma el pedido y lo manda listo al comercio.' : founderRequested ? 'Tu solicitud queda pendiente hasta que Cristian active el plan desde administracion.' : 'En el plan gratis la ficha aparece igual, con 1 publicacion semanal que dura 3 dias.'}</p>
                 </div>
                 <ul>
                   <li><Check size={14} /> Mini carta de productos</li>
@@ -2151,20 +2197,36 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                   <li><Check size={14} /> Pedido armado al WhatsApp del comercio</li>
                   <li><Check size={14} /> Precio opcional</li>
                 </ul>
-                <a className="founder-plan-cta" href={founderPlanUrl} target="_blank" rel="noreferrer">
+                <a
+                  className="founder-plan-cta"
+                  href={founderPlanUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => {
+                    if (!founderActive) {
+                      updateLocalDraft('plan', 'pedidos')
+                      updateLocalDraft('planStatus', 'manual_pending')
+                    }
+                  }}
+                >
                   <MessageCircle size={16} />
-                  Quiero plan fundador
+                  {founderRequested ? 'Avisar por WhatsApp' : founderActive ? 'Consultar plan' : 'Quiero plan fundador'}
                 </a>
+                {founderRequested && !founderActive && (
+                  <button className="founder-plan-cta secondary" type="button" onClick={saveLocal}>
+                    Guardar solicitud
+                  </button>
+                )}
               </section>
 
               <section className="local-visibility-comparison" aria-label="Diferencia entre ficha gratis y plan pago">
-                <article className={localDraft.plan === 'gratis' ? 'active' : ''}>
+                <article className={!founderActive && !founderRequested ? 'active' : ''}>
                   <span>Cuenta gratis</span>
                   <strong>Ficha publica del local</strong>
                   <p>Aparece en la guia con foto, direccion, WhatsApp, horarios, rubro y 1 publicacion semanal gratis que dura 3 dias.</p>
                   <b>Siempre $0</b>
                 </article>
-                <article className={localDraft.plan === 'pedidos' ? 'active paid' : 'paid'}>
+                <article className={founderActive || founderRequested ? 'active paid' : 'paid'}>
                   <span>Plan fundador Liceo</span>
                   <strong>Mini carta + pedidos + extras</strong>
                   <p>Incluye mini carta, 4 publicaciones extra al mes y pedido armado que llega directo por WhatsApp.</p>
@@ -2180,7 +2242,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
               <section className="public-local-preview">
                 <div className="public-local-head">
                   <span>Asi lo ve el vecino</span>
-                  <strong>{localDraft.plan === 'pedidos' ? 'Pedidos activos' : 'Ficha gratis'}</strong>
+                  <strong>{founderActive ? 'Pedidos activos' : founderRequested ? 'Ficha gratis + solicitud pendiente' : 'Ficha gratis'}</strong>
                 </div>
                 <div className="public-local-card">
                   <div {...imageSurfaceProps(localDraft.image, 'public-local-image', localDraft)}></div>
@@ -2201,17 +2263,24 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                       <b>{localDraft.paymentMethods || 'Medios de pago a definir'}</b>
                       {localDraft.instagram && <b>{localDraft.instagram}</b>}
                     </div>
-                    <ul className="public-menu-list">
-                      {ensureMenuSlots(localDraft.menu).slice(0, 5).filter((item) => item.available !== false).map((item, index) => (
-                        <li key={`${item.name || 'producto'}-${index}`}>
-                          <span>{item.name || 'Producto'}</span>
-                          {item.price && <b>{item.price}</b>}
-                        </li>
-                      ))}
-                    </ul>
+                    {founderActive ? (
+                      <ul className="public-menu-list">
+                        {ensureMenuSlots(localDraft.menu).slice(0, 5).filter((item) => item.available !== false).map((item, index) => (
+                          <li key={`${item.name || 'producto'}-${index}`}>
+                            <span>{item.name || 'Producto'}</span>
+                            {item.price && <b>{item.price}</b>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="public-menu-locked">
+                        <ShieldCheck size={14} />
+                        <span>Mini carta y pedidos se muestran cuando el admin activa el plan fundador.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                {localDraft.plan === 'pedidos' && (
+                {founderActive && (
                   <div className="public-order-strip">
                     <span>Mini menu</span>
                     <strong>3 productos seleccionados</strong>
@@ -2399,7 +2468,7 @@ function AdminScreen({
     if (business.businessType !== 'entrepreneur' && !hasBusinessPublicAddress(business)) issues.push('direccion')
     if (!business.openDays?.length) issues.push('dias')
     if (!business.hours || business.hours.includes('completar')) issues.push('horario')
-    if (!business.menu?.filter((item) => item.name).length) issues.push('mini carta')
+    if (isFounderPlanActive(business) && !business.menu?.filter((item) => item.name).length) issues.push('mini carta')
     if (!business.verified) issues.push('verificar')
     if (business.isPublic === false) issues.push('oculto')
     return issues
@@ -2408,8 +2477,15 @@ function AdminScreen({
   const getStatusLabel = (business) => {
     if (business.isPublic === false) return 'Oculto'
     if (getBusinessQuality(business).length) return 'Revisar'
-    if (business.plan === 'pedidos') return 'Pedidos'
+    if (isFounderPlanActive(business)) return 'Fundador activo'
+    if (isFounderPlanRequested(business)) return 'Fundador pendiente'
     return 'Publicado'
+  }
+
+  const getPlanActionLabel = (business) => {
+    if (isFounderPlanActive(business)) return 'Quitar fundador'
+    if (isFounderPlanRequested(business)) return 'Activar fundador'
+    return 'Activar fundador'
   }
 
   const saveNote = (business) => {
@@ -2514,15 +2590,15 @@ function AdminScreen({
               </div>
             )}
             <div className="admin-plan-line">
-              <span>{business.plan === 'pedidos' ? 'Mini menu con pedidos' : 'Ficha gratis'}</span>
-              <span>{business.planStatus === 'active' ? 'Activo' : business.planStatus === 'manual_pending' ? 'Pendiente de cobro' : 'Sin cobro'}</span>
+              <span>{isFounderPlanActive(business) ? 'Plan fundador activo' : isFounderPlanRequested(business) ? 'Pidio plan fundador' : 'Ficha gratis'}</span>
+              <span>{business.planStatus === 'active' ? 'Activo por admin' : business.planStatus === 'manual_pending' ? 'Pendiente de activar' : 'Gratis'}</span>
               <span>{business.open ? 'Abierto segun ficha' : 'Marcado cerrado'}</span>
             </div>
             <div className="admin-row-actions">
               <button type="button" onClick={() => onOpenBusiness(business)}>Ver</button>
               <button type="button" onClick={() => onToggleVerified(business)}>{business.verified ? 'Quitar check' : 'Verificar'}</button>
               <button type="button" onClick={() => onTogglePublic(business)}>{business.isPublic === false ? 'Mostrar' : 'Ocultar'}</button>
-              <button type="button" onClick={() => onActivateOrders(business)}>{business.plan === 'pedidos' ? 'Quitar pedidos' : 'Pedidos'}</button>
+              <button type="button" onClick={() => onActivateOrders(business)}>{getPlanActionLabel(business)}</button>
             </div>
             <label className="admin-note">
               <span>Nota interna</span>
@@ -3333,6 +3409,7 @@ function DirectoryScreen({ businesses, onBack, onOpen, onToggleTheme }) {
 function BusinessCard({ business, onOpen, large = false }) {
   const openStatus = getOpenStatus(business)
   const publicAddress = hasBusinessPublicAddress(business)
+  const founderActive = isFounderPlanActive(business)
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${business.address || business.section}, Cordoba, Argentina`)}`
   const whatsappUrl = makeWhatsAppUrl(
     business.whatsapp,
@@ -3371,14 +3448,16 @@ function BusinessCard({ business, onOpen, large = false }) {
             <span>{business.followers} seguidores</span>
           </div>
         )}
-        <ul>
-          {business.menu.filter((item) => item.available !== false).slice(0, large ? 5 : 2).map((item, index) => (
-            <li key={`${item.name}-${index}`}>
-              <span>{item.name}</span>
-              {item.price && <b>{item.price}</b>}
-            </li>
-          ))}
-        </ul>
+        {founderActive && (
+          <ul>
+            {business.menu.filter((item) => item.available !== false).slice(0, large ? 5 : 2).map((item, index) => (
+              <li key={`${item.name}-${index}`}>
+                <span>{item.name}</span>
+                {item.price && <b>{item.price}</b>}
+              </li>
+            ))}
+          </ul>
+        )}
         {large && (
           <div className="business-actions">
             <button type="button" onClick={(event) => {
@@ -3409,6 +3488,7 @@ function BusinessCard({ business, onOpen, large = false }) {
 
 function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
   const publicAddress = hasBusinessPublicAddress(business)
+  const founderActive = isFounderPlanActive(business)
   const mapQuery = `${business.address || business.section}, Cordoba, Argentina`
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`
@@ -3419,7 +3499,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
   const [note, setNote] = useState('')
   const orderModes = business.hasDelivery ? ['Retiro', 'Envio', 'Consultar'] : ['Retiro', 'Consultar']
   const priceToNumber = (price) => Number(String(price || '').replace(/[^\d]/g, ''))
-  const availableMenu = business.menu.filter((item) => item.available !== false)
+  const availableMenu = founderActive ? business.menu.filter((item) => item.available !== false) : []
   const cartItems = availableMenu
     .map((item) => ({
       ...item,
@@ -3493,7 +3573,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
           <article>
             <MessageCircle size={15} />
             <span>Contacto</span>
-            <strong>Pedido armado por WhatsApp</strong>
+            <strong>{founderActive ? 'Pedido armado por WhatsApp' : 'Consulta directa por WhatsApp'}</strong>
           </article>
           <article className={business.hasDelivery ? 'good' : 'muted'}>
             <Navigation size={15} />
@@ -3513,85 +3593,101 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
             </div>
           ))}
         </section>
-        <div className="delivery-panel">
-          <div>
-            <span>{business.hasDelivery ? 'Delivery activo' : 'Solo retiro'}</span>
-            <strong>{business.hasDelivery ? 'El local puede enviar tu pedido' : 'Retiras por el local'}</strong>
-          </div>
-          <div>
-            <span>Horario de pedidos</span>
-            <strong>{business.orderHours}</strong>
-          </div>
-          <div className={business.hasDelivery ? 'is-on' : 'is-off'}>
-            <span>Zona</span>
-            <strong>{business.deliveryZone}</strong>
-          </div>
-        </div>
-        <div className="order-studio">
-          <div className="order-studio-head">
-            <span>Pedido por WhatsApp</span>
-            <h2>Elegis productos y sale el mensaje listo.</h2>
-            <p>Sin cuenta, sin comision y sin escribir todo de nuevo. Ideal para comida de noche o pedidos rapidos.</p>
-          </div>
-          {!openStatus.open && (
-            <div className="closed-note">
-              <Clock3 size={16} />
-              <span>El local figura cerrado. Igual podes dejar consulta para cuando atienda.</span>
+        {founderActive && (
+          <>
+            <div className="delivery-panel">
+              <div>
+                <span>{business.hasDelivery ? 'Delivery activo' : 'Solo retiro'}</span>
+                <strong>{business.hasDelivery ? 'El local puede enviar tu pedido' : 'Retiras por el local'}</strong>
+              </div>
+              <div>
+                <span>Horario de pedidos</span>
+                <strong>{business.orderHours}</strong>
+              </div>
+              <div className={business.hasDelivery ? 'is-on' : 'is-off'}>
+                <span>Zona</span>
+                <strong>{business.deliveryZone}</strong>
+              </div>
             </div>
-          )}
-          <div className="order-tabs" aria-label="Secciones del local">
-            <button className="active" type="button">Productos</button>
-            <button type="button">Ofertas</button>
-            <button type="button">Info</button>
-          </div>
-          <div className="order-catalog">
-            {availableMenu.map((item, index) => {
-              const quantity = cart[item.name] || 0
-
-              return (
-                <div className={`product-row ${quantity > 0 ? 'is-selected' : ''}`} key={`${item.name}-${index}`}>
-                  <div {...imageSurfaceProps(business.image, 'product-thumb', business)}>
-                    <span>{index + 1}</span>
-                  </div>
-                  <div className="product-copy">
-                    <strong>{item.name}</strong>
-                    <small>{index === 0 ? 'Mas pedido hoy' : business.category}</small>
-                    {item.price ? <b>{item.price}</b> : <em>Consultar precio</em>}
-                  </div>
-                  <div className="qty-control">
-                    <button type="button" onClick={() => updateQuantity(item.name, -1)} aria-label={`Quitar ${item.name}`}>
-                      -
-                    </button>
-                    <strong>{quantity}</strong>
-                    <button type="button" onClick={() => updateQuantity(item.name, 1)} aria-label={`Agregar ${item.name}`}>
-                      +
-                    </button>
-                  </div>
+            <div className="order-studio">
+              <div className="order-studio-head">
+                <span>Pedido por WhatsApp</span>
+                <h2>Elegis productos y sale el mensaje listo.</h2>
+                <p>Sin cuenta, sin comision y sin escribir todo de nuevo. Ideal para comida de noche o pedidos rapidos.</p>
+              </div>
+              {!openStatus.open && (
+                <div className="closed-note">
+                  <Clock3 size={16} />
+                  <span>El local figura cerrado. Igual podes dejar consulta para cuando atienda.</span>
                 </div>
-              )
-            })}
-          </div>
-          <div className={`order-options ${business.hasDelivery ? '' : 'compact'}`}>
-            {orderModes.map((mode) => (
-              <button
-                className={orderMode === mode ? 'active' : ''}
-                type="button"
-                key={mode}
-                onClick={() => setOrderMode(mode)}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
-          <label className="order-note">
-            <span>Nota para el local</span>
-            <input
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="Ej: paso en 30 min, sin cebolla..."
-            />
-          </label>
-        </div>
+              )}
+              <div className="order-tabs" aria-label="Secciones del local">
+                <button className="active" type="button">Productos</button>
+                <button type="button">Ofertas</button>
+                <button type="button">Info</button>
+              </div>
+              <div className="order-catalog">
+                {availableMenu.map((item, index) => {
+                  const quantity = cart[item.name] || 0
+
+                  return (
+                    <div className={`product-row ${quantity > 0 ? 'is-selected' : ''}`} key={`${item.name}-${index}`}>
+                      <div {...imageSurfaceProps(business.image, 'product-thumb', business)}>
+                        <span>{index + 1}</span>
+                      </div>
+                      <div className="product-copy">
+                        <strong>{item.name}</strong>
+                        <small>{index === 0 ? 'Mas pedido hoy' : business.category}</small>
+                        {item.price ? <b>{item.price}</b> : <em>Consultar precio</em>}
+                      </div>
+                      <div className="qty-control">
+                        <button type="button" onClick={() => updateQuantity(item.name, -1)} aria-label={`Quitar ${item.name}`}>
+                          -
+                        </button>
+                        <strong>{quantity}</strong>
+                        <button type="button" onClick={() => updateQuantity(item.name, 1)} aria-label={`Agregar ${item.name}`}>
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className={`order-options ${business.hasDelivery ? '' : 'compact'}`}>
+                {orderModes.map((mode) => (
+                  <button
+                    className={orderMode === mode ? 'active' : ''}
+                    type="button"
+                    key={mode}
+                    onClick={() => setOrderMode(mode)}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+              <label className="order-note">
+                <span>Nota para el local</span>
+                <input
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder="Ej: paso en 30 min, sin cebolla..."
+                />
+              </label>
+            </div>
+          </>
+        )}
+        {!founderActive && (
+          <section className="order-studio locked-feature public-contact-only">
+            <div className="order-studio-head">
+              <span>Ficha gratis</span>
+              <h2>Contacta directo al comercio.</h2>
+              <p>Este comercio todavia no tiene mini carta ni pedidos armados. Podes consultar productos, disponibilidad y precios por WhatsApp.</p>
+            </div>
+            <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar.`)} target="_blank" rel="noreferrer">
+              <MessageCircle size={14} /> Consultar por WhatsApp
+            </a>
+          </section>
+        )}
         {publicAddress ? (
           <section className="real-location-map">
             <div>
@@ -3622,12 +3718,14 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
             </div>
           </section>
         )}
+        {founderActive && (
         <a className={`detail-whatsapp ${cartItems.length ? '' : 'is-disabled'}`} href={cartItems.length ? whatsappUrl : undefined} target="_blank" rel="noreferrer" aria-disabled={!cartItems.length}>
           <MessageCircle size={19} />
           {cartItems.length ? 'Consultar por WhatsApp' : 'Elegir productos primero'}
         </a>
+        )}
       </section>
-      {cartItems.length > 0 && (
+      {founderActive && cartItems.length > 0 && (
         <div className="order-cart-bar">
           <div>
             <span>{selectedCount} productos</span>

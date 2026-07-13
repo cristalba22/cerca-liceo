@@ -3290,25 +3290,25 @@ function WelcomeScreen({ onEnter }) {
           <div className="phone-search">Buscar comida, ferreteria, belleza</div>
           <div className="phone-offer offer-orange">
             <i className="image-milanesa"></i>
-            <strong>Ofertas del dia</strong>
-            <b>WhatsApp</b>
+            <strong>Que hay hoy</strong>
+            <b>Cerca</b>
           </div>
           <div className="phone-offer offer-green compact">
             <i className="image-veggie"></i>
-            <strong>Locales cerca</strong>
+            <strong>Locales abiertos</strong>
             <b>Maps</b>
           </div>
         </div>
-        <div className="welcome-orbit orbit-a">Locales del barrio</div>
-        <div className="welcome-orbit orbit-b">Promos actuales</div>
-        <div className="welcome-orbit orbit-c">WhatsApp directo</div>
+        <div className="welcome-orbit orbit-a">Comercios cerca</div>
+        <div className="welcome-orbit orbit-b">Info actualizada</div>
+        <div className="welcome-orbit orbit-c">Contacto directo</div>
       </div>
       <div className="welcome-copy">
-        <span>El radar vivo del barrio</span>
-        <h1>Todo Liceo, cerca y actualizado.</h1>
+        <span>Guia simple para moverte por Liceo</span>
+        <h1>Encontra rapido lo que hay cerca.</h1>
         <p>
-          Ofertas del dia, locales abiertos, direcciones y WhatsApp directo.
-          Entrar es gratis para vecinos.
+          Mira comercios del barrio, promos vigentes, horarios, direccion y contacto.
+          Todo pensado para resolver sin perderte en grupos ni preguntar mil veces.
         </p>
         <button className="enter-button welcome-main-cta" type="button" onClick={onEnter}>
           Ingresar
@@ -3317,24 +3317,24 @@ function WelcomeScreen({ onEnter }) {
         <div className="welcome-explainer" aria-label="Como funciona">
           <article>
             <Search size={16} />
-            <strong>Busca</strong>
-            <span>comida, despensa o servicios</span>
+            <strong>Busca facil</strong>
+            <span>por rubro, producto o servicio</span>
           </article>
           <article>
             <MapPin size={16} />
-            <strong>Mira cerca</strong>
-            <span>direccion y horario del local</span>
+            <strong>Ubica el local</strong>
+            <span>direccion, seccion y horario</span>
           </article>
           <article>
             <MessageCircle size={16} />
-            <strong>Escribi</strong>
-            <span>consulta directo por WhatsApp</span>
+            <strong>Consulta directo</strong>
+            <span>sin intermediarios ni vueltas</span>
           </article>
         </div>
         <div className="welcome-rules">
-          <span>Ofertas que se bajan solas</span>
-          <span>Locales verificados</span>
-          <span>Guia fija de servicios</span>
+          <span>Promos vigentes</span>
+          <span>Locales del barrio</span>
+          <span>Servicios a mano</span>
         </div>
       </div>
     </div>

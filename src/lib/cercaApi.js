@@ -129,10 +129,13 @@ const cleanText = (value) => String(value || '')
 
 const authErrorMessage = (error, fallback = 'No se pudo completar la accion.') => {
   if (!error) return ''
-  if (typeof error === 'string') return error
-  if (typeof error.message === 'string') return error.message
-  if (typeof error.error_description === 'string') return error.error_description
-  if (typeof error.error === 'string') return error.error
+  const raw = typeof error === 'string'
+    ? error
+    : error.message || error.error_description || error.error || ''
+  if (/email rate limit exceeded|rate limit/i.test(raw)) {
+    return 'Se alcanzo el limite temporal de emails. Proba de nuevo en unos minutos o escribi al soporte 351 766 2142.'
+  }
+  if (raw) return raw
   return fallback
 }
 

@@ -101,10 +101,13 @@ const makeWhatsAppUrl = (phone, message) => {
 
 const toNoticeText = (value, fallback = 'Ocurrio un problema. Proba de nuevo.') => {
   if (!value) return fallback
-  if (typeof value === 'string') return value
-  if (value.message && typeof value.message === 'string') return value.message
-  if (value.error_description && typeof value.error_description === 'string') return value.error_description
-  if (value.error && typeof value.error === 'string') return value.error
+  const raw = typeof value === 'string'
+    ? value
+    : value.message || value.error_description || value.error || ''
+  if (/email rate limit exceeded|rate limit/i.test(raw)) {
+    return 'Se alcanzo el limite temporal de emails. Proba de nuevo en unos minutos o escribi al soporte 351 766 2142.'
+  }
+  if (raw) return raw
   return fallback
 }
 

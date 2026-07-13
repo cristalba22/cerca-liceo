@@ -7197,8 +7197,8 @@ select:focus-visible {
 
 .merchant-type-register {
   display: grid;
-  gap: 8px;
-  padding: 12px;
+  gap: 7px;
+  padding: 10px;
   background: #fffdf7;
   border: 1px solid rgba(16, 21, 15, 0.08);
   border-radius: 18px;
@@ -7212,9 +7212,9 @@ select:focus-visible {
 }
 
 .merchant-type-register button {
-  min-height: 44px;
+  min-height: 40px;
   color: #172112;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 1000;
   background: #f6eedc;
   border: 1px solid rgba(16, 21, 15, 0.08);
@@ -7228,9 +7228,9 @@ select:focus-visible {
 
 .merchant-type-register small {
   color: #655f55;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.15;
 }
 
 .register-form span {

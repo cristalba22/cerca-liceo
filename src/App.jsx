@@ -1882,7 +1882,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
               </section>
               <div className="presence-note">
                 <ShieldCheck size={16} />
-                <span>{localDraft.businessType === 'entrepreneur' ? 'No hace falta tener local fisico. Tu ficha puede mostrar WhatsApp, Instagram, zona y horarios.' : 'La direccion ayuda a que el vecino llegue facil. Si vendes desde casa, elegi emprendedor.'}</span>
+                <span>{localDraft.businessType === 'entrepreneur' ? 'Sin direccion publica. Te contactan por WhatsApp o Instagram.' : 'Con direccion publica y boton para llegar.'}</span>
               </div>
               <div className="local-builder-fields">
                 <label>
@@ -3124,10 +3124,10 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
                   type="button"
                   onClick={() => updateForm('businessType', 'entrepreneur')}
                 >
-                  Emprendo sin local
+                  Sin local
                 </button>
               </div>
-              <small>{form.businessType === 'entrepreneur' ? 'Despues podes mostrar WhatsApp, Instagram, zona y horarios sin publicar tu direccion.' : 'Despues podes mostrar direccion y abrir Maps.'}</small>
+              <small>{form.businessType === 'entrepreneur' ? 'Contacto por WhatsApp o Instagram.' : 'Direccion y Maps visibles.'}</small>
             </div>
             <label>
               <span>Rubro principal</span>

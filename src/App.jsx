@@ -132,13 +132,15 @@ const hasBusinessPublicAddress = (business = {}) => (
   !String(business.address || '').toLowerCase().includes('completar')
 )
 
-const isFounderPlanActive = (business = {}) => (
-  business.plan === 'pedidos' && business.planStatus === 'active'
-)
+const isFounderPlanActive = (business = {}) => {
+  const safeBusiness = business || {}
+  return safeBusiness.plan === 'pedidos' && safeBusiness.planStatus === 'active'
+}
 
-const isFounderPlanRequested = (business = {}) => (
-  business.plan === 'pedidos' && business.planStatus !== 'active'
-)
+const isFounderPlanRequested = (business = {}) => {
+  const safeBusiness = business || {}
+  return safeBusiness.plan === 'pedidos' && safeBusiness.planStatus !== 'active'
+}
 
 const getOpenStatus = (business = {}) => {
   const days = business.openDays || business.open_days || []
@@ -320,6 +322,13 @@ function App() {
   const [adminBusinesses, setAdminBusinesses] = useState([])
   const [publishTemplate, setPublishTemplate] = useState(null)
   const [authNotice, setAuthNotice] = useState('')
+  const [pageViews, setPageViews] = useState(() => Number(window.localStorage.getItem('cerca-liceo-page-views') || 0))
+
+  useEffect(() => {
+    const nextViews = pageViews + 1
+    window.localStorage.setItem('cerca-liceo-page-views', String(nextViews))
+    setPageViews(nextViews)
+  }, [])
 
   const loadMerchantOffers = async () => {
     const { offers: myOffers, error } = await cercaApi.listMyOffers()
@@ -631,6 +640,25 @@ function App() {
     setAuthNotice(message || 'Local actualizado.')
   }
 
+  const deleteBusinessAdmin = async (business) => {
+    if (!business?.id) {
+      setAuthNotice('No se encontro el comercio para eliminar.')
+      return
+    }
+    const confirmDelete = window.confirm(`Eliminar "${business.name}" completo? Se borran tambien sus publicaciones. Esta accion no se puede deshacer.`)
+    if (!confirmDelete) return
+    const { error } = await cercaApi.deleteBusinessAdmin({ businessId: business.id })
+    if (error) {
+      setAuthNotice(error.message || 'No se pudo eliminar el comercio. Revisa permisos de admin en Supabase.')
+      return
+    }
+    setAdminBusinesses((current) => current.filter((item) => item.id !== business.id))
+    setFeedBusinesses((current) => current.filter((item) => item.id !== business.id))
+    setFeedOffers((current) => current.filter((offer) => offer.businessId !== business.id && offer.business !== business.name))
+    if (merchantLocal?.id === business.id) setMerchantLocal(null)
+    setAuthNotice('Comercio eliminado del sistema.')
+  }
+
   const publicFeedOffers = useMemo(() => {
     const seen = new Set()
     return feedOffers.map((offer) => {
@@ -743,6 +771,7 @@ function App() {
             local={merchantLocal}
             template={publishTemplate}
             offers={feedOffers}
+            pageViews={pageViews}
             onBack={() => setScreen('profile')}
             onMerchantPanel={() => setScreen('my-posts')}
             onPublishOffer={publishOffer}
@@ -796,6 +825,12 @@ function App() {
               { adminNotes },
               'Nota interna guardada.',
             )}
+            onEditBusiness={(business, changes) => updateAdminBusiness(
+              business,
+              changes,
+              'Datos del comercio actualizados.',
+            )}
+            onDeleteBusiness={deleteBusinessAdmin}
             onOpenOffer={(offer) => {
               setSelectedOffer(offer)
               setScreen('detail')
@@ -2414,6 +2449,7 @@ function ManagedPost({ offer, status, action, secondaryAction, onAction, onSecon
 function AdminScreen({
   businesses,
   offers,
+  pageViews,
   onBack,
   onOpenBusiness,
   onOpenOffer,
@@ -2421,11 +2457,15 @@ function AdminScreen({
   onToggleVerified,
   onActivateOrders,
   onSaveNote,
+  onEditBusiness,
+  onDeleteBusiness,
   onPauseOffer,
   onDeleteOffer,
   onToggleTheme,
 }) {
   const [notesDraft, setNotesDraft] = useState({})
+  const [editDrafts, setEditDrafts] = useState({})
+  const [adminView, setAdminView] = useState('pendientes')
   const needsReview = businesses.filter((business) => (
     !business.whatsapp ||
     (business.businessType !== 'entrepreneur' && !hasBusinessPublicAddress(business)) ||
@@ -2436,6 +2476,8 @@ function AdminScreen({
   const hiddenBusinesses = businesses.filter((business) => business.isPublic === false)
   const pendingOrders = businesses.filter((business) => business.plan === 'pedidos' && business.planStatus !== 'active')
   const visibleBusinesses = businesses.filter((business) => business.isPublic !== false)
+  const activeOffers = offers.filter((offer) => offer.open !== false)
+  const pausedOffers = offers.filter((offer) => offer.open === false)
   const readyBusinesses = businesses.filter((business) => (
     business.whatsapp &&
     (business.businessType === 'entrepreneur' || hasBusinessPublicAddress(business)) &&
@@ -2450,13 +2492,41 @@ function AdminScreen({
     list.findIndex((item) => (item.id || item.name) === (business.id || business.name)) === index
   ))
   const activeRate = businesses.length ? Math.round((readyBusinesses.length / businesses.length) * 100) : 0
-
+  const offersByBusiness = offers.reduce((acc, offer) => {
+    const key = offer.businessId || offer.business
+    if (!acc[key]) acc[key] = []
+    acc[key].push(offer)
+    return acc
+  }, {})
   useEffect(() => {
     setNotesDraft((current) => {
       const next = { ...current }
       businesses.forEach((business) => {
         const id = business.id || business.name
         if (!(id in next)) next[id] = business.adminNotes || ''
+      })
+      return next
+    })
+  }, [businesses])
+
+  useEffect(() => {
+    setEditDrafts((current) => {
+      const next = { ...current }
+      businesses.forEach((business) => {
+        const id = business.id || business.name
+        if (!(id in next)) {
+          next[id] = {
+            name: business.name || '',
+            category: business.category || 'Comida',
+            section: business.section || 'Liceo Procrear',
+            address: business.address || '',
+            reference: business.reference || '',
+            hours: business.hours || '',
+            whatsapp: business.whatsapp || '',
+            instagram: business.instagram || '',
+            isOpen: business.open !== false,
+          }
+        }
       })
       return next
     })
@@ -2493,6 +2563,31 @@ function AdminScreen({
     onSaveNote(business, notesDraft[id] || '')
   }
 
+  const updateEditDraft = (business, field, value) => {
+    const id = business.id || business.name
+    setEditDrafts((current) => ({
+      ...current,
+      [id]: {
+        ...(current[id] || {}),
+        [field]: value,
+      },
+    }))
+  }
+
+  const saveEditDraft = (business) => {
+    const id = business.id || business.name
+    const draft = editDrafts[id] || {}
+    onEditBusiness(business, draft)
+  }
+
+  const businessListByView = adminView === 'pendientes'
+    ? priorityBusinesses.filter((business) => getBusinessQuality(business).length)
+    : adminView === 'planes'
+      ? priorityBusinesses.filter((business) => isFounderPlanRequested(business) || isFounderPlanActive(business))
+      : priorityBusinesses
+  const visibleAdminBusinesses = adminView === 'promos' ? [] : businessListByView
+  const adminOffers = adminView === 'promos' ? offers : activeOffers
+
   return (
     <div className="utility-screen admin-screen">
       <header className="detail-header">
@@ -2505,8 +2600,8 @@ function AdminScreen({
 
       <section className="admin-hero">
         <span>Control interno</span>
-        <h1>Panel simple para operar el barrio.</h1>
-        <p>Primero revisa locales incompletos. Despues verifica, publica u oculta. Los pedidos se activan solo cuando ya hablaste con el comercio.</p>
+        <h1>Operacion clara para Cerca Liceo.</h1>
+        <p>Revisa altas, activa fundador solo cuando lo coordinaste, controla promos y limpia datos raros sin entrar a la base.</p>
       </section>
 
       <section className="admin-stats">
@@ -2527,13 +2622,30 @@ function AdminScreen({
           <span>para revisar</span>
         </article>
         <article className={pendingOrders.length ? 'needs' : ''}>
-          <strong>{paidPlanBusinesses.length}</strong>
-          <span>pedidos</span>
+          <strong>{pendingOrders.length}</strong>
+          <span>fundador pendiente</span>
         </article>
-        <article className={hiddenBusinesses.length ? 'needs' : ''}>
-          <strong>{hiddenBusinesses.length}</strong>
-          <span>ocultos</span>
+        <article>
+          <strong>{activeOffers.length}</strong>
+          <span>promos activas</span>
         </article>
+        <article>
+          <strong>{pageViews}</strong>
+          <span>visitas en este dispositivo</span>
+        </article>
+      </section>
+
+      <section className="admin-tabs" aria-label="Vistas de administracion">
+        {[
+          ['pendientes', `Pendientes ${needsReview.length}`],
+          ['planes', `Fundador ${pendingOrders.length}`],
+          ['locales', `Locales ${businesses.length}`],
+          ['promos', `Promos ${offers.length}`],
+        ].map(([id, label]) => (
+          <button className={adminView === id ? 'active' : ''} type="button" key={id} onClick={() => setAdminView(id)}>
+            {label}
+          </button>
+        ))}
       </section>
 
       <section className="admin-command-center">
@@ -2550,7 +2662,7 @@ function AdminScreen({
         <article>
           <span>Paso 3</span>
           <strong>Planes manuales</strong>
-          <p>Activa pedidos solo despues de coordinar transferencia o efectivo. Sin pasarela por ahora.</p>
+          <p>{pendingOrders.length ? `${pendingOrders.length} comercio(s) pidieron fundador y esperan tu activacion.` : 'No hay solicitudes de fundador pendientes.'}</p>
         </article>
       </section>
 
@@ -2559,20 +2671,29 @@ function AdminScreen({
           <BadgeCheck size={18} />
           <strong>Regla de calidad</strong>
         </div>
-        <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, direccion, horario y mini carta clara.</p>
+        <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, horario claro y promos vigentes. La mini carta solo cuenta si tienen fundador activo.</p>
       </section>
 
+      {adminView !== 'promos' && (
       <section className="admin-list">
         <div className="feed-head compact">
           <div>
             <Store size={17} />
-            <strong>Locales para operar</strong>
+            <strong>{adminView === 'planes' ? 'Solicitudes y planes' : adminView === 'locales' ? 'Todos los locales' : 'Locales para revisar'}</strong>
           </div>
-          <span>{needsReview.length ? `${needsReview.length} incompletos` : 'Todo bien'}</span>
+          <span>{visibleAdminBusinesses.length ? `${visibleAdminBusinesses.length} items` : 'Todo bien'}</span>
         </div>
-        {priorityBusinesses.slice(0, 16).map((business) => {
+        {visibleAdminBusinesses.length === 0 && (
+          <article className="admin-empty-state">
+            <strong>No hay nada urgente aca.</strong>
+            <p>Cuando un comercio quede incompleto, pida fundador o se cargue algo nuevo, va a aparecer en esta vista.</p>
+          </article>
+        )}
+        {visibleAdminBusinesses.slice(0, 40).map((business) => {
           const issues = getBusinessQuality(business)
           const id = business.id || business.name
+          const businessOffers = offersByBusiness[business.id] || offersByBusiness[business.name] || []
+          const editDraft = editDrafts[id] || {}
           return (
           <article className={`admin-row ${business.isPublic === false ? 'is-hidden' : ''}`} key={id}>
             <div className="admin-row-main">
@@ -2593,13 +2714,75 @@ function AdminScreen({
               <span>{isFounderPlanActive(business) ? 'Plan fundador activo' : isFounderPlanRequested(business) ? 'Pidio plan fundador' : 'Ficha gratis'}</span>
               <span>{business.planStatus === 'active' ? 'Activo por admin' : business.planStatus === 'manual_pending' ? 'Pendiente de activar' : 'Gratis'}</span>
               <span>{business.open ? 'Abierto segun ficha' : 'Marcado cerrado'}</span>
+              <span>{businessOffers.length} promos</span>
             </div>
             <div className="admin-row-actions">
               <button type="button" onClick={() => onOpenBusiness(business)}>Ver</button>
               <button type="button" onClick={() => onToggleVerified(business)}>{business.verified ? 'Quitar check' : 'Verificar'}</button>
               <button type="button" onClick={() => onTogglePublic(business)}>{business.isPublic === false ? 'Mostrar' : 'Ocultar'}</button>
               <button type="button" onClick={() => onActivateOrders(business)}>{getPlanActionLabel(business)}</button>
+              <button className="danger" type="button" onClick={() => onDeleteBusiness(business)}>Eliminar local</button>
             </div>
+            <details className="admin-edit-box">
+              <summary>Editar datos rapidos</summary>
+              <div className="admin-edit-grid">
+                <label>
+                  <span>Nombre</span>
+                  <input value={editDraft.name || ''} onChange={(event) => updateEditDraft(business, 'name', event.target.value)} />
+                </label>
+                <label>
+                  <span>WhatsApp</span>
+                  <input value={editDraft.whatsapp || ''} onChange={(event) => updateEditDraft(business, 'whatsapp', event.target.value)} />
+                </label>
+                <label>
+                  <span>Rubro</span>
+                  <select value={editDraft.category || 'Comida'} onChange={(event) => updateEditDraft(business, 'category', event.target.value)}>
+                    {categories.filter((category) => category.name !== 'Todas').map((category) => (
+                      <option key={category.name}>{category.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Seccion</span>
+                  <select value={editDraft.section || 'Liceo Procrear'} onChange={(event) => updateEditDraft(business, 'section', event.target.value)}>
+                    {sections.filter((section) => section !== 'Todos').map((section) => (
+                      <option key={section}>{section}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="wide">
+                  <span>Direccion</span>
+                  <input value={editDraft.address || ''} onChange={(event) => updateEditDraft(business, 'address', event.target.value)} />
+                </label>
+                <label className="wide">
+                  <span>Referencia</span>
+                  <input value={editDraft.reference || ''} onChange={(event) => updateEditDraft(business, 'reference', event.target.value)} />
+                </label>
+                <label>
+                  <span>Horario</span>
+                  <input value={editDraft.hours || ''} onChange={(event) => updateEditDraft(business, 'hours', event.target.value)} />
+                </label>
+                <label>
+                  <span>Instagram</span>
+                  <input value={editDraft.instagram || ''} onChange={(event) => updateEditDraft(business, 'instagram', event.target.value)} />
+                </label>
+              </div>
+              <button type="button" onClick={() => saveEditDraft(business)}>Guardar cambios</button>
+            </details>
+            {businessOffers.length > 0 && (
+              <div className="admin-business-offers">
+                <strong>Publicaciones de este comercio</strong>
+                {businessOffers.slice(0, 4).map((offer) => (
+                  <div key={offer.id || `${offer.title}-${offer.price}`}>
+                    <span>{offer.title}</span>
+                    <small>{offer.price} - {offer.expires}</small>
+                    <button type="button" onClick={() => onOpenOffer(offer)}>Ver</button>
+                    <button type="button" onClick={() => onPauseOffer(offer)}>{offer.open === false ? 'Activar' : 'Pausar'}</button>
+                    <button className="danger" type="button" onClick={() => onDeleteOffer(offer)}>Eliminar</button>
+                  </div>
+                ))}
+              </div>
+            )}
             <label className="admin-note">
               <span>Nota interna</span>
               <textarea
@@ -2614,16 +2797,18 @@ function AdminScreen({
           )
         })}
       </section>
+      )}
 
+      {(adminView === 'promos' || adminView === 'locales') && (
       <section className="admin-list">
         <div className="feed-head compact">
           <div>
             <Flame size={17} />
             <strong>Promos activas</strong>
           </div>
-          <span>vencen solas</span>
+          <span>{pausedOffers.length} pausadas</span>
         </div>
-        {offers.slice(0, 12).map((offer) => (
+        {adminOffers.slice(0, 40).map((offer) => (
           <article className="admin-row promo" key={offer.id || offer.title}>
             <span className={`admin-dot ${offer.open === false ? 'warn' : 'ok'}`}></span>
             <div>
@@ -2639,6 +2824,7 @@ function AdminScreen({
           </article>
         ))}
       </section>
+      )}
 
       <section className="admin-next">
         <span>Checklist antes de compartir</span>

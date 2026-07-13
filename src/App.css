@@ -4230,12 +4230,37 @@ select:focus-visible {
   background: rgba(255, 251, 234, 0.08);
 }
 
+.night-mode .admin-tabs button,
+.night-mode .admin-empty-state,
+.night-mode .admin-edit-box,
+.night-mode .admin-business-offers {
+  color: #fffbea;
+  background: #22261d;
+  border-color: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .admin-tabs button.active {
+  color: #172112;
+  background: linear-gradient(145deg, #a7e92a, #70dfd2);
+}
+
+.night-mode .admin-edit-grid input,
+.night-mode .admin-edit-grid select,
+.night-mode .admin-business-offers div {
+  color: #fffbea;
+  background: #11170f;
+  border-color: rgba(255, 251, 234, 0.08);
+}
+
 .night-mode .admin-issues span {
   color: #172112;
   background: #ffe49a;
 }
 
-.night-mode .admin-note span {
+.night-mode .admin-note span,
+.night-mode .admin-edit-grid span,
+.night-mode .admin-empty-state p,
+.night-mode .admin-business-offers small {
   color: rgba(255, 251, 234, 0.68);
 }
 
@@ -6436,6 +6461,31 @@ select:focus-visible {
   background: #ffe49a;
 }
 
+.admin-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  padding: 0 20px 14px;
+}
+
+.admin-tabs button {
+  min-height: 44px;
+  padding: 0 8px;
+  color: #665f53;
+  font-size: 10px;
+  font-weight: 1000;
+  line-height: 1.05;
+  background: rgba(255, 253, 247, 0.82);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 15px;
+  box-shadow: 0 8px 16px rgba(31, 30, 22, 0.06);
+}
+
+.admin-tabs button.active {
+  color: #172112;
+  background: linear-gradient(145deg, #a7e92a, #70dfd2);
+}
+
 .admin-command-center {
   display: grid;
   grid-template-columns: 1fr;
@@ -6557,6 +6607,27 @@ select:focus-visible {
   opacity: 0.82;
 }
 
+.admin-empty-state {
+  padding: 16px;
+  color: #172112;
+  background: rgba(255, 253, 247, 0.88);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 18px;
+}
+
+.admin-empty-state strong,
+.admin-empty-state p {
+  display: block;
+}
+
+.admin-empty-state p {
+  margin: 8px 0 0;
+  color: #665f53;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .admin-row-main {
   display: grid;
   grid-template-columns: 12px minmax(0, 1fr) auto;
@@ -6653,6 +6724,124 @@ select:focus-visible {
 }
 
 .admin-row-actions button.danger {
+  color: #fffbea;
+  background: #11170f;
+}
+
+.admin-edit-box {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f6f0e3;
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 16px;
+}
+
+.admin-edit-box summary {
+  cursor: pointer;
+  color: #172112;
+  font-size: 11px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.admin-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.admin-edit-grid label {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-edit-grid label.wide {
+  grid-column: 1 / -1;
+}
+
+.admin-edit-grid span {
+  color: #665f53;
+  font-size: 9px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.admin-edit-grid input,
+.admin-edit-grid select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  color: #172112;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  background: #fffdf7;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 12px;
+  outline: none;
+}
+
+.admin-edit-box > button {
+  width: 100%;
+  min-height: 38px;
+  margin-top: 9px;
+  color: #172112;
+  font-size: 11px;
+  font-weight: 1000;
+  background: #a7e92a;
+  border: 0;
+  border-radius: 999px;
+}
+
+.admin-business-offers {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(167, 233, 42, 0.12);
+  border: 1px solid rgba(134, 173, 18, 0.18);
+  border-radius: 16px;
+}
+
+.admin-business-offers > strong {
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.admin-business-offers div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(255, 253, 247, 0.76);
+  border-radius: 12px;
+}
+
+.admin-business-offers span,
+.admin-business-offers small {
+  min-width: 0;
+}
+
+.admin-business-offers small {
+  grid-column: 1;
+  color: #756d60;
+  font-size: 10px;
+}
+
+.admin-business-offers button {
+  min-height: 30px;
+  padding: 0 8px;
+  color: #172112;
+  font-size: 9px;
+  font-weight: 1000;
+  background: #e8f6bd;
+  border: 0;
+  border-radius: 999px;
+}
+
+.admin-business-offers button.danger {
   color: #fffbea;
   background: #11170f;
 }

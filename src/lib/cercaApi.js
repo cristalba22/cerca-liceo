@@ -612,6 +612,14 @@ export const cercaApi = {
     if ('plan' in changes) payload.plan = changes.plan === 'pedidos' ? 'orders' : 'free'
     if ('planStatus' in changes) payload.plan_status = changes.planStatus
     if ('adminNotes' in changes) payload.admin_notes = changes.adminNotes || null
+    if ('name' in changes) payload.name = changes.name
+    if ('category' in changes) payload.category = changes.category
+    if ('section' in changes) payload.section = changes.section
+    if ('address' in changes) payload.address = changes.address || null
+    if ('reference' in changes) payload.reference = changes.reference || null
+    if ('hours' in changes) payload.hours = changes.hours
+    if ('whatsapp' in changes) payload.whatsapp = changes.whatsapp
+    if ('instagram' in changes) payload.instagram = changes.instagram || null
     payload.updated_at = new Date().toISOString()
 
     const { data, error } = await supabase
@@ -622,6 +630,28 @@ export const cercaApi = {
       .single()
 
     return { business: data ? mapBusinessRow(data) : null, error }
+  },
+
+  async deleteBusinessAdmin({ businessId }) {
+    if (!businessId) {
+      return { error: new Error('No se encontro el comercio.') }
+    }
+
+    if (!hasSupabaseConfig) {
+      const current = readStorage(LOCAL_BUSINESS_KEY)
+      const savedBusinesses = (readStorage(LOCAL_BUSINESSES_KEY) || []).map(normalizeBusiness)
+      writeStorage(LOCAL_BUSINESSES_KEY, savedBusinesses.filter((business) => business.id !== businessId))
+      writeLocalOffers(readLocalOffers().filter((offer) => offer.businessId !== businessId))
+      if (current?.id === businessId) writeStorage(LOCAL_BUSINESS_KEY, null)
+      return { error: null }
+    }
+
+    const { error } = await supabase
+      .from('businesses')
+      .delete()
+      .eq('id', businessId)
+
+    return { error }
   },
 
   async getMyBusiness() {

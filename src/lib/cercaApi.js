@@ -232,6 +232,7 @@ const getExpiresLabel = (expiresAt) => {
 }
 
 const isOfferAlive = (offer) => {
+  if (/eliminada/i.test(offer.highlight || '')) return false
   if (offer.paused || offer.open === false) return false
   if (!offer.expiresAt) return true
   return new Date(offer.expiresAt).getTime() > Date.now()
@@ -527,7 +528,10 @@ export const cercaApi = {
       .order('created_at', { ascending: false })
       .limit(50)
 
-    return { offers: data?.map(mapOfferRow) || [], error }
+    return {
+      offers: data?.map(mapOfferRow).filter((offer) => !/eliminada/i.test(offer.highlight || '')) || [],
+      error,
+    }
   },
 
   async listBusinesses({ section = 'Todos', category = 'Todas', query = '', openOnly = false } = {}) {
@@ -904,8 +908,14 @@ export const cercaApi = {
 
     const { error } = await supabase
       .from('offers')
-      .delete()
+      .update({
+        is_active: false,
+        expires_at: new Date().toISOString(),
+        highlight: 'Eliminada por admin',
+      })
       .eq('id', offerId)
+      .select('id')
+      .single()
 
     return { error }
   },

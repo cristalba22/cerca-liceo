@@ -104,6 +104,14 @@ const getOpenStatus = (business = {}) => {
   const openTime = business.openTime || business.open_time
   const closeTime = business.closeTime || business.close_time
 
+  if (business.open === false) {
+    return {
+      open: false,
+      label: 'Cerrado ahora',
+      detail: business.hours || business.orderHours || formatSchedule({ openDays: days, openTime, closeTime }),
+    }
+  }
+
   if (!days.length || !openTime || !closeTime) {
     return {
       open: business.open !== false,
@@ -135,6 +143,14 @@ const getOpenStatus = (business = {}) => {
     detail: isOpen ? `Hasta ${closeTime}` : formatSchedule(business),
   }
 }
+
+const getOfferOpenStatus = (offer = {}) => getOpenStatus({
+  open: offer.open,
+  hours: offer.hours,
+  openDays: offer.openDays || offer.open_days || [],
+  openTime: offer.openTime || offer.open_time || '',
+  closeTime: offer.closeTime || offer.close_time || '',
+})
 
 const getOfferBusiness = (offer) => businesses.find((business) => business.name === offer.business)
 
@@ -545,13 +561,32 @@ function App() {
 
   const publicFeedOffers = useMemo(() => {
     const seen = new Set()
-    return feedOffers.filter((offer) => {
+    return feedOffers.map((offer) => {
+      const matchedBusiness = feedBusinesses.find((business) => (
+        business.id === offer.businessId ||
+        business.name === offer.business
+      ))
+
+      return matchedBusiness
+        ? {
+            ...offer,
+            address: offer.address || matchedBusiness.address,
+            reference: offer.reference || matchedBusiness.reference,
+            hours: offer.hours || matchedBusiness.hours,
+            openDays: offer.openDays?.length ? offer.openDays : matchedBusiness.openDays,
+            openTime: offer.openTime || matchedBusiness.openTime,
+            closeTime: offer.closeTime || matchedBusiness.closeTime,
+            open: matchedBusiness.open,
+            whatsapp: offer.whatsapp || matchedBusiness.whatsapp,
+          }
+        : offer
+    }).filter((offer) => {
       const key = `${offer.businessId || offer.business}-${offer.title}-${offer.price}`
       if (seen.has(key)) return false
       seen.add(key)
       return true
     })
-  }, [feedOffers])
+  }, [feedBusinesses, feedOffers])
 
   const filteredOffers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -568,7 +603,7 @@ function App() {
   }, [publicFeedOffers, query, selectedCategory, selectedSection])
 
   const visibleFeedOffers = publicFeedOffers.filter((offer) => offer.open !== false)
-  const openOffers = visibleFeedOffers.filter((offer) => offer.open)
+  const openOffers = visibleFeedOffers.filter((offer) => getOfferOpenStatus(offer).open)
   const safeOpenOffers = openOffers.length ? openOffers : visibleFeedOffers
   const heroOffer = safeOpenOffers[featuredBusinessIndex % Math.max(safeOpenOffers.length, 1)]
   const liveMapBusinesses = useMemo(() => mergeUniqueById([
@@ -584,7 +619,7 @@ function App() {
       whatsapp: offer.whatsapp || '',
       tone: offer.tone || 'orange',
       image: offer.image || 'milanesa',
-      open: offer.open !== false,
+      open: getOfferOpenStatus(offer).open,
       isPublic: true,
       menu: [{ name: offer.title, price: offer.price }],
       distance: offer.distance || 'cerca',
@@ -3344,6 +3379,7 @@ function WelcomeScreen({ onEnter }) {
 function DetailScreen({ offer, relatedOffers = [], onBack, onToggleTheme }) {
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${offer.address}, Cordoba, Argentina`)}`
   const whatsappUrl = getOfferWhatsappUrl(offer)
+  const openStatus = getOfferOpenStatus(offer)
 
   return (
     <div className="detail-screen">
@@ -3390,9 +3426,9 @@ function DetailScreen({ offer, relatedOffers = [], onBack, onToggleTheme }) {
           <div>
             <small>{offer.business}</small>
             <h1>{offer.title}</h1>
-            <div className={`open-badge ${offer.open ? 'is-open' : 'is-closed'}`}>
+            <div className={`open-badge ${openStatus.open ? 'is-open' : 'is-closed'}`}>
               <i></i>
-              {offer.open ? 'Abierto ahora' : 'Cerrado ahora'}
+              {openStatus.label}
             </div>
           </div>
           <b>{offer.price}</b>
@@ -3464,6 +3500,7 @@ function InfoItem({ icon, label, value }) {
 
 function OfferCard({ offer, onOpen }) {
   const whatsappUrl = getOfferWhatsappUrl(offer)
+  const openStatus = getOfferOpenStatus(offer)
 
   return (
     <article className={`offer-card offer-${offer.tone}`} onClick={onOpen}>
@@ -3488,9 +3525,9 @@ function OfferCard({ offer, onOpen }) {
           <b>{offer.price}</b>
         </div>
         <div className="offer-bottom-line">
-          <div className={`open-badge mini ${offer.open ? 'is-open' : 'is-closed'}`}>
+          <div className={`open-badge mini ${openStatus.open ? 'is-open' : 'is-closed'}`}>
             <i></i>
-            {offer.open ? 'Abierto' : 'Cerrado'}
+            {openStatus.open ? 'Abierto' : 'Cerrado'}
           </div>
           <span>{offer.saves} guardados</span>
         </div>

@@ -1,4 +1,4 @@
-import { hasSupabaseConfig, supabase } from './supabaseClient'
+import { hasSupabaseConfig, siteUrl, supabase } from './supabaseClient'
 import { defaultBusinesses, defaultOffers } from './fallbackData'
 
 const LOCAL_ACCOUNT_KEY = 'cerca-liceo-account'
@@ -337,6 +337,7 @@ export const cercaApi = {
       email: form.email,
       password,
       options: {
+        emailRedirectTo: siteUrl,
         data: {
           full_name: form.name,
           account_type: form.type,

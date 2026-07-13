@@ -864,30 +864,6 @@ function App() {
               onDirectory={() => setScreen('directory')}
             />
 
-            {filteredOffers.length > 1 && (
-              <>
-                <section className="quick-offer-strip" aria-label="Ofertas visibles">
-                  {filteredOffers.slice(0, 4).map((offer, index) => (
-                    <button
-                      className={`quick-offer-card offer-${offer.tone}`}
-                      type="button"
-                      key={offer.id || `${offer.title}-${index}`}
-                      onClick={() => {
-                        setSelectedOffer(offer)
-                        setScreen('detail')
-                      }}
-                    >
-                      <span>{offer.category}</span>
-                      <strong>{offer.title}</strong>
-                      <small>{offer.business}</small>
-                      <b>{offer.price}</b>
-                    </button>
-                  ))}
-                </section>
-                <ScrollCue label="Desliza ofertas" />
-              </>
-            )}
-
             <section className="business-strip top compact-home">
               <div className="feed-head compact">
                 <div>
@@ -968,9 +944,9 @@ function App() {
                 <div className="feed-head">
                   <div>
                     <MapPin size={17} />
-                    <strong>{query.trim() ? `Resultados para "${query.trim()}"` : 'Todas las ofertas'}</strong>
+                    <strong>{query.trim() ? `Resultados para "${query.trim()}"` : 'Ofertas activas'}</strong>
                   </div>
-                  <button type="button" onClick={() => setScreen('directory')}>Guia</button>
+                  <button type="button" onClick={() => setScreen('directory')}>{filteredOffers.length} ahora</button>
                 </div>
 
                 <section className="offer-list">

@@ -4099,6 +4099,12 @@ select:focus-visible {
   background: linear-gradient(145deg, #a7e92a, #70dfd2);
 }
 
+.night-mode .founder-plan-cta {
+  color: #10150f;
+  border-color: rgba(255, 251, 234, 0.18);
+  box-shadow: 0 16px 30px rgba(156, 241, 18, 0.16);
+}
+
 .night-mode .local-photo-actions strong,
 .night-mode .local-map-copy h3,
 .night-mode .paid-feature-preview h3,
@@ -5686,6 +5692,32 @@ select:focus-visible {
 
 .paid-feature-preview li svg {
   color: #86ad12;
+}
+
+.founder-plan-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  color: #10150f;
+  font-size: 13px;
+  font-weight: 1000;
+  text-decoration: none;
+  background: linear-gradient(135deg, #9cf112, #72dfd3);
+  border: 1px solid rgba(16, 21, 15, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 16px 28px rgba(134, 173, 18, 0.24);
+}
+
+.founder-plan-cta svg {
+  flex: 0 0 auto;
+}
+
+.merchant-plan-cta {
+  width: 100%;
+  margin-top: 14px;
 }
 
 .menu-editor {

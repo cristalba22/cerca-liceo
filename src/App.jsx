@@ -1625,6 +1625,10 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
       : 'Local completo'
     : 'Alta pendiente'
   const planLabel = localDraft.plan === 'pedidos' ? 'Mini menu + pedidos' : 'Ficha gratis'
+  const founderPlanUrl = makeWhatsAppUrl(
+    '3517662142',
+    `Hola Cristian, quiero activar el plan fundador Liceo para ${localDraft.name || account?.businessName || 'mi comercio'}. Me interesa mini carta, 4 publicaciones extra al mes y pedidos por WhatsApp.`
+  )
   const filledMenuItems = ensureMenuSlots(localDraft.menu).filter((item) => item.name.trim())
   const localOffers = offers.filter((offer) => (
     offer.businessId === local?.id ||
@@ -2008,6 +2012,10 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                   <li><Check size={14} /> Pedido armado al WhatsApp del comercio</li>
                   <li><Check size={14} /> Precio opcional</li>
                 </ul>
+                <a className="founder-plan-cta" href={founderPlanUrl} target="_blank" rel="noreferrer">
+                  <MessageCircle size={16} />
+                  Quiero plan fundador
+                </a>
               </section>
 
               <section className="local-visibility-comparison" aria-label="Diferencia entre ficha gratis y plan pago">
@@ -2644,6 +2652,15 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
             <span>$8.000 / mes precio fundador</span>
           </article>
         </div>
+        <a
+          className="founder-plan-cta merchant-plan-cta"
+          href={makeWhatsAppUrl('3517662142', 'Hola Cristian, quiero consultar por el plan fundador Liceo de Cerca Liceo.')}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <MessageCircle size={16} />
+          Quiero activar el plan fundador
+        </a>
       </section>
 
       <ContactFooter />

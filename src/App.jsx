@@ -2606,16 +2606,16 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
         </section>
       )}
 
-      <section className="merchant-entry-card">
-        <span>{local ? 'Local publicado' : 'Para comercios'}</span>
-        <h2>{local ? local.name : 'Carga tu local y apareces en la guia.'}</h2>
-        <p>{local ? `${local.category} en ${local.section}. ${local.address || 'Direccion pendiente.'}` : 'Ficha basica gratis: foto, direccion, horarios, WhatsApp y una promo semanal. Los extras son opcionales.'}</p>
-        <div>
-          {!isLogged && <button type="button" onClick={() => onRegister('merchant')}>Crear cuenta comercio</button>}
-          {isMerchant && <button type="button" onClick={onMerchantPanel}>{local ? 'Editar local' : 'Cargar local'}</button>}
-          {!isLogged && <button type="button" onClick={onLogin}>Ya tengo cuenta</button>}
-        </div>
-      </section>
+      {isMerchant && (
+        <section className="merchant-entry-card">
+          <span>{local ? 'Local publicado' : 'Para comercios'}</span>
+          <h2>{local ? local.name : 'Carga tu local y apareces en la guia.'}</h2>
+          <p>{local ? `${local.category} en ${local.section}. ${local.address || 'Direccion pendiente.'}` : 'Completa foto, direccion, horarios, WhatsApp y mini carta para que los vecinos encuentren tu local.'}</p>
+          <div>
+            <button type="button" onClick={onMerchantPanel}>{local ? 'Editar local' : 'Cargar local'}</button>
+          </div>
+        </section>
+      )}
 
       <section className="simple-rules-card" id="planes-comercio">
         <span>Regla simple</span>

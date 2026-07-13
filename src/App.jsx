@@ -99,6 +99,15 @@ const makeWhatsAppUrl = (phone, message) => {
   return normalizedPhone ? `https://wa.me/${normalizedPhone}?text=${encoded}` : `https://wa.me/?text=${encoded}`
 }
 
+const toNoticeText = (value, fallback = 'Ocurrio un problema. Proba de nuevo.') => {
+  if (!value) return fallback
+  if (typeof value === 'string') return value
+  if (value.message && typeof value.message === 'string') return value.message
+  if (value.error_description && typeof value.error_description === 'string') return value.error_description
+  if (value.error && typeof value.error === 'string') return value.error
+  return fallback
+}
+
 const normalizeInstagramHandle = (value = '') => String(value)
   .trim()
   .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
@@ -518,14 +527,13 @@ function App() {
   }
 
   const registerAccount = async (account) => {
-    const { account: savedAccount, error, pendingConfirmation, message } = await cercaApi.registerAccount(account)
+    const { account: savedAccount, error, pendingConfirmation, message, warning } = await cercaApi.registerAccount(account)
     if (error) {
-      setAuthNotice(error.message || 'No se pudo crear la cuenta.')
+      setAuthNotice(toNoticeText(error, 'No se pudo crear la cuenta. Revisa email, clave y conexion.'))
       return false
     }
     if (pendingConfirmation) {
       setAuthNotice(message || 'Cuenta creada. Revisa tu email para confirmar el acceso.')
-      setScreen('login')
       return 'pending-confirmation'
     }
     if (!savedAccount) {
@@ -537,7 +545,7 @@ function App() {
     if (account.type !== 'merchant') {
       setMerchantLocal(null)
     }
-    setAuthNotice(account.type === 'merchant' ? 'Cuenta comercio creada.' : 'Cuenta vecino creada.')
+    setAuthNotice(warning || message || (account.type === 'merchant' ? 'Cuenta comercio creada. Ya podes cargar tu ficha.' : 'Cuenta vecino creada.'))
     return true
   }
 
@@ -1177,14 +1185,15 @@ function ThemeToggle({ onToggleTheme }) {
 
 function ActionToast({ notice, onClose }) {
   if (!notice) return null
-  const isError = /no se pudo|falta|error|revisa/i.test(notice)
+  const noticeText = toNoticeText(notice)
+  const isError = /no se pudo|falta|error|problema|fallo/i.test(noticeText)
 
   return (
     <aside className={`action-toast ${isError ? 'is-error' : 'is-success'}`} role="status" aria-live="polite">
       <div>
         <Check size={17} />
       </div>
-      <p>{notice}</p>
+      <p>{noticeText}</p>
       <button type="button" onClick={onClose} aria-label="Cerrar aviso">×</button>
     </aside>
   )

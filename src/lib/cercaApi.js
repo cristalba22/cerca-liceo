@@ -127,6 +127,15 @@ const cleanText = (value) => String(value || '')
   .replace(/\s+\uFFFD\s+/g, ' - ')
   .replace(/\s·\s/g, ' - ')
 
+const authErrorMessage = (error, fallback = 'No se pudo completar la accion.') => {
+  if (!error) return ''
+  if (typeof error === 'string') return error
+  if (typeof error.message === 'string') return error.message
+  if (typeof error.error_description === 'string') return error.error_description
+  if (typeof error.error === 'string') return error.error
+  return fallback
+}
+
 const mapBusinessRow = (row) => ({
   id: row.id,
   ownerId: row.owner_id,
@@ -407,22 +416,35 @@ export const cercaApi = {
     }
 
     const { error: profileError } = await supabase.from('profiles').upsert(profile)
+    const account = {
+      id: data.user.id,
+      type: form.type,
+      name: form.name,
+      whatsapp: form.whatsapp,
+      email: data.user.email,
+      section: form.section,
+      role: 'user',
+      businessName: form.businessName,
+      businessType: form.businessType,
+      category: form.category,
+      salesMode: form.salesMode,
+      interests: form.interests,
+    }
+
+    if (profileError) {
+      return {
+        account,
+        error: null,
+        warning: `Cuenta creada. Si algun dato no aparece, inicia sesion de nuevo. (${authErrorMessage(profileError, 'perfil pendiente')})`,
+      }
+    }
+
     return {
-      account: {
-        id: data.user.id,
-        type: form.type,
-        name: form.name,
-        whatsapp: form.whatsapp,
-        email: data.user.email,
-        section: form.section,
-        role: 'user',
-        businessName: form.businessName,
-        businessType: form.businessType,
-        category: form.category,
-        salesMode: form.salesMode,
-        interests: form.interests,
-      },
-      error: profileError,
+      account,
+      message: form.type === 'merchant'
+        ? 'Cuenta comercio creada. Ya podes cargar tu ficha.'
+        : 'Cuenta creada. Ya podes usar favoritos y avisos.',
+      error: null,
     }
   },
 

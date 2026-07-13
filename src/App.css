@@ -397,18 +397,28 @@ select:focus-visible {
   background: #10150f;
 }
 
-.night-mode .simple-rules-card {
+.night-mode .merchant-plans-card {
   color: #fffbea;
   background: linear-gradient(145deg, #22261d, #151a12);
   border-color: rgba(255, 251, 234, 0.08);
 }
 
-.night-mode .simple-rules-card h2 {
+.night-mode .merchant-plans-card h2,
+.night-mode .merchant-plan-list strong {
   color: #fffbea;
 }
 
-.night-mode .simple-rules-card p {
+.night-mode .merchant-plans-card p {
   color: #bfb6a4;
+}
+
+.night-mode .merchant-plan-list article {
+  background: rgba(255, 251, 234, 0.06);
+  border-color: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .merchant-plan-list article span {
+  color: #172112;
 }
 
 .night-mode .boost-card {
@@ -8261,7 +8271,7 @@ select:focus-visible {
   background: rgba(255, 251, 234, 0.12);
 }
 
-.simple-rules-card {
+.merchant-plans-card {
   margin: 0 20px 18px;
   padding: 18px;
   color: #172112;
@@ -8271,7 +8281,8 @@ select:focus-visible {
   box-shadow: 0 14px 28px rgba(31, 30, 22, 0.08);
 }
 
-.simple-rules-card span {
+.merchant-plans-head > span,
+.merchant-plan-list article span {
   display: inline-flex;
   width: fit-content;
   padding: 7px 9px;
@@ -8283,16 +8294,55 @@ select:focus-visible {
   border-radius: 999px;
 }
 
-.simple-rules-card h2 {
+.merchant-plans-head h2 {
   margin: 12px 0 7px;
   font-size: 24px;
   line-height: 1;
 }
 
-.simple-rules-card p {
+.merchant-plans-head p,
+.merchant-plan-list p {
   margin: 0;
   color: #665f53;
   line-height: 1.35;
+}
+
+.merchant-plan-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.merchant-plan-list article {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 8px 10px;
+  padding: 13px;
+  background: rgba(255, 253, 247, 0.74);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 18px;
+}
+
+.merchant-plan-list article svg {
+  grid-row: span 3;
+  color: #86ad12;
+}
+
+.merchant-plan-list strong {
+  color: #10150f;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.merchant-plan-list p {
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.merchant-plan-list article span {
+  padding: 6px 8px;
+  font-size: 9px;
+  background: #dff99a;
 }
 
 .profile-actions button:nth-child(1) svg {

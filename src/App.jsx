@@ -2617,10 +2617,32 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
         </section>
       )}
 
-      <section className="simple-rules-card" id="planes-comercio">
-        <span>Regla simple</span>
-        <h2>Vecinos gratis. Comercios aparecen gratis.</h2>
-        <p>Solo se cobra si el comercio quiere publicar promos extra o activar pedidos con mini carta. Sin comision por venta.</p>
+      <section className="merchant-plans-card" id="planes-comercio">
+        <div className="merchant-plans-head">
+          <span>Opciones para comercios</span>
+          <h2>Elegis segun lo que necesita tu local.</h2>
+          <p>La guia sirve para aparecer y que te encuentren. Los extras son solo para comercios que quieren publicar mas o recibir pedidos mas ordenados.</p>
+        </div>
+        <div className="merchant-plan-list">
+          <article>
+            <Store size={18} />
+            <strong>Ficha del local</strong>
+            <p>Nombre, rubro, foto, direccion, horarios, WhatsApp y productos principales.</p>
+            <span>Base para aparecer en la guia</span>
+          </article>
+          <article>
+            <Flame size={18} />
+            <strong>Publicaciones extra</strong>
+            <p>Para subir mas promos cuando cambia el precio, hay combos nuevos o queres mover algo puntual.</p>
+            <span>Ideal para comida, despensa y verduleria</span>
+          </article>
+          <article>
+            <ShoppingBasket size={18} />
+            <strong>Mini carta + pedidos</strong>
+            <p>El vecino elige productos, arma el pedido y lo manda listo por WhatsApp.</p>
+            <span>Util para rotiserias y comidas de noche</span>
+          </article>
+        </div>
       </section>
 
       <ContactFooter />

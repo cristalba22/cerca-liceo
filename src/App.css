@@ -4056,6 +4056,7 @@ select:focus-visible {
 .night-mode .merchant-empty-posts,
 .night-mode .admin-guidance,
 .night-mode .admin-next,
+.night-mode .admin-command-center article,
 .night-mode .admin-stats article,
 .night-mode .admin-row {
   color: #fffbea;
@@ -4095,6 +4096,7 @@ select:focus-visible {
 .night-mode .public-local-card h3,
 .night-mode .admin-stats strong,
 .night-mode .admin-row strong,
+.night-mode .admin-command-center strong,
 .night-mode .admin-next h2,
 .night-mode .dashboard-status-card strong,
 .night-mode .dashboard-checklist strong,
@@ -4115,6 +4117,7 @@ select:focus-visible {
 .night-mode .public-local-tags span,
 .night-mode .admin-stats span,
 .night-mode .admin-row small,
+.night-mode .admin-command-center p,
 .night-mode .admin-guidance p,
 .night-mode .admin-next p,
 .night-mode .dashboard-status-card p,
@@ -4125,6 +4128,26 @@ select:focus-visible {
 .night-mode .merchant-empty-posts p,
 .night-mode .merchant-panel-trigger small {
   color: rgba(255, 251, 234, 0.68);
+}
+
+.night-mode .admin-plan-line span {
+  color: rgba(255, 251, 234, 0.72);
+  background: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .admin-issues span {
+  color: #172112;
+  background: #ffe49a;
+}
+
+.night-mode .admin-note span {
+  color: rgba(255, 251, 234, 0.68);
+}
+
+.night-mode .admin-note textarea {
+  color: #fffbea;
+  background: #11170f;
+  border-color: rgba(255, 251, 234, 0.1);
 }
 
 .night-mode .merchant-score-card {
@@ -6081,10 +6104,10 @@ select:focus-visible {
 }
 
 .admin-hero h1 {
-  max-width: 11ch;
+  max-width: 12ch;
   margin: 14px 0 10px;
   color: #fffbea;
-  font-size: 35px;
+  font-size: 32px;
   line-height: 0.95;
 }
 
@@ -6115,6 +6138,54 @@ select:focus-visible {
 
 .admin-stats article.needs {
   background: #ffe49a;
+}
+
+.admin-command-center {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 0 20px 14px;
+}
+
+.admin-command-center article {
+  padding: 14px;
+  color: #172112;
+  background: rgba(255, 253, 247, 0.88);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 10px 22px rgba(31, 30, 22, 0.07);
+}
+
+.admin-command-center span {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 9px;
+  color: #172112;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background: #a7e92a;
+  border-radius: 999px;
+}
+
+.admin-command-center strong,
+.admin-command-center p {
+  display: block;
+}
+
+.admin-command-center strong {
+  margin-top: 9px;
+  color: #10150f;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.admin-command-center p {
+  margin: 7px 0 0;
+  color: #665f53;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.35;
 }
 
 .admin-stats strong,
@@ -6174,14 +6245,9 @@ select:focus-visible {
 }
 
 .admin-row {
-  display: grid;
-  grid-template-columns: 12px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
   width: 100%;
-  min-height: 68px;
   margin-bottom: 8px;
-  padding: 12px;
+  padding: 14px;
   color: #172112;
   text-align: left;
   background: #fffdf7;
@@ -6193,6 +6259,13 @@ select:focus-visible {
 .admin-row.is-hidden {
   background: #efe8d8;
   opacity: 0.82;
+}
+
+.admin-row-main {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
 }
 
 .admin-dot {
@@ -6235,8 +6308,33 @@ select:focus-visible {
   border-radius: 999px;
 }
 
+.admin-issues,
+.admin-plan-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.admin-issues span,
+.admin-plan-line span {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 8px;
+  color: #172112;
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+  background: #ffe9ad;
+  border-radius: 999px;
+}
+
+.admin-plan-line span {
+  color: #665f53;
+  background: #f1ebdd;
+}
+
 .admin-row-actions {
-  grid-column: 2 / -1;
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
@@ -6261,6 +6359,51 @@ select:focus-visible {
 .admin-row-actions button.danger {
   color: #fffbea;
   background: #11170f;
+}
+
+.admin-note {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.admin-note span {
+  color: #665f53;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.admin-note textarea {
+  width: 100%;
+  min-height: 52px;
+  padding: 11px;
+  color: #172112;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  resize: vertical;
+  background: #f6f0e3;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 14px;
+  outline: none;
+}
+
+.admin-note textarea:focus {
+  border-color: rgba(167, 233, 42, 0.9);
+  box-shadow: 0 0 0 3px rgba(167, 233, 42, 0.2);
+}
+
+.admin-note button {
+  min-height: 34px;
+  padding: 0 12px;
+  color: #172112;
+  font-size: 10px;
+  font-weight: 1000;
+  background: #a7e92a;
+  border: 0;
+  border-radius: 999px;
 }
 
 .utility-screen {

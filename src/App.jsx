@@ -683,6 +683,11 @@ function App() {
               { plan: business.plan === 'pedidos' ? 'gratis' : 'pedidos', planStatus: business.plan === 'pedidos' ? 'free' : 'active' },
               business.plan === 'pedidos' ? 'Plan pedidos desactivado.' : 'Plan pedidos activado.',
             )}
+            onSaveNote={(business, adminNotes) => updateAdminBusiness(
+              business,
+              { adminNotes },
+              'Nota interna guardada.',
+            )}
             onOpenOffer={(offer) => {
               setSelectedOffer(offer)
               setScreen('detail')
@@ -2182,12 +2187,12 @@ function AdminScreen({
   onTogglePublic,
   onToggleVerified,
   onActivateOrders,
+  onSaveNote,
   onPauseOffer,
   onDeleteOffer,
   onToggleTheme,
 }) {
-  const activeOffers = offers.filter((offer) => offer.open)
-  const businessesWithAddress = businesses.filter((business) => business.address && !business.address.includes('completar'))
+  const [notesDraft, setNotesDraft] = useState({})
   const needsReview = businesses.filter((business) => (
     !business.whatsapp ||
     !business.address ||
@@ -2197,6 +2202,58 @@ function AdminScreen({
   ))
   const paidPlanBusinesses = businesses.filter((business) => business.plan === 'pedidos')
   const hiddenBusinesses = businesses.filter((business) => business.isPublic === false)
+  const pendingOrders = businesses.filter((business) => business.plan === 'pedidos' && business.planStatus !== 'active')
+  const visibleBusinesses = businesses.filter((business) => business.isPublic !== false)
+  const readyBusinesses = businesses.filter((business) => (
+    business.whatsapp &&
+    business.address &&
+    !business.address.includes('completar') &&
+    business.verified &&
+    business.isPublic !== false
+  ))
+  const priorityBusinesses = [
+    ...needsReview,
+    ...businesses.filter((business) => business.plan === 'pedidos'),
+    ...businesses,
+  ].filter((business, index, list) => (
+    list.findIndex((item) => (item.id || item.name) === (business.id || business.name)) === index
+  ))
+  const activeRate = businesses.length ? Math.round((readyBusinesses.length / businesses.length) * 100) : 0
+
+  useEffect(() => {
+    setNotesDraft((current) => {
+      const next = { ...current }
+      businesses.forEach((business) => {
+        const id = business.id || business.name
+        if (!(id in next)) next[id] = business.adminNotes || ''
+      })
+      return next
+    })
+  }, [businesses])
+
+  const getBusinessQuality = (business) => {
+    const issues = []
+    if (!business.whatsapp) issues.push('WhatsApp')
+    if (!business.address || business.address.includes('completar')) issues.push('direccion')
+    if (!business.openDays?.length) issues.push('dias')
+    if (!business.hours || business.hours.includes('completar')) issues.push('horario')
+    if (!business.menu?.filter((item) => item.name).length) issues.push('mini carta')
+    if (!business.verified) issues.push('verificar')
+    if (business.isPublic === false) issues.push('oculto')
+    return issues
+  }
+
+  const getStatusLabel = (business) => {
+    if (business.isPublic === false) return 'Oculto'
+    if (getBusinessQuality(business).length) return 'Revisar'
+    if (business.plan === 'pedidos') return 'Pedidos'
+    return 'Publicado'
+  }
+
+  const saveNote = (business) => {
+    const id = business.id || business.name
+    onSaveNote(business, notesDraft[id] || '')
+  }
 
   return (
     <div className="utility-screen admin-screen">
@@ -2210,34 +2267,52 @@ function AdminScreen({
 
       <section className="admin-hero">
         <span>Control interno</span>
-        <h1>Tu tablero para cuidar Cerca Liceo.</h1>
-        <p>Revisa locales, verifica datos, oculta fichas raras y activa pedidos cuando ya coordinaste el cobro por afuera.</p>
+        <h1>Panel simple para operar el barrio.</h1>
+        <p>Primero revisa locales incompletos. Despues verifica, publica u oculta. Los pedidos se activan solo cuando ya hablaste con el comercio.</p>
       </section>
 
       <section className="admin-stats">
         <article>
           <strong>{businesses.length}</strong>
-          <span>locales cargados</span>
+          <span>locales</span>
         </article>
         <article>
-          <strong>{activeOffers.length}</strong>
-          <span>promos activas</span>
+          <strong>{visibleBusinesses.length}</strong>
+          <span>visibles</span>
         </article>
         <article>
-          <strong>{businessesWithAddress.length}</strong>
-          <span>con direccion</span>
+          <strong>{activeRate}%</strong>
+          <span>listos</span>
         </article>
         <article className={needsReview.length ? 'needs' : ''}>
           <strong>{needsReview.length}</strong>
           <span>para revisar</span>
         </article>
-        <article>
+        <article className={pendingOrders.length ? 'needs' : ''}>
           <strong>{paidPlanBusinesses.length}</strong>
-          <span>con pedidos</span>
+          <span>pedidos</span>
         </article>
         <article className={hiddenBusinesses.length ? 'needs' : ''}>
           <strong>{hiddenBusinesses.length}</strong>
           <span>ocultos</span>
+        </article>
+      </section>
+
+      <section className="admin-command-center">
+        <article>
+          <span>Paso 1</span>
+          <strong>Corregir datos</strong>
+          <p>{needsReview.length ? `${needsReview.length} locales necesitan revisar WhatsApp, direccion, horario o verificacion.` : 'No hay locales urgentes para revisar.'}</p>
+        </article>
+        <article>
+          <span>Paso 2</span>
+          <strong>Verificar y publicar</strong>
+          <p>{readyBusinesses.length} locales tienen datos suficientes para mostrarse con confianza.</p>
+        </article>
+        <article>
+          <span>Paso 3</span>
+          <strong>Planes manuales</strong>
+          <p>Activa pedidos solo despues de coordinar transferencia o efectivo. Sin pasarela por ahora.</p>
         </article>
       </section>
 
@@ -2249,39 +2324,57 @@ function AdminScreen({
         <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, direccion, horario y mini carta clara.</p>
       </section>
 
-      <section className="admin-guidance manual-money">
-        <div>
-          <MessageCircle size={18} />
-          <strong>Cobro manual recomendado</strong>
-        </div>
-        <p>Sin pasarela de pago por ahora: activas extras o plan pedidos despues de coordinar transferencia o efectivo con el comercio.</p>
-      </section>
-
       <section className="admin-list">
         <div className="feed-head compact">
           <div>
             <Store size={17} />
-            <strong>Locales</strong>
+            <strong>Locales para operar</strong>
           </div>
           <span>{needsReview.length ? `${needsReview.length} incompletos` : 'Todo bien'}</span>
         </div>
-        {businesses.slice(0, 12).map((business) => (
-          <article className={`admin-row ${business.isPublic === false ? 'is-hidden' : ''}`} key={business.id || business.name}>
-            <span className={`admin-dot ${business.whatsapp && business.address && business.verified && business.isPublic !== false ? 'ok' : 'warn'}`}></span>
-            <div>
-              <strong>{business.name}</strong>
-              <small>{business.category} - {business.section} - {business.plan === 'pedidos' ? 'Pedidos activo' : 'Ficha gratis'}</small>
-              <small>{business.address || 'Sin direccion'} - {business.whatsapp || 'Sin WhatsApp'}</small>
+        {priorityBusinesses.slice(0, 16).map((business) => {
+          const issues = getBusinessQuality(business)
+          const id = business.id || business.name
+          return (
+          <article className={`admin-row ${business.isPublic === false ? 'is-hidden' : ''}`} key={id}>
+            <div className="admin-row-main">
+              <span className={`admin-dot ${issues.length ? 'warn' : 'ok'}`}></span>
+              <div>
+                <strong>{business.name}</strong>
+                <small>{business.category} - {business.section}</small>
+                <small>{business.address || 'Sin direccion'} - {business.whatsapp || 'Sin WhatsApp'}</small>
+              </div>
+              <em>{getStatusLabel(business)}</em>
+            </div>
+            {issues.length > 0 && (
+              <div className="admin-issues">
+                {issues.map((issue) => <span key={issue}>Falta {issue}</span>)}
+              </div>
+            )}
+            <div className="admin-plan-line">
+              <span>{business.plan === 'pedidos' ? 'Mini menu con pedidos' : 'Ficha gratis'}</span>
+              <span>{business.planStatus === 'active' ? 'Activo' : business.planStatus === 'manual_pending' ? 'Pendiente de cobro' : 'Sin cobro'}</span>
+              <span>{business.open ? 'Abierto segun ficha' : 'Marcado cerrado'}</span>
             </div>
             <div className="admin-row-actions">
-              <em>{business.isPublic === false ? 'Oculto' : business.verified ? 'Verificado' : 'Revisar'}</em>
               <button type="button" onClick={() => onOpenBusiness(business)}>Ver</button>
               <button type="button" onClick={() => onToggleVerified(business)}>{business.verified ? 'Quitar check' : 'Verificar'}</button>
               <button type="button" onClick={() => onTogglePublic(business)}>{business.isPublic === false ? 'Mostrar' : 'Ocultar'}</button>
               <button type="button" onClick={() => onActivateOrders(business)}>{business.plan === 'pedidos' ? 'Quitar pedidos' : 'Pedidos'}</button>
             </div>
+            <label className="admin-note">
+              <span>Nota interna</span>
+              <textarea
+                value={notesDraft[id] || ''}
+                onChange={(event) => setNotesDraft((current) => ({ ...current, [id]: event.target.value }))}
+                placeholder="Ej: falta foto real, paga el viernes, llamar por promo..."
+                rows={2}
+              />
+              <button type="button" onClick={() => saveNote(business)}>Guardar nota</button>
+            </label>
           </article>
-        ))}
+          )
+        })}
       </section>
 
       <section className="admin-list">
@@ -2310,9 +2403,9 @@ function AdminScreen({
       </section>
 
       <section className="admin-next">
-        <span>Siguiente paso real</span>
-        <h2>Cobro manual, control simple.</h2>
-        <p>Para arrancar conviene registrar comercios gratis, coordinar extras por WhatsApp o efectivo y activar planes a mano desde este panel.</p>
+        <span>Checklist antes de compartir</span>
+        <h2>Que el primer vecino no se pierda.</h2>
+        <p>Necesitas al menos 5 locales reales, 3 promos actuales, fotos reconocibles, horarios claros y WhatsApp funcionando. Si eso esta, ya se puede ofrecer.</p>
       </section>
     </div>
   )

@@ -1981,7 +1981,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                 >
                   <span>Gratis</span>
                   <strong>Ficha + 1 promo semanal</strong>
-                  <small>Nombre, foto, direccion, WhatsApp, horario y rubro visible.</small>
+                  <small>Nombre, foto, direccion, WhatsApp, horario y 1 publicacion gratis por semana. Dura 3 dias y se vence sola.</small>
                   <b>$0</b>
                 </button>
                 <button
@@ -1990,22 +1990,23 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                   onClick={() => updateLocalDraft('plan', 'pedidos')}
                 >
                   <span>Pago opcional</span>
-                  <strong>Mini menu + pedidos</strong>
-                  <small>Productos, precios opcionales, retiro/delivery y pedido armado.</small>
-                  <b>$8.000 fundador</b>
+                  <strong>Mini carta + pedidos</strong>
+                  <small>Mini carta, 4 publicaciones extra al mes y pedido armado para mandar por WhatsApp.</small>
+                  <b>$8.000 fundador Liceo</b>
                 </button>
               </section>
 
               <section className={`paid-feature-preview ${localDraft.plan === 'pedidos' ? 'is-active' : ''}`}>
                 <div>
                   <span>{localDraft.plan === 'pedidos' ? 'Activo en plan pago' : 'Disponible si activa plan'}</span>
-                  <h3>Productos y pedido por WhatsApp</h3>
-                  <p>{localDraft.plan === 'pedidos' ? 'El vecino puede elegir productos y mandar el pedido armado.' : 'En el plan gratis la ficha aparece igual, pero sin mini menu de pedidos.'}</p>
+                  <h3>Mini carta y pedido por WhatsApp</h3>
+                  <p>{localDraft.plan === 'pedidos' ? 'El vecino elige productos, suma el pedido y lo manda listo al comercio.' : 'En el plan gratis la ficha aparece igual, con 1 publicacion semanal que dura 3 dias.'}</p>
                 </div>
                 <ul>
-                  <li><Check size={14} /> 5 productos iniciales</li>
+                  <li><Check size={14} /> Mini carta de productos</li>
+                  <li><Check size={14} /> 4 publicaciones extra por mes</li>
+                  <li><Check size={14} /> Pedido armado al WhatsApp del comercio</li>
                   <li><Check size={14} /> Precio opcional</li>
-                  <li><Check size={14} /> Delivery u opcion retiro</li>
                 </ul>
               </section>
 
@@ -2013,14 +2014,14 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                 <article className={localDraft.plan === 'gratis' ? 'active' : ''}>
                   <span>Cuenta gratis</span>
                   <strong>Ficha publica del local</strong>
-                  <p>Aparece en la guia con foto, direccion, WhatsApp, horarios, rubro y una promo semanal que vence sola.</p>
+                  <p>Aparece en la guia con foto, direccion, WhatsApp, horarios, rubro y 1 publicacion semanal gratis que dura 3 dias.</p>
                   <b>Siempre $0</b>
                 </article>
                 <article className={localDraft.plan === 'pedidos' ? 'active paid' : 'paid'}>
-                  <span>Cuenta paga</span>
-                  <strong>Mini menu con pedido armado</strong>
-                  <p>El vecino suma productos, elige retiro o delivery y manda el pedido listo por WhatsApp.</p>
-                  <b>$8.000 fundador</b>
+                  <span>Plan fundador Liceo</span>
+                  <strong>Mini carta + pedidos + extras</strong>
+                  <p>Incluye mini carta, 4 publicaciones extra al mes y pedido armado que llega directo por WhatsApp.</p>
+                  <b>$8.000 / mes</b>
                 </article>
               </section>
             </div>
@@ -2620,27 +2621,27 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
       <section className="merchant-plans-card" id="planes-comercio">
         <div className="merchant-plans-head">
           <span>Opciones para comercios</span>
-          <h2>Elegis segun lo que necesita tu local.</h2>
-          <p>La guia sirve para aparecer y que te encuentren. Los extras son solo para comercios que quieren publicar mas o recibir pedidos mas ordenados.</p>
+          <h2>Arrancas gratis y sumas extras solo si te sirven.</h2>
+          <p>La ficha del local no se cobra: sirve para aparecer en la guia, mostrar datos claros y publicar una promo semanal que vence sola.</p>
         </div>
         <div className="merchant-plan-list">
           <article>
             <Store size={18} />
-            <strong>Ficha del local</strong>
-            <p>Nombre, rubro, foto, direccion, horarios, WhatsApp y productos principales.</p>
-            <span>Base para aparecer en la guia</span>
+            <strong>Plan gratis</strong>
+            <p>Ficha del local con foto, direccion, horarios, WhatsApp, rubro y 1 publicacion semanal gratis.</p>
+            <span>La promo dura 3 dias y se baja sola</span>
           </article>
           <article>
             <Flame size={18} />
-            <strong>Publicaciones extra</strong>
-            <p>Para subir mas promos cuando cambia el precio, hay combos nuevos o queres mover algo puntual.</p>
-            <span>Ideal para comida, despensa y verduleria</span>
+            <strong>4 publicaciones extra</strong>
+            <p>Para subir mas promos en el mes cuando hay combos, cambios de precio o ventas puntuales.</p>
+            <span>Incluido en el plan fundador Liceo</span>
           </article>
           <article>
             <ShoppingBasket size={18} />
             <strong>Mini carta + pedidos</strong>
-            <p>El vecino elige productos, arma el pedido y lo manda listo por WhatsApp.</p>
-            <span>Util para rotiserias y comidas de noche</span>
+            <p>El vecino elige productos, suma el pedido y lo envia armado al WhatsApp del comercio.</p>
+            <span>$8.000 / mes precio fundador</span>
           </article>
         </div>
       </section>

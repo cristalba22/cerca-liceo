@@ -351,11 +351,13 @@ export const cercaApi = {
     if (error) return { account: null, error }
 
     if (!data.session) {
+      const merchantMessage = 'Cuenta de comercio creada. Te mandamos un email de Cerca Liceo para verificar el acceso antes de cargar tu local.'
+      const neighborMessage = 'Cuenta creada. Te mandamos un email de Cerca Liceo para verificar el acceso antes de iniciar sesion.'
       return {
         account: null,
         error: null,
         pendingConfirmation: true,
-        message: 'Cuenta creada. Revisa tu email para confirmar el acceso antes de iniciar sesion.',
+        message: form.type === 'merchant' ? merchantMessage : neighborMessage,
       }
     }
 

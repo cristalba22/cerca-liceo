@@ -2717,31 +2717,32 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
         </header>
 
         <section className="register-success pending-email">
-          <span>Cuenta creada</span>
-          <h1>Te mandamos un mail para verificar la cuenta.</h1>
+          <span>{isMerchant ? 'Comercio registrado' : 'Cuenta creada'}</span>
+          <h1>{isMerchant ? 'Confirma el mail para activar tu comercio.' : 'Confirma el mail para activar tu cuenta.'}</h1>
           <p>
-            Entra a <strong>{form.email || 'tu email'}</strong>, abri el correo de confirmacion y toca el enlace.
-            Despues volve a Cerca Liceo e inicia sesion con tu email y clave.
+            Entra a <strong>{form.email || 'tu email'}</strong>, abri el correo de <strong>Cerca Liceo</strong> y toca el boton de confirmacion.
+            Despues volve a la pagina e inicia sesion con tu email y clave.
           </p>
           <p className="mail-trust-note">
-            Buscalo como <strong>Cerca Liceo</strong>. Si estamos en modo prueba puede figurar como Supabase Auth, pero el enlace es el correcto.
+            Este paso protege tu cuenta y evita que otra persona publique usando el nombre de tu local.
+            No te vamos a pedir tarjetas ni pagos por email.
           </p>
           <div className="email-confirm-steps">
             <article>
               <b>1</b>
-              <span>Abrir mail</span>
+              <span>Abrir el correo</span>
             </article>
             <article>
               <b>2</b>
-              <span>Tocar confirmar</span>
+              <span>Confirmar cuenta</span>
             </article>
             <article>
               <b>3</b>
-              <span>Iniciar sesion</span>
+              <span>Volver e ingresar</span>
             </article>
           </div>
           <button type="button" onClick={onBack}>Ya confirme, iniciar sesion</button>
-          <small>Si no aparece, revisa spam o correo no deseado.</small>
+          <small>Si no aparece, revisa spam o escribi por WhatsApp al 351 766 2142.</small>
         </section>
       </div>
     )

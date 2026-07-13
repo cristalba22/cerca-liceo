@@ -79,7 +79,8 @@ const formatOpenDays = (days = []) => {
   return days.length ? days.join(', ') : 'Dias a definir'
 }
 
-const formatSchedule = ({ openDays = [], openTime = '', closeTime = '', hours = '' }) => {
+const formatSchedule = (schedule = {}) => {
+  const { openDays = [], openTime = '', closeTime = '', hours = '' } = schedule || {}
   const days = formatOpenDays(openDays)
   if (openTime && closeTime) return `${days} - ${openTime} a ${closeTime}`
   return hours || `${days} - Horario a definir`
@@ -126,11 +127,18 @@ const makeInstagramUrl = (value = '') => {
   return handle ? `https://instagram.com/${handle}` : ''
 }
 
-const hasBusinessPublicAddress = (business = {}) => (
-  business.hasPublicAddress !== false &&
-  Boolean(String(business.address || '').trim()) &&
-  !String(business.address || '').toLowerCase().includes('completar')
+const getBusinessMenu = (business = {}) => (
+  Array.isArray((business || {}).menu) ? (business || {}).menu : []
 )
+
+const hasBusinessPublicAddress = (business = {}) => {
+  const safeBusiness = business || {}
+  return (
+    safeBusiness.hasPublicAddress !== false &&
+    Boolean(String(safeBusiness.address || '').trim()) &&
+    !String(safeBusiness.address || '').toLowerCase().includes('completar')
+  )
+}
 
 const isFounderPlanActive = (business = {}) => {
   const safeBusiness = business || {}
@@ -143,23 +151,24 @@ const isFounderPlanRequested = (business = {}) => {
 }
 
 const getOpenStatus = (business = {}) => {
-  const days = business.openDays || business.open_days || []
-  const openTime = business.openTime || business.open_time
-  const closeTime = business.closeTime || business.close_time
+  const safeBusiness = business || {}
+  const days = safeBusiness.openDays || safeBusiness.open_days || []
+  const openTime = safeBusiness.openTime || safeBusiness.open_time
+  const closeTime = safeBusiness.closeTime || safeBusiness.close_time
 
-  if (business.open === false) {
+  if (safeBusiness.open === false) {
     return {
       open: false,
       label: 'Cerrado ahora',
-      detail: business.hours || business.orderHours || formatSchedule({ openDays: days, openTime, closeTime }),
+      detail: safeBusiness.hours || safeBusiness.orderHours || formatSchedule({ openDays: days, openTime, closeTime }),
     }
   }
 
   if (!days.length || !openTime || !closeTime) {
     return {
-      open: business.open !== false,
-      label: business.open === false ? 'Cerrado' : 'Consultar horario',
-      detail: business.hours || business.orderHours || 'Horario a confirmar',
+      open: safeBusiness.open !== false,
+      label: safeBusiness.open === false ? 'Cerrado' : 'Consultar horario',
+      detail: safeBusiness.hours || safeBusiness.orderHours || 'Horario a confirmar',
     }
   }
 
@@ -183,7 +192,7 @@ const getOpenStatus = (business = {}) => {
   return {
     open: isOpen,
     label: isOpen ? 'Abierto ahora' : 'Cerrado ahora',
-    detail: isOpen ? `Hasta ${closeTime}` : formatSchedule(business),
+    detail: isOpen ? `Hasta ${closeTime}` : formatSchedule(safeBusiness),
   }
 }
 
@@ -325,7 +334,8 @@ function App() {
   const [pageViews, setPageViews] = useState(() => Number(window.localStorage.getItem('cerca-liceo-page-views') || 0))
 
   useEffect(() => {
-    const nextViews = pageViews + 1
+    const currentViews = Number(window.localStorage.getItem('cerca-liceo-page-views') || 0)
+    const nextViews = currentViews + 1
     window.localStorage.setItem('cerca-liceo-page-views', String(nextViews))
     setPageViews(nextViews)
   }, [])
@@ -1606,7 +1616,6 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
       <button
         className="primary-action"
         type="button"
-        disabled={canPublish && !canSendOffer && canUseExtraPost}
         onClick={canPublish
           ? (freePostUsed && !founderActive ? () => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer') : publishPreparedOffer)
           : onMerchantPanel}
@@ -2472,8 +2481,6 @@ function AdminScreen({
     !business.verified ||
     business.isPublic === false
   ))
-  const paidPlanBusinesses = businesses.filter((business) => business.plan === 'pedidos')
-  const hiddenBusinesses = businesses.filter((business) => business.isPublic === false)
   const pendingOrders = businesses.filter((business) => business.plan === 'pedidos' && business.planStatus !== 'active')
   const visibleBusinesses = businesses.filter((business) => business.isPublic !== false)
   const activeOffers = offers.filter((offer) => offer.open !== false)
@@ -3177,6 +3184,8 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
   const [accountType, setAccountType] = useState(initialType)
   const [submitted, setSubmitted] = useState(false)
   const [pendingEmail, setPendingEmail] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitFeedback, setSubmitFeedback] = useState('')
   const [form, setForm] = useState({
     name: '',
     whatsapp: '',
@@ -3194,21 +3203,32 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
     setForm((current) => ({ ...current, [field]: value }))
   }
   const submitRegister = async () => {
-    const created = await onComplete({
-      ...form,
-      type: accountType,
-      name: form.name || (isMerchant ? 'Comerciante' : 'Vecino'),
-      section: form.section || 'Liceo Procrear',
-      businessName: form.businessName || '',
-      businessType: form.businessType,
-      category: form.category || 'Comida',
-    })
-    if (created === 'pending-confirmation') {
-      setPendingEmail(true)
-      return
-    }
-    if (created !== false) {
-      setSubmitted(true)
+    if (isSubmitting) return
+    setSubmitFeedback('')
+    setIsSubmitting(true)
+    try {
+      const created = await onComplete({
+        ...form,
+        type: accountType,
+        name: form.name || (isMerchant ? 'Comerciante' : 'Vecino'),
+        section: form.section || 'Liceo Procrear',
+        businessName: form.businessName || '',
+        businessType: form.businessType,
+        category: form.category || 'Comida',
+      })
+      if (created === 'pending-confirmation') {
+        setPendingEmail(true)
+        return
+      }
+      if (created !== false) {
+        setSubmitted(true)
+        return
+      }
+      setSubmitFeedback('No se pudo crear la cuenta. Revisa el aviso de abajo o proba de nuevo en unos minutos.')
+    } catch {
+      setSubmitFeedback('No se pudo crear la cuenta. Proba de nuevo o escribi al soporte 351 766 2142.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -3465,8 +3485,15 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
         <span><Check size={15} /> Datos editables</span>
       </div>
 
-      <button className="primary-action" type="button" onClick={submitRegister}>
-        {isMerchant ? 'Crear cuenta de comercio' : 'Crear cuenta gratis'}
+      {submitFeedback && (
+        <section className="auth-notice needs-attention register-inline-feedback">
+          <MessageCircle size={16} />
+          <span>{submitFeedback}</span>
+        </section>
+      )}
+
+      <button className="primary-action" type="button" onClick={submitRegister} disabled={isSubmitting}>
+        {isSubmitting ? 'Creando cuenta...' : isMerchant ? 'Crear cuenta de comercio' : 'Crear cuenta gratis'}
       </button>
     </div>
   )
@@ -3486,7 +3513,7 @@ function DirectoryScreen({ businesses, onBack, onOpen, onToggleTheme }) {
       const byOpen = !openOnly || getOpenStatus(business).open
       const byQuery =
         normalizedQuery.length === 0 ||
-        `${business.name} ${business.category} ${business.address} ${business.instagram || ''} ${business.menu.map((item) => item.name).join(' ')}`.toLowerCase().includes(normalizedQuery)
+        `${business.name} ${business.category} ${business.address} ${business.instagram || ''} ${getBusinessMenu(business).map((item) => item.name).join(' ')}`.toLowerCase().includes(normalizedQuery)
 
       return byCategory && bySection && byOpen && byQuery
     })
@@ -3596,6 +3623,7 @@ function BusinessCard({ business, onOpen, large = false }) {
   const openStatus = getOpenStatus(business)
   const publicAddress = hasBusinessPublicAddress(business)
   const founderActive = isFounderPlanActive(business)
+  const availableMenu = getBusinessMenu(business).filter((item) => item.available !== false)
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${business.address || business.section}, Cordoba, Argentina`)}`
   const whatsappUrl = makeWhatsAppUrl(
     business.whatsapp,
@@ -3634,9 +3662,9 @@ function BusinessCard({ business, onOpen, large = false }) {
             <span>{business.followers} seguidores</span>
           </div>
         )}
-        {founderActive && (
+        {founderActive && availableMenu.length > 0 && (
           <ul>
-            {business.menu.filter((item) => item.available !== false).slice(0, large ? 5 : 2).map((item, index) => (
+            {availableMenu.slice(0, large ? 5 : 2).map((item, index) => (
               <li key={`${item.name}-${index}`}>
                 <span>{item.name}</span>
                 {item.price && <b>{item.price}</b>}
@@ -3685,7 +3713,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
   const [note, setNote] = useState('')
   const orderModes = business.hasDelivery ? ['Retiro', 'Envio', 'Consultar'] : ['Retiro', 'Consultar']
   const priceToNumber = (price) => Number(String(price || '').replace(/[^\d]/g, ''))
-  const availableMenu = founderActive ? business.menu.filter((item) => item.available !== false) : []
+  const availableMenu = founderActive ? getBusinessMenu(business).filter((item) => item.available !== false) : []
   const cartItems = availableMenu
     .map((item) => ({
       ...item,

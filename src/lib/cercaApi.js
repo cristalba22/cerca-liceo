@@ -62,49 +62,54 @@ const writeStorage = (key, value) => {
   window.localStorage.setItem(key, JSON.stringify(value))
 }
 
-const normalizeBusiness = (business) => ({
-  id: business.id,
-  name: business.name || 'Mi local',
-  businessType: business.businessType || business.business_type || 'local',
-  hasPublicAddress: business.hasPublicAddress ?? business.has_public_address ?? Boolean(business.address),
-  category: business.category || 'Comida',
-  section: business.section || 'Liceo Procrear',
-  address: business.address || '',
-  reference: business.reference || 'Referencia a completar',
-  hours: business.hours || 'Horario a completar',
-  openDays: business.openDays || business.open_days || ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
-  openTime: business.openTime || business.open_time || '',
-  closeTime: business.closeTime || business.close_time || '',
-  whatsapp: business.whatsapp || '',
-  instagram: business.instagram || '',
-  description: business.description || 'Comercio del barrio con atencion por WhatsApp.',
-  paymentMethods: business.paymentMethods || business.payment_methods || 'Efectivo y transferencia',
-  tone: business.tone || 'orange',
-  image: business.image || 'milanesa',
-  imageZoom: business.imageZoom || business.image_zoom || 120,
-  imagePosition: business.imagePosition || business.image_position || 'center center',
-  open: business.open ?? true,
-  rating: business.rating || 'Nuevo',
-  followers: business.followers || 0,
-  verified: business.verified || false,
-  delivery: business.delivery || 'Consultar',
-  hasDelivery: business.hasDelivery ?? String(business.delivery || '').toLowerCase().includes('delivery'),
-  orderHours: business.orderHours || business.hours || 'Horario a completar',
-  deliveryZone: business.deliveryZone || business.section || 'Consultar zona',
-  distance: business.distance || 'cerca',
-  plan: business.plan || 'gratis',
-  planStatus: business.planStatus || business.plan_status || 'free',
-  paidUntil: business.paidUntil || business.paid_until || '',
-  adminNotes: business.adminNotes || business.admin_notes || '',
-  isPublic: business.isPublic ?? business.is_public ?? true,
-  menu: business.menu?.length
-    ? business.menu
-    : [
-        { name: 'Producto principal' },
-        { name: 'Consultar por WhatsApp' },
-      ],
-  ready: business.ready ?? true,
-})
+const normalizeBusiness = (business = {}) => {
+  const safeBusiness = business || {}
+  const safeMenu = Array.isArray(safeBusiness.menu) ? safeBusiness.menu : []
+
+  return {
+    id: safeBusiness.id,
+    name: safeBusiness.name || 'Mi local',
+    businessType: safeBusiness.businessType || safeBusiness.business_type || 'local',
+    hasPublicAddress: safeBusiness.hasPublicAddress ?? safeBusiness.has_public_address ?? Boolean(safeBusiness.address),
+    category: safeBusiness.category || 'Comida',
+    section: safeBusiness.section || 'Liceo Procrear',
+    address: safeBusiness.address || '',
+    reference: safeBusiness.reference || 'Referencia a completar',
+    hours: safeBusiness.hours || 'Horario a completar',
+    openDays: safeBusiness.openDays || safeBusiness.open_days || ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
+    openTime: safeBusiness.openTime || safeBusiness.open_time || '',
+    closeTime: safeBusiness.closeTime || safeBusiness.close_time || '',
+    whatsapp: safeBusiness.whatsapp || '',
+    instagram: safeBusiness.instagram || '',
+    description: safeBusiness.description || 'Comercio del barrio con atencion por WhatsApp.',
+    paymentMethods: safeBusiness.paymentMethods || safeBusiness.payment_methods || 'Efectivo y transferencia',
+    tone: safeBusiness.tone || 'orange',
+    image: safeBusiness.image || 'milanesa',
+    imageZoom: safeBusiness.imageZoom || safeBusiness.image_zoom || 120,
+    imagePosition: safeBusiness.imagePosition || safeBusiness.image_position || 'center center',
+    open: safeBusiness.open ?? true,
+    rating: safeBusiness.rating || 'Nuevo',
+    followers: safeBusiness.followers || 0,
+    verified: safeBusiness.verified || false,
+    delivery: safeBusiness.delivery || 'Consultar',
+    hasDelivery: safeBusiness.hasDelivery ?? String(safeBusiness.delivery || '').toLowerCase().includes('delivery'),
+    orderHours: safeBusiness.orderHours || safeBusiness.hours || 'Horario a completar',
+    deliveryZone: safeBusiness.deliveryZone || safeBusiness.section || 'Consultar zona',
+    distance: safeBusiness.distance || 'cerca',
+    plan: safeBusiness.plan || 'gratis',
+    planStatus: safeBusiness.planStatus || safeBusiness.plan_status || 'free',
+    paidUntil: safeBusiness.paidUntil || safeBusiness.paid_until || '',
+    adminNotes: safeBusiness.adminNotes || safeBusiness.admin_notes || '',
+    isPublic: safeBusiness.isPublic ?? safeBusiness.is_public ?? true,
+    menu: safeMenu.length
+      ? safeMenu
+      : [
+          { name: 'Producto principal' },
+          { name: 'Consultar por WhatsApp' },
+        ],
+    ready: safeBusiness.ready ?? true,
+  }
+}
 
 const mergeById = (items) => {
   const seen = new Set()
@@ -540,7 +545,8 @@ export const cercaApi = {
           const byCategory = category === 'Todas' || business.category === category
           const bySection = section === 'Todos' || business.section === section
           const byOpen = !openOnly || business.open
-          const byQuery = !normalized || `${business.name} ${business.category} ${business.menu.map((item) => item.name).join(' ')}`.toLowerCase().includes(normalized)
+          const menu = Array.isArray(business.menu) ? business.menu : []
+          const byQuery = !normalized || `${business.name} ${business.category} ${menu.map((item) => item.name).join(' ')}`.toLowerCase().includes(normalized)
           return byCategory && bySection && byOpen && byQuery
         }),
         error: null,
@@ -789,6 +795,10 @@ export const cercaApi = {
   async createOffer({ business, title, description, priceLabel, imageKey, expiresInDays = 4 }) {
     if (!business) {
       return { offer: null, error: new Error('Primero carga la ficha del local.') }
+    }
+
+    if (!business.id) {
+      return { offer: null, error: new Error('Guarda la ficha del local antes de publicar una promo.') }
     }
 
     if (!hasSupabaseConfig) {

@@ -225,6 +225,8 @@ const authErrorMessage = (error, fallback = 'No se pudo completar la accion.') =
 const mapBusinessRow = (row) => ({
   id: row.id,
   ownerId: row.owner_id,
+  createdAt: row.created_at || '',
+  updatedAt: row.updated_at || '',
   name: row.name,
   businessType: row.business_type || 'local',
   hasPublicAddress: row.has_public_address ?? Boolean(row.address),
@@ -296,6 +298,8 @@ const mapOfferRow = (row) => ({
   saves: row.saves_count || 0,
   highlight: row.highlight || 'Promo activa',
 })
+
+const isDeletedOffer = (offer = {}) => /eliminada/i.test(String(offer.highlight || ''))
 
 const getExpiresLabel = (expiresAt) => {
   if (!expiresAt) return '3 dias'
@@ -639,9 +643,10 @@ export const cercaApi = {
     return { offers: data?.map(mapOfferRow) || [], error }
   },
 
-  async listMyOffers() {
+  async listMyOffers({ includeExpired = true } = {}) {
     if (!hasSupabaseConfig) {
-      return { offers: readLocalOffers().filter(isOfferAlive), error: null }
+      const localOffers = readLocalOffers().filter((offer) => !isDeletedOffer(offer))
+      return { offers: includeExpired ? localOffers : localOffers.filter(isOfferAlive), error: null }
     }
 
     const { data: auth } = await supabase.auth.getUser()
@@ -660,12 +665,27 @@ export const cercaApi = {
       .select('*, businesses(*)')
       .eq('business_id', business.id)
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(100)
 
     return {
-      offers: data?.map(mapOfferRow).filter(isOfferAlive) || [],
+      offers: data?.map(mapOfferRow).filter((offer) => !isDeletedOffer(offer) && (includeExpired || isOfferAlive(offer))) || [],
       error,
     }
+  },
+
+  async listAdminOffers() {
+    if (!hasSupabaseConfig) {
+      const savedOffers = readLocalOffers().filter((offer) => !isDeletedOffer(offer))
+      return { offers: mergeById([...savedOffers, ...defaultOffers]).filter((offer) => !isDeletedOffer(offer)), error: null }
+    }
+
+    const { data, error } = await supabase
+      .from('offers')
+      .select('*, businesses(*)')
+      .order('created_at', { ascending: false })
+      .limit(250)
+
+    return { offers: data?.map(mapOfferRow).filter((offer) => !isDeletedOffer(offer)) || [], error }
   },
 
   async listBusinesses({ section = 'Todos', category = 'Todas', query = '', openOnly = false } = {}) {

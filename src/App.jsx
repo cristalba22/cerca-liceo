@@ -201,6 +201,62 @@ const getFounderPaidUntil = (days = 30) => {
   return date.toISOString().slice(0, 10)
 }
 
+const MS_DAY = 86400000
+
+const getDaysLeft = (dateValue) => {
+  if (!dateValue) return null
+  const end = new Date(String(dateValue).includes('T') ? dateValue : `${dateValue}T23:59:59`)
+  if (Number.isNaN(end.getTime())) return null
+  return Math.ceil((end.getTime() - Date.now()) / MS_DAY)
+}
+
+const getFounderDaysLeft = (business = {}) => getDaysLeft(business.paidUntil)
+
+const isFounderExpiringSoon = (business = {}) => {
+  const days = getFounderDaysLeft(business)
+  return isFounderPlanActive(business) && days !== null && days <= 5
+}
+
+const isOfferExpired = (offer = {}) => {
+  const days = getDaysLeft(offer.expiresAt)
+  return days !== null && days <= 0
+}
+
+const isOfferPaused = (offer = {}) => offer.open === false || offer.paused
+
+const isOfferActiveNow = (offer = {}) => !isOfferExpired(offer) && !isOfferPaused(offer)
+
+const getOfferDaysLeft = (offer = {}) => getDaysLeft(offer.expiresAt)
+
+const hasRealBusinessPhoto = (business = {}) => isUploadedImage(business.image)
+
+const isRecentBusiness = (business = {}) => {
+  if (!business.createdAt) return false
+  const created = new Date(business.createdAt)
+  return !Number.isNaN(created.getTime()) && Date.now() - created.getTime() <= 7 * MS_DAY
+}
+
+const getPublicUrl = () => {
+  if (typeof window === 'undefined') return 'https://www.cercaliceo.com.ar'
+  return window.location.origin || 'https://www.cercaliceo.com.ar'
+}
+
+const buildCercaWhatsAppMessage = ({ business, offer, orderLines = '', total = '', note = '', mode = '' }) => {
+  const title = offer
+    ? `Hola ${business?.name || offer.business}, vi esta promo en Cerca Liceo:`
+    : `Hola ${business?.name || 'comercio'}, te encontre en Cerca Liceo.`
+  const parts = [
+    title,
+    offer ? `${offer.title}${offer.price ? ` - ${offer.price}` : ''}` : '',
+    orderLines ? `Pedido:\n${orderLines}` : '',
+    total ? `Total: ${total}` : '',
+    mode ? `Entrega: ${mode}` : '',
+    note ? `Nota: ${note}` : '',
+    `Link: ${getPublicUrl()}`,
+  ].filter(Boolean)
+  return parts.join('\n')
+}
+
 const getOpenStatus = (business = {}) => {
   const safeBusiness = business || {}
   const days = safeBusiness.openDays || safeBusiness.open_days || []
@@ -260,7 +316,11 @@ const getOfferBusiness = (offer) => businesses.find((business) => business.name 
 const getOfferWhatsappUrl = (offer) => {
   const matchedBusiness = getOfferBusiness(offer)
   const phone = offer.whatsapp || matchedBusiness?.whatsapp || ''
-  const message = `Hola ${offer.business}, vi en Cerca Liceo la promo "${offer.title}" (${offer.price}). Queria consultar si sigue disponible.`
+  const message = buildCercaWhatsAppMessage({
+    business: matchedBusiness || { name: offer.business },
+    offer,
+    note: 'Queria consultar si sigue disponible.',
+  })
   return makeWhatsAppUrl(phone, message)
 }
 
@@ -426,8 +486,10 @@ function App() {
   const [account, setAccount] = useState(() => readStoredJson('cerca-liceo-account'))
   const [merchantLocal, setMerchantLocal] = useState(() => readStoredJson('cerca-liceo-business'))
   const [feedOffers, setFeedOffers] = useState(realDataMode ? [] : offers)
+  const [merchantOffers, setMerchantOffers] = useState([])
   const [feedBusinesses, setFeedBusinesses] = useState(realDataMode ? [] : businesses)
   const [adminBusinesses, setAdminBusinesses] = useState([])
+  const [adminOffers, setAdminOffers] = useState([])
   const [adminMetrics, setAdminMetrics] = useState({
     pageViews: 0,
     uniqueVisitors: 0,
@@ -456,8 +518,9 @@ function App() {
   }, [])
 
   const loadMerchantOffers = async () => {
-    const { offers: myOffers, error } = await cercaApi.listMyOffers()
+    const { offers: myOffers, error } = await cercaApi.listMyOffers({ includeExpired: true })
     if (error || !myOffers?.length) return
+    setMerchantOffers(myOffers)
     setFeedOffers((current) => mergeUniqueById([...myOffers, ...current]))
   }
 
@@ -574,13 +637,15 @@ function App() {
 
     const loadAdminBusinesses = async () => {
       if (screen !== 'admin') return
-      const [{ businesses: nextBusinesses, error }, { metrics }] = await Promise.all([
+      const [{ businesses: nextBusinesses, error }, { offers: nextAdminOffers }, { metrics }] = await Promise.all([
         cercaApi.listAdminBusinesses(),
+        cercaApi.listAdminOffers(),
         cercaApi.getAdminMetrics(),
       ])
       if (!ignore && !error) {
         setAdminBusinesses(nextBusinesses)
       }
+      if (!ignore && nextAdminOffers) setAdminOffers(nextAdminOffers)
       if (!ignore && metrics) setAdminMetrics(metrics)
     }
 
@@ -786,6 +851,12 @@ function App() {
     setFeedOffers((current) => isEditing
       ? current.map((item) => (item.id === offer.id ? offer : item))
       : [offer, ...current.filter((item) => item.id !== offer.id)])
+    setMerchantOffers((current) => isEditing
+      ? current.map((item) => (item.id === offer.id ? offer : item))
+      : [offer, ...current.filter((item) => item.id !== offer.id)])
+    setAdminOffers((current) => isEditing
+      ? current.map((item) => (item.id === offer.id ? offer : item))
+      : [offer, ...current.filter((item) => item.id !== offer.id)])
     setPublishTemplate(null)
     const message = warning || (isEditing ? 'Promo actualizada correctamente.' : 'Promo publicada correctamente.')
     setAuthNotice(message)
@@ -814,6 +885,12 @@ function App() {
     setFeedOffers((current) => current.map((item) => (
       item.id === offer.id ? { ...item, ...(savedOffer || {}), open: nextActive, paused: !nextActive } : item
     )))
+    setMerchantOffers((current) => current.map((item) => (
+      item.id === offer.id ? { ...item, ...(savedOffer || {}), open: nextActive, paused: !nextActive } : item
+    )))
+    setAdminOffers((current) => current.map((item) => (
+      item.id === offer.id ? { ...item, ...(savedOffer || {}), open: nextActive, paused: !nextActive } : item
+    )))
     setAuthNotice(nextActive ? 'Publicacion activada.' : 'Publicacion pausada.')
   }
 
@@ -824,6 +901,8 @@ function App() {
       return
     }
     setFeedOffers((current) => current.filter((item) => item.id !== offer.id))
+    setMerchantOffers((current) => current.filter((item) => item.id !== offer.id))
+    setAdminOffers((current) => current.filter((item) => item.id !== offer.id))
     setAuthNotice('Publicacion eliminada.')
   }
 
@@ -834,6 +913,8 @@ function App() {
       return
     }
     setFeedOffers((current) => [reposted, ...current])
+    setMerchantOffers((current) => [reposted, ...current])
+    setAdminOffers((current) => [reposted, ...current])
     setAuthNotice('Promo republicada por 4 dias.')
   }
 
@@ -869,6 +950,7 @@ function App() {
     setAdminBusinesses((current) => current.filter((item) => item.id !== business.id))
     setFeedBusinesses((current) => current.filter((item) => item.id !== business.id))
     setFeedOffers((current) => current.filter((offer) => offer.businessId !== business.id && offer.business !== business.name))
+    setMerchantOffers((current) => current.filter((offer) => offer.businessId !== business.id && offer.business !== business.name))
     if (merchantLocal?.id === business.id) setMerchantLocal(null)
     setAuthNotice('Comercio eliminado del sistema.')
   }
@@ -895,6 +977,7 @@ function App() {
           }
         : offer
     }).filter((offer) => {
+      if (!isOfferActiveNow(offer)) return false
       const key = `${offer.businessId || offer.business}-${offer.title}-${offer.price}`
       if (seen.has(key)) return false
       seen.add(key)
@@ -938,6 +1021,7 @@ function App() {
       distance: offer.distance || 'cerca',
     })),
   ]), [feedBusinesses, visibleFeedOffers])
+  const merchantOfferHistory = useMemo(() => mergeUniqueById([...merchantOffers, ...feedOffers]), [merchantOffers, feedOffers])
 
   return (
     <main className={`app-shell ${darkMode ? 'night-mode' : ''}`}>
@@ -987,7 +1071,7 @@ function App() {
             account={account}
             local={merchantLocal}
             template={publishTemplate}
-            offers={feedOffers}
+            offers={merchantOfferHistory}
             pageViews={pageViews}
             onBack={() => setScreen('profile')}
             onMerchantPanel={() => setScreen('my-posts')}
@@ -1000,7 +1084,7 @@ function App() {
           <MyPostsScreen
             account={account}
             local={merchantLocal}
-            offers={feedOffers}
+            offers={merchantOfferHistory}
             onSaveLocal={saveMerchantLocal}
             onBack={() => setScreen('profile')}
             onPublish={openPublish}
@@ -1016,7 +1100,7 @@ function App() {
         {screen === 'admin' && (
           <AdminScreen
             businesses={adminBusinesses.length ? adminBusinesses : feedBusinesses}
-            offers={feedOffers}
+            offers={adminOffers.length ? adminOffers : feedOffers}
             adminMetrics={adminMetrics}
             analyticsExcluded={analyticsExcluded}
             onToggleAnalyticsExcluded={() => {
@@ -1047,6 +1131,11 @@ function App() {
                 : { plan: 'pedidos', planStatus: 'active', paidUntil: getFounderPaidUntil(30) },
               isFounderPlanActive(business) ? 'Plan fundador desactivado.' : 'Plan fundador activado por 30 dias.',
             )}
+            onRenewFounder={(business) => updateAdminBusiness(
+              business,
+              { plan: 'pedidos', planStatus: 'active', paidUntil: getFounderPaidUntil(30) },
+              'Plan fundador renovado por 30 dias.',
+            )}
             onSaveNote={(business, adminNotes) => updateAdminBusiness(
               business,
               { adminNotes },
@@ -1064,6 +1153,7 @@ function App() {
             }}
             onPauseOffer={pauseOffer}
             onDeleteOffer={deleteOffer}
+            onRepostOffer={repostOffer}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
         )}
@@ -1384,6 +1474,29 @@ function App() {
                 </section>
               </>
             )}
+
+            <section className="neighbor-trust-panel">
+              <span>Proyecto del barrio</span>
+              <h2>Una guia simple para no perder tiempo.</h2>
+              <p>Cerca Liceo junta ofertas vigentes, locales abiertos, emprendimientos sin local y contacto directo. Para vecinos siempre es gratis: buscas, miras cerca y escribis por WhatsApp.</p>
+              <div>
+                <article>
+                  <Check size={15} />
+                  <strong>Promos vivas</strong>
+                  <small>Se bajan solas cuando vencen.</small>
+                </article>
+                <article>
+                  <MapPin size={15} />
+                  <strong>Local o emprendedor</strong>
+                  <small>Con direccion o contacto directo.</small>
+                </article>
+                <article>
+                  <MessageCircle size={15} />
+                  <strong>Soporte real</strong>
+                  <small>Cristian Alba - 351 766 2142.</small>
+                </article>
+              </div>
+            </section>
 
             <ContactFooter onPrivacy={() => setScreen('privacy')} />
 
@@ -2113,8 +2226,14 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     offer.business === local?.name ||
     (!local && account?.businessName && offer.business === account.businessName)
   ))
-  const activeLocalOffers = localOffers.filter((offer) => offer.open !== false)
-  const pausedLocalOffers = localOffers.filter((offer) => offer.open === false)
+  const activeLocalOffers = localOffers.filter(isOfferActiveNow)
+  const pausedLocalOffers = localOffers.filter((offer) => isOfferPaused(offer) && !isOfferExpired(offer))
+  const expiredLocalOffers = localOffers.filter(isOfferExpired)
+  const expiringLocalOffers = activeLocalOffers.filter((offer) => {
+    const days = getOfferDaysLeft(offer)
+    return days !== null && days <= 1
+  })
+  const founderDaysLeft = getFounderDaysLeft(localDraft)
   const handlePublishFromPanel = () => {
     if (!local) {
       setSaveStatus('Primero guarda la ficha gratis. Despues podes publicar tu promo semanal.')
@@ -2512,10 +2631,27 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         <div>
           <span>Estado actual</span>
           <strong>{planLabel}</strong>
-          <p>{localIsPublic ? (pendingTasks.length ? `Falta completar ${pendingTasks.map((task) => task.title.toLowerCase()).join(' y ')}.` : founderActive ? 'Ficha gratis activa y plan fundador habilitado.' : founderRequested ? 'Ficha gratis activa. El plan fundador queda pendiente hasta que el admin lo active.' : 'Ficha gratis activa: guia del barrio y 1 promo semanal que vence sola.') : 'Todavia no esta publicada. Guarda la ficha cuando completes lo basico.'}</p>
+          <p>{localIsPublic ? (pendingTasks.length ? `Falta completar ${pendingTasks.map((task) => task.title.toLowerCase()).join(' y ')}.` : founderActive ? `Ficha gratis activa y fundador habilitado${founderDaysLeft !== null ? ` por ${Math.max(founderDaysLeft, 0)} dias mas` : ''}.` : founderRequested ? 'Ficha gratis activa. El plan fundador queda pendiente hasta que el admin lo active.' : 'Ficha gratis activa: guia del barrio y 1 promo semanal que vence sola.') : 'Todavia no esta publicada. Guarda la ficha cuando completes lo basico.'}</p>
         </div>
         <button type="button" onClick={saveLocal}>{localIsPublic ? 'Actualizar' : 'Guardar'}</button>
       </section>
+
+      {(expiringLocalOffers.length > 0 || isFounderExpiringSoon(localDraft)) && (
+        <section className="merchant-alert-strip" aria-label="Avisos importantes">
+          {isFounderExpiringSoon(localDraft) && (
+            <article>
+              <Timer size={17} />
+              <span>Fundador vence en {Math.max(founderDaysLeft, 0)} dias. Escribile a Cristian para renovarlo.</span>
+            </article>
+          )}
+          {expiringLocalOffers.length > 0 && (
+            <article>
+              <Flame size={17} />
+              <span>{expiringLocalOffers.length} promo(s) vencen pronto. Podes republicarlas cuando quieras.</span>
+            </article>
+          )}
+        </section>
+      )}
 
       <section className="merchant-quick-controls" aria-label="Controles rapidos del comercio">
         <button
@@ -2560,6 +2696,10 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         <article>
           <strong>{activeLocalOffers.length}</strong>
           <span>promos activas</span>
+        </article>
+        <article>
+          <strong>{expiredLocalOffers.length}</strong>
+          <span>vencidas</span>
         </article>
         <article>
           <strong>{metrics.offerViews || 0}</strong>
@@ -2831,7 +2971,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                 <div>
                   <span>Catalogo editable</span>
                   <h3>Catalogo corto para vender por WhatsApp.</h3>
-                  <p>Completas hasta {MAX_MENU_ITEMS} productos o servicios por secciones. Si no queres mostrar precio, dejalo vacio y aparece como consulta por WhatsApp.</p>
+                  <p>Completas hasta {MAX_MENU_ITEMS} productos o servicios por secciones. El primer item aparece como destacado. Si no queres mostrar precio, dejalo vacio y aparece como consulta por WhatsApp.</p>
                 </div>
                 {menuEditorSections.map((section) => (
                   <div className="menu-editor-group" key={section.title}>
@@ -2857,6 +2997,11 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                               <input type="checkbox" checked={item.available !== false} onChange={(event) => updateMenuItem(index, 'available', event.target.checked)} />
                               <span>Disponible</span>
                             </label>
+                            <div className="menu-row-tags">
+                              {index === 0 && <span>Destacado</span>}
+                              <span>{item.price ? 'Con precio' : 'Consultar'}</span>
+                              {item.available === false && <span>Oculto</span>}
+                            </div>
                             <button type="button" onClick={() => clearMenuItem(index)}>Limpiar</button>
                           </div>
                         </div>
@@ -2993,8 +3138,8 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                             <ul>
                               {section.items.map((item) => (
                                 <li key={`${item.name || 'producto'}-${item.slotIndex}`}>
-                                  <span>{item.name || 'Producto'}</span>
-                                  {item.price && <b>{item.price}</b>}
+                                  <span>{item.slotIndex === 0 ? `${item.name || 'Producto'} destacado` : item.name || 'Producto'}</span>
+                                  <b>{item.price || 'Consultar'}</b>
                                 </li>
                               ))}
                             </ul>
@@ -3069,10 +3214,10 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         <div className="managed-list-head">
           <div>
             <span>Publicaciones</span>
-            <h2>Promos del local</h2>
-          </div>
-          <button type="button" onClick={handlePublishFromPanel}>Nueva promo</button>
+          <h2>Historial de promos</h2>
         </div>
+        <button type="button" onClick={handlePublishFromPanel}>Nueva promo</button>
+      </div>
 
         {localOffers.length === 0 ? (
           <section className="merchant-empty-posts">
@@ -3083,11 +3228,16 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           </section>
         ) : (
           <>
+            <div className="publication-history-tabs" aria-label="Resumen de publicaciones">
+              <span>Activas {activeLocalOffers.length}</span>
+              <span>Pausadas {pausedLocalOffers.length}</span>
+              <span>Vencidas {expiredLocalOffers.length}</span>
+            </div>
             {activeLocalOffers.map((offer) => (
               <ManagedPost
                 key={offer.id}
                 offer={offer}
-                status="Activa"
+                status={getOfferDaysLeft(offer) === 1 ? 'Vence manana' : 'Activa'}
                 action="Republicar"
                 secondaryAction="Editar promo"
                 onAction={() => onRepostOffer(offer)}
@@ -3102,6 +3252,19 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                 offer={offer}
                 status="Pausada"
                 action="Republicar"
+                secondaryAction="Editar promo"
+                onAction={() => onRepostOffer(offer)}
+                onSecondaryAction={() => onPublish(offer, 'edit')}
+                onPause={() => onPauseOffer(offer)}
+                onDelete={() => onDeleteOffer(offer)}
+              />
+            ))}
+            {expiredLocalOffers.map((offer) => (
+              <ManagedPost
+                key={offer.id}
+                offer={offer}
+                status="Vencida"
+                action="Republicar 4 dias"
                 secondaryAction="Editar promo"
                 onAction={() => onRepostOffer(offer)}
                 onSecondaryAction={() => onPublish(offer, 'edit')}
@@ -3154,6 +3317,8 @@ function AdminScreen({
   onTogglePublic,
   onToggleVerified,
   onActivateOrders,
+  onRenewFounder,
+  onRepostOffer,
   onSaveNote,
   onEditBusiness,
   onDeleteBusiness,
@@ -3172,8 +3337,17 @@ function AdminScreen({
   ))
   const pendingOrders = businesses.filter((business) => business.plan === 'pedidos' && business.planStatus !== 'active')
   const visibleBusinesses = businesses.filter((business) => business.isPublic !== false)
-  const activeOffers = offers.filter((offer) => offer.open !== false)
-  const pausedOffers = offers.filter((offer) => offer.open === false)
+  const activeOffers = offers.filter(isOfferActiveNow)
+  const pausedOffers = offers.filter((offer) => isOfferPaused(offer) && !isOfferExpired(offer))
+  const expiredOffers = offers.filter(isOfferExpired)
+  const expiringOffers = activeOffers.filter((offer) => {
+    const days = getOfferDaysLeft(offer)
+    return days !== null && days <= 1
+  })
+  const founderExpiringSoon = businesses.filter(isFounderExpiringSoon)
+  const withoutPhoto = businesses.filter((business) => !hasRealBusinessPhoto(business))
+  const withoutWhatsapp = businesses.filter((business) => !business.whatsapp)
+  const recentBusinesses = businesses.filter(isRecentBusiness)
   const readyBusinesses = businesses.filter((business) => (
     business.whatsapp &&
     (business.businessType === 'entrepreneur' || hasBusinessPublicAddress(business)) &&
@@ -3278,13 +3452,25 @@ function AdminScreen({
     onEditBusiness(business, draft)
   }
 
-  const businessListByView = adminView === 'pendientes'
-    ? priorityBusinesses.filter((business) => getBusinessQuality(business).length)
-    : adminView === 'planes'
-      ? priorityBusinesses.filter((business) => isFounderPlanRequested(business) || isFounderPlanActive(business) || isFounderPlanExpired(business))
-      : priorityBusinesses
-  const visibleAdminBusinesses = adminView === 'promos' ? [] : businessListByView
-  const adminOffers = adminView === 'promos' ? offers : activeOffers
+  const businessListByView = (() => {
+    if (adminView === 'pendientes') return priorityBusinesses.filter((business) => getBusinessQuality(business).length)
+    if (adminView === 'planes') return priorityBusinesses.filter((business) => isFounderPlanRequested(business) || isFounderPlanActive(business) || isFounderPlanExpired(business))
+    if (adminView === 'por-vencer') return founderExpiringSoon
+    if (adminView === 'sin-foto') return withoutPhoto
+    if (adminView === 'sin-whatsapp') return withoutWhatsapp
+    if (adminView === 'nuevos') return recentBusinesses
+    return priorityBusinesses
+  })()
+  const offerViews = ['promos', 'pausadas', 'vencidas']
+  const visibleAdminBusinesses = offerViews.includes(adminView) ? [] : businessListByView
+  const adminOffers = adminView === 'vencidas' ? expiredOffers : adminView === 'pausadas' ? pausedOffers : activeOffers
+  const launchChecks = [
+    { label: '5 locales reales', ok: visibleBusinesses.length >= 5, value: `${visibleBusinesses.length}/5` },
+    { label: '3 promos vigentes', ok: activeOffers.length >= 3, value: `${activeOffers.length}/3` },
+    { label: 'Fotos reconocibles', ok: withoutPhoto.length === 0 || visibleBusinesses.length - withoutPhoto.length >= 5, value: `${Math.max(visibleBusinesses.length - withoutPhoto.length, 0)}` },
+    { label: 'WhatsApp cargado', ok: withoutWhatsapp.length === 0, value: withoutWhatsapp.length ? `${withoutWhatsapp.length} faltan` : 'ok' },
+    { label: 'Fundador controlado', ok: pendingOrders.length === 0, value: pendingOrders.length ? `${pendingOrders.length} pendientes` : 'ok' },
+  ]
 
   return (
     <div className="utility-screen admin-screen">
@@ -3327,6 +3513,14 @@ function AdminScreen({
           <strong>{activeOffers.length}</strong>
           <span>promos activas</span>
         </article>
+        <article className={expiredOffers.length ? 'needs' : ''}>
+          <strong>{expiredOffers.length}</strong>
+          <span>promos vencidas</span>
+        </article>
+        <article className={founderExpiringSoon.length ? 'needs' : ''}>
+          <strong>{founderExpiringSoon.length}</strong>
+          <span>fundador por vencer</span>
+        </article>
         <article>
           <strong>{adminMetrics?.pageViews || 0}</strong>
           <span>visitas reales</span>
@@ -3352,8 +3546,14 @@ function AdminScreen({
         {[
           ['pendientes', `Pendientes ${needsReview.length}`],
           ['planes', `Fundador ${pendingOrders.length}`],
+          ['por-vencer', `Por vencer ${founderExpiringSoon.length}`],
+          ['sin-foto', `Sin foto ${withoutPhoto.length}`],
+          ['sin-whatsapp', `Sin WhatsApp ${withoutWhatsapp.length}`],
+          ['nuevos', `Nuevos ${recentBusinesses.length}`],
           ['locales', `Locales ${businesses.length}`],
-          ['promos', `Promos ${offers.length}`],
+          ['promos', `Activas ${activeOffers.length}`],
+          ['pausadas', `Pausadas ${pausedOffers.length}`],
+          ['vencidas', `Vencidas ${expiredOffers.length}`],
         ].map(([id, label]) => (
           <button className={adminView === id ? 'active' : ''} type="button" key={id} onClick={() => setAdminView(id)}>
             {label}
@@ -3392,7 +3592,7 @@ function AdminScreen({
         <div className="feed-head compact">
           <div>
             <Store size={17} />
-            <strong>{adminView === 'planes' ? 'Solicitudes y planes' : adminView === 'locales' ? 'Todos los locales' : 'Locales para revisar'}</strong>
+            <strong>{adminView === 'planes' ? 'Solicitudes y planes' : adminView === 'por-vencer' ? 'Fundador por vencer' : adminView === 'sin-foto' ? 'Locales sin foto real' : adminView === 'sin-whatsapp' ? 'Locales sin WhatsApp' : adminView === 'nuevos' ? 'Nuevos esta semana' : adminView === 'locales' ? 'Todos los locales' : 'Locales para revisar'}</strong>
           </div>
           <span>{visibleAdminBusinesses.length ? `${visibleAdminBusinesses.length} items` : 'Todo bien'}</span>
         </div>
@@ -3435,6 +3635,9 @@ function AdminScreen({
               <button type="button" onClick={() => onToggleVerified(business)}>{business.verified ? 'Quitar check' : 'Verificar'}</button>
               <button type="button" onClick={() => onTogglePublic(business)}>{business.isPublic === false ? 'Mostrar' : 'Ocultar'}</button>
               <button type="button" onClick={() => onActivateOrders(business)}>{getPlanActionLabel(business)}</button>
+              {(isFounderPlanActive(business) || isFounderPlanExpired(business)) && (
+                <button type="button" onClick={() => onRenewFounder(business)}>Renovar 30 dias</button>
+              )}
               <button className="danger" type="button" onClick={() => onDeleteBusiness(business)}>Eliminar local</button>
             </div>
             <details className="admin-edit-box">
@@ -3513,26 +3716,36 @@ function AdminScreen({
       </section>
       )}
 
-      {(adminView === 'promos' || adminView === 'locales') && (
+      {offerViews.includes(adminView) && (
       <section className="admin-list">
         <div className="feed-head compact">
           <div>
             <Flame size={17} />
-            <strong>Promos activas</strong>
+            <strong>{adminView === 'vencidas' ? 'Promos vencidas' : adminView === 'pausadas' ? 'Promos pausadas' : 'Promos activas'}</strong>
           </div>
-          <span>{pausedOffers.length} pausadas</span>
+          <span>{expiringOffers.length} vencen pronto</span>
         </div>
+        {adminOffers.length === 0 && (
+          <article className="admin-empty-state">
+            <strong>No hay publicaciones en esta vista.</strong>
+            <p>Cuando una promo se pause o venza, va a quedar en historial para revisar o republicar.</p>
+          </article>
+        )}
         {adminOffers.slice(0, 40).map((offer) => (
           <article className="admin-row promo" key={offer.id || offer.title}>
             <span className={`admin-dot ${offer.open === false ? 'warn' : 'ok'}`}></span>
             <div>
               <strong>{offer.title}</strong>
-              <small>{offer.business} - {offer.expires}</small>
+              <small>{offer.business} - {isOfferExpired(offer) ? 'Vencida' : offer.expires}</small>
             </div>
             <div className="admin-row-actions">
               <em>{offer.price}</em>
               <button type="button" onClick={() => onOpenOffer(offer)}>Ver</button>
-              <button type="button" onClick={() => onPauseOffer(offer)}>{offer.open === false ? 'Activar' : 'Pausar'}</button>
+              {isOfferExpired(offer) ? (
+                <button type="button" onClick={() => onRepostOffer(offer)}>Republicar</button>
+              ) : (
+                <button type="button" onClick={() => onPauseOffer(offer)}>{offer.open === false ? 'Activar' : 'Pausar'}</button>
+              )}
               <button className="danger" type="button" onClick={() => onDeleteOffer(offer)}>Eliminar</button>
             </div>
           </article>
@@ -3544,6 +3757,15 @@ function AdminScreen({
         <span>Checklist antes de compartir</span>
         <h2>Que el primer vecino no se pierda.</h2>
         <p>Necesitas al menos 5 locales reales, 3 promos actuales, fotos reconocibles, horarios claros y WhatsApp funcionando. Si eso esta, ya se puede ofrecer.</p>
+        <div className="launch-checklist">
+          {launchChecks.map((check) => (
+            <article className={check.ok ? 'ok' : 'warn'} key={check.label}>
+              <Check size={14} />
+              <strong>{check.label}</strong>
+              <span>{check.value}</span>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   )
@@ -4885,7 +5107,10 @@ function BusinessCard({ business, onOpen, large = false }) {
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${business.address || business.section}, Cordoba, Argentina`)}`
   const whatsappUrl = makeWhatsAppUrl(
     business.whatsapp,
-    `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar por lo que ofrecen y horarios.`,
+    buildCercaWhatsAppMessage({
+      business,
+      note: 'Queria consultar por lo que ofrecen, horarios y disponibilidad.',
+    }),
   )
   const instagramUrl = makeInstagramUrl(business.instagram)
 
@@ -4925,7 +5150,7 @@ function BusinessCard({ business, onOpen, large = false }) {
             {availableMenu.slice(0, large ? 5 : 2).map((item, index) => (
               <li key={`${item.name}-${index}`}>
                 <span>{item.name}</span>
-                {item.price && <b>{item.price}</b>}
+                <b>{item.price || 'Consultar'}</b>
               </li>
             ))}
           </ul>
@@ -4996,12 +5221,16 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
   const total = cartItems.reduce((sum, item) => sum + item.numericPrice * item.quantity, 0)
   const formattedTotal = total > 0 ? `$${total.toLocaleString('es-AR')}` : 'A confirmar'
   const selectedCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-  const orderText = encodeURIComponent(
-    `Hola ${business.name}, quiero hacer este pedido desde Cerca Liceo:\n\n${cartItems
-      .map((item) => `- ${item.quantity}x ${item.name}${item.price ? ` (${item.price})` : ' (consultar precio)'}`)
-      .join('\n')}\n\nTotal: ${formattedTotal}\nEntrega: ${orderMode}\nNota: ${note || 'Sin nota'}\n${publicAddress ? `Direccion del local: ${business.address}` : `Zona: ${business.section}. Coordinar entrega o consulta por mensaje.`}`,
-  )
-  const whatsappUrl = makeWhatsAppUrl(business.whatsapp, decodeURIComponent(orderText))
+  const orderLines = cartItems
+    .map((item) => `- ${item.quantity}x ${item.name}${item.price ? ` (${item.price})` : ' (consultar precio)'}`)
+    .join('\n')
+  const whatsappUrl = makeWhatsAppUrl(business.whatsapp, buildCercaWhatsAppMessage({
+    business,
+    orderLines,
+    total: formattedTotal,
+    mode: orderMode,
+    note: note || (publicAddress ? `Direccion del local: ${business.address}` : `Zona: ${business.section}. Coordinar entrega o consulta por mensaje.`),
+  }))
   const updateQuantity = (itemIndex, change) => {
     setCart((current) => ({
       ...current,
@@ -5177,7 +5406,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
               <h2>Contacta directo al comercio.</h2>
               <p>Este comercio todavia no tiene catalogo ni pedidos armados. Podes consultar productos, servicios, disponibilidad y precios por WhatsApp.</p>
             </div>
-            <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar.`)} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
+            <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, buildCercaWhatsAppMessage({ business, note: 'Queria consultar productos, servicios, precios u horarios.' }))} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
               <MessageCircle size={14} /> Consultar por WhatsApp
             </a>
           </section>
@@ -5201,7 +5430,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
             </div>
             <p>Esta ficha no muestra direccion. Podes consultar disponibilidad, punto de entrega o envio por WhatsApp.</p>
             <div className="contact-location-actions">
-              <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar.`)} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
+              <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, buildCercaWhatsAppMessage({ business, note: 'Queria consultar disponibilidad, punto de entrega o envio.' }))} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
                 <MessageCircle size={14} /> WhatsApp
               </a>
               {instagramUrl && (

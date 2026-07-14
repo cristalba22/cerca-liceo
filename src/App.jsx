@@ -1783,14 +1783,17 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
 }
 
 function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal, onBack, onPublish, onPauseOffer, onDeleteOffer, onRepostOffer, onToggleTheme }) {
-  const [openPanel, setOpenPanel] = useState(local ? 'preview' : 'basic')
+  const initialPanel = local
+    ? (isFounderPlanActive(local) && !getBusinessMenu(local).some((item) => item.name?.trim()) ? 'menu' : 'preview')
+    : 'basic'
+  const [openPanel, setOpenPanel] = useState(initialPanel)
   const [saveStatus, setSaveStatus] = useState('')
   const [localDraft, setLocalDraft] = useState(() => buildLocalDraft(local, account))
 
   useEffect(() => {
     if (!local?.id) return
     setLocalDraft(buildLocalDraft(local, account))
-    setOpenPanel('preview')
+    setOpenPanel(isFounderPlanActive(local) && !getBusinessMenu(local).some((item) => item.name?.trim()) ? 'menu' : 'preview')
   }, [local, account])
 
   const updateLocalDraft = (field, value) => {
@@ -3726,18 +3729,27 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
               <p>Para mirar ofertas y locales no hace falta registrarse. La cuenta sirve para guardar favoritos o administrar un comercio.</p>
             </section>
 
-            <section className="android-safe-actions" aria-label="Opciones de cuenta">
+            <section className="android-safe-actions android-account-options" aria-label="Opciones de cuenta">
               <button type="button" onClick={onLogin}>
-                <strong>Iniciar sesion</strong>
-                <small>Vecino o comercio.</small>
+                <UserRound size={22} />
+                <span>
+                  <strong>Iniciar sesion</strong>
+                  <small>Vecino o comercio.</small>
+                </span>
               </button>
               <button type="button" onClick={() => onRegister('neighbor')}>
-                <strong>Crear cuenta vecino</strong>
-                <small>Para favoritos y avisos.</small>
+                <UserRound size={22} />
+                <span>
+                  <strong>Crear cuenta vecino</strong>
+                  <small>Para favoritos y avisos.</small>
+                </span>
               </button>
               <button type="button" onClick={() => onRegister('merchant')}>
-                <strong>Crear cuenta comercio</strong>
-                <small>Ficha gratis para aparecer en la guia.</small>
+                <Store size={22} />
+                <span>
+                  <strong>Crear cuenta comercio</strong>
+                  <small>Ficha gratis para aparecer en la guia.</small>
+                </span>
               </button>
             </section>
           </>

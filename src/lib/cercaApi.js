@@ -243,7 +243,7 @@ const mapBusinessRow = (row) => ({
   deliveryZone: cleanText(row.delivery_zone || 'Consultar zona'),
   distance: row.distance_label || 'cerca',
   plan: row.plan === 'orders' ? 'pedidos' : 'gratis',
-  planStatus: row.plan_status || 'free',
+  planStatus: row.plan_status || (row.plan === 'orders' ? 'active' : 'free'),
   paidUntil: row.paid_until || '',
   adminNotes: row.admin_notes || '',
   isPublic: row.is_public,

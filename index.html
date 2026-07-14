@@ -40,9 +40,8 @@
       (function () {
         var ua = navigator.userAgent || '';
         var forceCompat = /(?:\?|&)androidCompat=1(?:&|$)/.test(window.location.search);
-        var forceFull = /(?:\?|&)fullUi=1(?:&|$)/.test(window.location.search);
-        var fragileAndroid = /Xiaomi|Redmi|M2003J15|M2003J15SC|Mi\s|MI\s|POCO/i.test(ua);
-        if (!forceFull && (forceCompat || fragileAndroid)) {
+        var isAndroid = /Android/i.test(ua);
+        if (forceCompat || isAndroid) {
           document.documentElement.className += ' android-compat';
         }
       })();

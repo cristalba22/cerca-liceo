@@ -100,12 +100,30 @@ const formatSchedule = (schedule = {}) => {
   return hours || `${days} - Horario a definir`
 }
 
+const cleanPhoneDigits = (phone = '') => String(phone).replace(/\D/g, '')
+
+const normalizeArgentineWhatsapp = (phone = '') => {
+  const digits = cleanPhoneDigits(phone)
+  if (!digits) return ''
+  if (digits.startsWith('549') && digits.length === 13) return digits.slice(3)
+  if (digits.startsWith('54') && digits.length === 12) return digits.slice(2)
+  if (digits.startsWith('0') && digits.length === 11) return digits.slice(1)
+  return digits
+}
+
+const isValidArgentineWhatsapp = (phone = '') => {
+  const local = normalizeArgentineWhatsapp(phone)
+  return local.length === 10
+}
+
 const normalizePhone = (phone = '') => {
   const digits = String(phone).replace(/\D/g, '')
   if (!digits) return ''
-  if (digits.startsWith('54')) return digits
-  if (digits.startsWith('0')) return `54${digits.slice(1)}`
-  return `54${digits}`
+  if (digits.startsWith('549') && digits.length === 13) return digits
+  if (digits.startsWith('54') && digits.length === 12) return `549${digits.slice(2)}`
+  const local = normalizeArgentineWhatsapp(digits)
+  if (local.length === 10) return `549${local}`
+  return digits
 }
 
 const makeWhatsAppUrl = (phone, message) => {
@@ -156,12 +174,14 @@ const hasBusinessPublicAddress = (business = {}) => {
 
 const isFounderPlanActive = (business = {}) => {
   const safeBusiness = business || {}
-  return safeBusiness.plan === 'pedidos' && safeBusiness.planStatus === 'active'
+  const plan = safeBusiness.plan === 'orders' ? 'pedidos' : safeBusiness.plan
+  return plan === 'pedidos' && safeBusiness.planStatus === 'active'
 }
 
 const isFounderPlanRequested = (business = {}) => {
   const safeBusiness = business || {}
-  return safeBusiness.plan === 'pedidos' && safeBusiness.planStatus !== 'active'
+  const plan = safeBusiness.plan === 'orders' ? 'pedidos' : safeBusiness.plan
+  return plan === 'pedidos' && safeBusiness.planStatus !== 'active'
 }
 
 const getOpenStatus = (business = {}) => {
@@ -923,6 +943,7 @@ function App() {
             onRepostOffer={repostOffer}
             metrics={merchantMetrics}
             onToggleTheme={() => setDarkMode((value) => !value)}
+            onPrivacy={() => setScreen('privacy')}
           />
         )}
 
@@ -1782,7 +1803,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
   )
 }
 
-function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal, onBack, onPublish, onPauseOffer, onDeleteOffer, onRepostOffer, onToggleTheme }) {
+function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal, onBack, onPublish, onPauseOffer, onDeleteOffer, onRepostOffer, onToggleTheme, onPrivacy }) {
   const initialPanel = local
     ? (isFounderPlanActive(local) && !getBusinessMenu(local).some((item) => item.name?.trim()) ? 'menu' : 'preview')
     : 'basic'
@@ -1851,6 +1872,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
 
   const saveLocal = async () => {
     const needsPublicAddress = localDraft.businessType !== 'entrepreneur' && localDraft.hasPublicAddress !== false
+    const normalizedWhatsapp = normalizeArgentineWhatsapp(localDraft.whatsapp)
     const missing = [
       !localDraft.name.trim() && (localDraft.businessType === 'entrepreneur' ? 'nombre del emprendimiento' : 'nombre del local'),
       !localDraft.whatsapp.trim() && 'WhatsApp',
@@ -1865,10 +1887,17 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       return
     }
 
+    if (!isValidArgentineWhatsapp(localDraft.whatsapp)) {
+      setSaveStatus('El WhatsApp tiene que ser argentino, solo numeros y sin 0 ni 15. Ejemplo: 3517662142.')
+      setOpenPanel('basic')
+      return
+    }
+
     setSaveStatus('Guardando cambios...')
     const result = await onSaveLocal({
       ...localDraft,
       name: localDraft.name || 'Mi local',
+      whatsapp: normalizedWhatsapp,
       hours: formatSchedule(localDraft),
       menu: ensureMenuSlots(localDraft.menu),
       ready: true,
@@ -1894,6 +1923,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     const result = await onSaveLocal({
       ...nextDraft,
       name: nextDraft.name || 'Nombre del comercio',
+      whatsapp: normalizeArgentineWhatsapp(nextDraft.whatsapp),
       hours: formatSchedule(nextDraft),
       ready: true,
     })
@@ -2155,7 +2185,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
 
           <label>
             <span>WhatsApp</span>
-            <input inputMode="numeric" value={localDraft.whatsapp} onChange={(event) => updateLocalDraft('whatsapp', event.target.value.replace(/\D/g, ''))} placeholder="3510000000" />
+            <input inputMode="numeric" value={localDraft.whatsapp} onChange={(event) => updateLocalDraft('whatsapp', event.target.value.replace(/\D/g, '').slice(0, 13))} placeholder="3510000000" />
           </label>
 
           <label>
@@ -2284,7 +2314,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           ))}
         </section>
 
-        <ContactFooter onPrivacy={() => setScreen('privacy')} />
+        <ContactFooter onPrivacy={onPrivacy} />
       </div>
     )
   }
@@ -4085,8 +4115,11 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
     if (fullName.split(' ').filter(Boolean).length < 2) {
       return 'Escribi nombre y apellido para que la cuenta quede clara.'
     }
-    if (form.whatsapp && form.whatsapp.length < 8) {
-      return 'El WhatsApp tiene que tener solo numeros y al menos 8 digitos.'
+    if (isMerchant && !form.whatsapp.trim()) {
+      return 'Para comercio hace falta un WhatsApp argentino. Ejemplo: 3517662142.'
+    }
+    if (form.whatsapp && !isValidArgentineWhatsapp(form.whatsapp)) {
+      return 'El WhatsApp tiene que ser argentino, solo numeros y sin 0 ni 15. Ejemplo: 3517662142.'
     }
     if (!email || !email.includes('@') || !email.includes('.')) {
       return 'Escribi un email valido. Ahi va a llegar la confirmacion de Cerca Liceo.'
@@ -4116,6 +4149,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
         ...form,
         type: accountType,
         name: form.name.trim(),
+        whatsapp: normalizeArgentineWhatsapp(form.whatsapp),
         email: form.email.trim(),
         section: form.section || 'Liceo Procrear',
         businessName: form.businessName || '',

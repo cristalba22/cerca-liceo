@@ -680,9 +680,46 @@ export const cercaApi = {
       }
     }
 
+    const publicBusinessColumns = `
+      id,
+      name,
+      business_type,
+      has_public_address,
+      category,
+      section,
+      address,
+      reference,
+      hours,
+      open_days,
+      open_time,
+      close_time,
+      whatsapp,
+      instagram,
+      tone,
+      image_key,
+      image_zoom,
+      image_position,
+      is_open,
+      rating,
+      followers_count,
+      verified,
+      delivery_label,
+      has_delivery,
+      order_hours,
+      delivery_zone,
+      distance_label,
+      plan,
+      plan_status,
+      paid_until,
+      is_public,
+      search_text,
+      updated_at,
+      products(id,business_id,name,price,is_available,position)
+    `
+
     let request = supabase
       .from('businesses')
-      .select('*, products(*)')
+      .select(publicBusinessColumns)
       .eq('is_public', true)
       .order('verified', { ascending: false })
       .order('updated_at', { ascending: false })

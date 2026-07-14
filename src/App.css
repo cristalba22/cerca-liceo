@@ -11509,11 +11509,16 @@ html.android-compat .profile-register-panel::after {
 }
 
 html.android-compat .android-safe-screen {
+  position: relative;
+  z-index: 30;
   min-height: 100vh;
   padding: 0 0 24px;
   color: #172112;
-  background: #fffbee !important;
+  background:
+    linear-gradient(180deg, #fffbee 0%, #f8f0d9 54%, #fff7e3 100%) !important;
   isolation: isolate;
+  overflow-x: hidden;
+  contain: paint;
 }
 
 html.android-compat .night-mode .android-safe-screen,
@@ -11573,7 +11578,7 @@ html.android-compat .android-safe-notice {
   margin: 14px 18px 0;
   padding: 18px;
   background: #fffdf7 !important;
-  border: 1px solid rgba(16, 21, 15, 0.1);
+  border: 1px solid rgba(16, 21, 15, 0.12);
   border-radius: 22px;
   box-shadow: none !important;
   filter: none !important;
@@ -11589,7 +11594,10 @@ html.android-compat .night-mode .android-safe-notice {
 }
 
 html.android-compat .android-safe-intro {
-  background: linear-gradient(135deg, #f6ffd8 0%, #e7ffc0 55%, #fff1dc 100%) !important;
+  padding: 24px 20px;
+  background:
+    linear-gradient(135deg, #f1ffd0 0%, #e3ffb4 50%, #fff0d8 100%) !important;
+  border-color: rgba(112, 185, 0, 0.22);
 }
 
 html.android-compat .night-mode .android-safe-intro {
@@ -11617,6 +11625,17 @@ html.android-compat .android-safe-card h2 {
   letter-spacing: 0;
 }
 
+html.android-compat .android-safe-intro h1 {
+  max-width: 12ch;
+  font-size: 36px;
+}
+
+html.android-compat .android-safe-intro p {
+  max-width: 28ch;
+  font-size: 18px;
+  line-height: 1.45;
+}
+
 html.android-compat .android-safe-card h2 {
   font-size: 24px;
 }
@@ -11624,7 +11643,8 @@ html.android-compat .android-safe-card h2 {
 html.android-compat .android-account-options {
   gap: 12px;
   padding: 14px;
-  background: #f1ead8 !important;
+  background: #eee7d6 !important;
+  border-radius: 28px;
 }
 
 html.android-compat .android-account-options button {
@@ -11632,7 +11652,7 @@ html.android-compat .android-account-options button {
   grid-template-columns: 46px 1fr;
   align-items: center;
   gap: 12px;
-  min-height: 86px;
+  min-height: 92px;
   border-radius: 22px;
 }
 
@@ -11647,7 +11667,7 @@ html.android-compat .android-account-options button svg {
 
 html.android-compat .android-account-options button:first-child {
   color: #172112;
-  background: linear-gradient(135deg, #a7e92a, #78dec7) !important;
+  background: #a7e92a !important;
   border-color: rgba(16, 21, 15, 0.12);
 }
 
@@ -11713,13 +11733,33 @@ html.android-compat .android-safe-actions strong {
   display: block;
   margin-bottom: 5px;
   color: inherit;
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 1000;
   line-height: 1.08;
 }
 
 html.android-compat .android-safe-actions:not(.android-account-options) button:first-child {
   background: #a7e92a !important;
+}
+
+html.android-compat .android-safe-plan-card {
+  background: #f6ffd8 !important;
+}
+
+html.android-compat .android-safe-plan-card:nth-of-type(even) {
+  background: #fff3dd !important;
+}
+
+html.android-compat .android-safe-plan-card button {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 12px;
+  color: #172112;
+  font-size: 15px;
+  font-weight: 1000;
+  background: #a7e92a !important;
+  border: 0;
+  border-radius: 18px;
 }
 
 html.android-compat .android-safe-notice {

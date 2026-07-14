@@ -1633,6 +1633,19 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
   ))
   const freePostUsed = weeklyPosts.length > 0 && !template
   const founderActive = isFounderPlanActive(local)
+  const monthStart = new Date()
+  monthStart.setDate(1)
+  monthStart.setHours(0, 0, 0, 0)
+  const monthlyPosts = offers.filter((offer) => (
+    offer.id !== template?.id &&
+    (offer.businessId === local?.id || offer.business === local?.name) &&
+    new Date(offer.createdAt || Date.now()).getTime() >= monthStart.getTime()
+  ))
+  const founderExtraLimit = 4
+  const founderExtraUsed = founderActive ? Math.max(0, monthlyPosts.length - 1) : 0
+  const founderExtraLeft = founderActive ? Math.max(0, founderExtraLimit - founderExtraUsed) : 0
+  const isFounderExtraPost = founderActive && freePostUsed && !isEditingOffer
+  const founderMonthlyLimitReached = isFounderExtraPost && founderExtraLeft <= 0
   const canUseExtraPost = isEditingOffer || !freePostUsed || founderActive
   const founderPlanUrl = makeWhatsAppUrl(
     '3517662142',
@@ -1644,6 +1657,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
     offerDraft.hasPrice && !String(offerDraft.price || '').trim() && 'precio o desactivar precio',
     !String(offerDraft.description || '').trim() && 'descripcion corta',
     !local?.whatsapp && 'WhatsApp del local',
+    founderMonthlyLimitReached && 'cupo extra mensual',
   ].filter(Boolean)
   const canSendOffer = canPublish && publishMissing.length === 0 && canUseExtraPost
   const updateOfferDraft = (field, value) => {
@@ -1695,10 +1709,10 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
         <ThemeToggle onToggleTheme={onToggleTheme} />
       </header>
 
-      <section className="publish-hero">
-        <span>{isEditingOffer ? 'Editar publicacion' : template ? 'Reusar texto' : canPublish ? '1 gratis por semana' : 'Antes de publicar'}</span>
-        <h1>{isEditingOffer ? 'Corregi esta promo sin duplicarla.' : template ? 'Ajusta esta promo y publicala de nuevo.' : canPublish ? 'Subi una promo que se vea fuerte en el feed.' : 'Primero deja tu local listo.'}</h1>
-        <p>{isEditingOffer ? 'Cambia titulo, descripcion, precio, foto o vigencia. Se actualiza la misma publicacion.' : template ? 'Trajimos el texto, precio y foto de la publicacion anterior. Cambia lo necesario y sale como una nueva promo.' : canPublish ? 'Elegis rubro, seccion, precio opcional, direccion y WhatsApp. La promo dura 3 o 4 dias y despues se baja sola.' : 'Para que la publicacion sea confiable, primero cargamos nombre del local, direccion, horario y WhatsApp.'}</p>
+      <section className={`publish-hero ${founderActive ? 'founder' : ''}`}>
+        <span>{isEditingOffer ? 'Editar publicacion' : founderActive ? 'Plan fundador activo' : template ? 'Reusar texto' : canPublish ? '1 gratis por semana' : 'Antes de publicar'}</span>
+        <h1>{isEditingOffer ? 'Corregi esta promo sin duplicarla.' : founderActive ? 'Publica con mas margen este mes.' : template ? 'Ajusta esta promo y publicala de nuevo.' : canPublish ? 'Subi una promo que se vea fuerte en el feed.' : 'Primero deja tu local listo.'}</h1>
+        <p>{isEditingOffer ? 'Cambia titulo, descripcion, precio, foto o vigencia. Se actualiza la misma publicacion.' : founderActive ? 'Tenes la promo semanal gratis y 4 publicaciones extra al mes. Todas duran 3 o 4 dias y se bajan solas.' : template ? 'Trajimos el texto, precio y foto de la publicacion anterior. Cambia lo necesario y sale como una nueva promo.' : canPublish ? 'Elegis rubro, seccion, precio opcional, direccion y WhatsApp. La promo dura 3 o 4 dias y despues se baja sola.' : 'Para que la publicacion sea confiable, primero cargamos nombre del local, direccion, horario y WhatsApp.'}</p>
       </section>
 
       <section className="merchant-status-card">
@@ -1711,6 +1725,26 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
           {canPublish ? 'Ver panel' : 'Completar local'}
         </button>
       </section>
+
+      {founderActive && (
+        <section className="publish-quota founder-publish-quota" aria-label="Cupo de publicaciones fundador">
+          <article className={freePostUsed ? '' : 'is-free'}>
+            <span>Gratis semanal</span>
+            <strong>{freePostUsed ? 'Usada' : 'Disponible'}</strong>
+            <small>{freePostUsed ? 'La proxima sale como extra fundador.' : 'Usala primero: vence sola.'}</small>
+          </article>
+          <article className={isFounderExtraPost ? 'is-free' : ''}>
+            <span>Extras del mes</span>
+            <strong>{founderExtraLeft}/{founderExtraLimit}</strong>
+            <small>Para combos, cambios de precio, stock o servicios puntuales.</small>
+          </article>
+          <article>
+            <span>Tipo actual</span>
+            <strong>{isEditingOffer ? 'Edicion' : isFounderExtraPost ? 'Extra' : 'Gratis'}</strong>
+            <small>{isEditingOffer ? 'No consume cupo.' : isFounderExtraPost ? 'Sale por plan fundador.' : 'Publicacion semanal.'}</small>
+          </article>
+        </section>
+      )}
 
       <section className="upload-stage">
         <div>
@@ -1726,9 +1760,9 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
 
       <section className="publish-grid">
         <div className="template-card wide">
-          <span>{isEditingOffer ? 'Edicion directa' : freePostUsed ? 'Publicacion extra' : 'Publicacion semanal gratis'}</span>
-          <strong>{isEditingOffer ? 'No se crea duplicado.' : freePostUsed ? 'Ya usaste la gratis de esta semana.' : 'Carga una promo simple y clara.'}</strong>
-          <p>{isEditingOffer ? 'Se actualiza esta publicacion en el inicio y en tu panel.' : freePostUsed ? (founderActive ? 'Esta sale como extra del plan fundador.' : 'Disponible cuando el admin active tu plan fundador.') : 'La promo queda visible 3 o 4 dias y despues se baja sola.'}</p>
+          <span>{isEditingOffer ? 'Edicion directa' : isFounderExtraPost ? 'Extra fundador' : freePostUsed ? 'Publicacion extra' : 'Publicacion semanal gratis'}</span>
+          <strong>{isEditingOffer ? 'No se crea duplicado.' : founderMonthlyLimitReached ? 'Sin extras disponibles este mes.' : freePostUsed ? 'Ya usaste la gratis de esta semana.' : 'Carga una promo simple y clara.'}</strong>
+          <p>{isEditingOffer ? 'Se actualiza esta publicacion en el inicio y en tu panel.' : founderMonthlyLimitReached ? 'Podes editar o pausar publicaciones existentes, o coordinar otra habilitacion por fuera.' : freePostUsed ? (founderActive ? 'Esta sale como extra del plan fundador.' : 'Disponible cuando el admin active tu plan fundador.') : 'La promo queda visible 3 o 4 dias y despues se baja sola.'}</p>
         </div>
         <div className="fake-field wide progress-field">
           <span>Calidad de publicacion</span>
@@ -1783,9 +1817,9 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
       {founderActive && (
       <section className="delivery-setup">
         <div className="delivery-setup-copy">
-          <span>Para comida nocturna</span>
-          <h2>Configura pedidos, delivery y horario.</h2>
-          <p>Ideal para locales que venden de noche: el vecino sabe si puede pedir envio, retirar o consultar antes de escribir.</p>
+          <span>Pedido o consulta</span>
+          <h2>Configura como te escriben.</h2>
+          <p>Sirve para comida, despensa, belleza, servicios o emprendedores: el vecino sabe si puede pedir, retirar, coordinar envio o consultar.</p>
         </div>
         <div className="delivery-toggle-grid">
           <button className={offerDraft.ordersEnabled ? 'active' : ''} type="button" onClick={() => updateOfferDraft('ordersEnabled', !offerDraft.ordersEnabled)}>

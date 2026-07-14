@@ -58,6 +58,18 @@ const readStoredJson = (key) => {
   }
 }
 
+const getOrCreateVisitorId = () => {
+  const key = 'cerca-liceo-visitor-id'
+  const saved = window.localStorage.getItem(key)
+  if (saved) return saved
+  const randomUuid = window.crypto?.randomUUID
+  const id = typeof randomUuid === 'function'
+    ? randomUuid.call(window.crypto)
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`
+  window.localStorage.setItem(key, id)
+  return id
+}
+
 const offers = defaultOffers
 const businesses = defaultBusinesses
 const realDataMode = cercaApi.isSupabaseEnabled()
@@ -215,8 +227,8 @@ const getOfferWhatsappUrl = (offer) => {
   return makeWhatsAppUrl(phone, message)
 }
 
-const createMenuSlot = (index) => ({
-  name: index === 0 ? 'Producto principal' : '',
+const createMenuSlot = (_index) => ({
+  name: '',
   price: '',
   available: true,
 })
@@ -336,6 +348,14 @@ function App() {
   const [feedOffers, setFeedOffers] = useState(realDataMode ? [] : offers)
   const [feedBusinesses, setFeedBusinesses] = useState(realDataMode ? [] : businesses)
   const [adminBusinesses, setAdminBusinesses] = useState([])
+  const [adminMetrics, setAdminMetrics] = useState({
+    pageViews: 0,
+    uniqueVisitors: 0,
+    businessViews: 0,
+    offerViews: 0,
+    whatsappClicks: 0,
+    favoriteClicks: 0,
+  })
   const [publishTemplate, setPublishTemplate] = useState(null)
   const [merchantMetrics, setMerchantMetrics] = useState({
     businessViews: 0,
@@ -345,6 +365,8 @@ function App() {
   })
   const [authNotice, setAuthNotice] = useState('')
   const [pageViews, setPageViews] = useState(() => Number(window.localStorage.getItem('cerca-liceo-page-views') || 0))
+  const [sessionHydrated, setSessionHydrated] = useState(false)
+  const [analyticsExcluded, setAnalyticsExcluded] = useState(() => window.localStorage.getItem('cerca-liceo-exclude-analytics') === 'true')
 
   useEffect(() => {
     const currentViews = Number(window.localStorage.getItem('cerca-liceo-page-views') || 0)
@@ -382,6 +404,7 @@ function App() {
           }
         }
       }
+      if (!ignore) setSessionHydrated(true)
     }
 
     hydrateSession()
@@ -390,6 +413,25 @@ function App() {
       ignore = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!sessionHydrated) return
+    const pathKey = `${window.location.pathname}${window.location.hash || ''}`
+    const today = new Date().toISOString().slice(0, 10)
+    const sentKey = `cerca-liceo-page-view-${today}-${pathKey}`
+    if (window.sessionStorage.getItem(sentKey)) return
+    window.sessionStorage.setItem(sentKey, '1')
+
+    const visitorId = getOrCreateVisitorId()
+    cercaApi.trackEvent({
+      type: 'page_view',
+      metadata: {
+        visitorId,
+        exclude: analyticsExcluded || account?.role === 'admin',
+        device: isAndroidCompatMode() ? 'android-compat' : 'default',
+      },
+    })
+  }, [sessionHydrated, analyticsExcluded, account?.role])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -452,10 +494,14 @@ function App() {
 
     const loadAdminBusinesses = async () => {
       if (screen !== 'admin') return
-      const { businesses: nextBusinesses, error } = await cercaApi.listAdminBusinesses()
+      const [{ businesses: nextBusinesses, error }, { metrics }] = await Promise.all([
+        cercaApi.listAdminBusinesses(),
+        cercaApi.getAdminMetrics(),
+      ])
       if (!ignore && !error) {
         setAdminBusinesses(nextBusinesses)
       }
+      if (!ignore && metrics) setAdminMetrics(metrics)
     }
 
     loadAdminBusinesses()
@@ -884,6 +930,14 @@ function App() {
           <AdminScreen
             businesses={adminBusinesses.length ? adminBusinesses : feedBusinesses}
             offers={feedOffers}
+            adminMetrics={adminMetrics}
+            analyticsExcluded={analyticsExcluded}
+            onToggleAnalyticsExcluded={() => {
+              const next = !analyticsExcluded
+              setAnalyticsExcluded(next)
+              window.localStorage.setItem('cerca-liceo-exclude-analytics', String(next))
+              setAuthNotice(next ? 'Este dispositivo no se cuenta en visitas.' : 'Este dispositivo vuelve a contar visitas.')
+            }}
             onBack={() => setScreen('profile')}
             onOpenBusiness={(business) => {
               setSelectedBusiness(business)
@@ -1468,7 +1522,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
   }
   const suggestedOffer = template || firstOfferTemplate
   const helperOffer = {
-    title: local?.category === 'Comida' ? 'Promo del dia' : 'Oferta del barrio',
+    title: 'Oferta del barrio',
     description: 'Contale al vecino que incluye, hasta cuando vale y como pedirlo por WhatsApp.',
     price: 'Consultar',
   }
@@ -1617,7 +1671,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
         </div>
         <label className="publish-field wide">
           <span>Titulo</span>
-          <input value={offerDraft.title} onChange={(event) => updateOfferDraft('title', event.target.value)} placeholder="Ej: Promo del dia, combo, producto o servicio" />
+          <input value={offerDraft.title} onChange={(event) => updateOfferDraft('title', event.target.value)} placeholder="Ej: Combo, descuento, producto o servicio" />
         </label>
         <div className="fake-field">
           <span>Rubro</span>
@@ -1836,7 +1890,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     setSaveStatus('Guardando cambios...')
     const result = await onSaveLocal({
       ...nextDraft,
-      name: nextDraft.name || 'Mi comercio',
+      name: nextDraft.name || 'Nombre del comercio',
       hours: formatSchedule(nextDraft),
       ready: true,
     })
@@ -1982,7 +2036,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       setSaveStatus('Guardando solicitud de plan fundador...')
       const result = await onSaveLocal({
         ...nextDraft,
-        name: nextDraft.name || 'Mi comercio',
+        name: nextDraft.name || 'Nombre del comercio',
         hours: formatSchedule(nextDraft),
         ready: true,
       })
@@ -2069,7 +2123,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
 
           <label>
             <span>{localDraft.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre del local'}</span>
-            <input value={localDraft.name} onChange={(event) => updateLocalDraft('name', event.target.value)} placeholder="Ej: Comidas del Barrio" />
+            <input value={localDraft.name} onChange={(event) => updateLocalDraft('name', event.target.value)} placeholder="Ej: Nombre del comercio" />
           </label>
 
           <div className="android-safe-two-cols">
@@ -2171,6 +2225,44 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             {founderRequested || founderActive ? 'Consultar por WhatsApp' : 'Quiero plan fundador'}
           </button>
         </section>
+
+        {founderActive ? (
+          <section className="android-safe-form android-safe-menu-form">
+            <div className="android-safe-field-title">
+              <span>Plan fundador activo</span>
+              <strong>Mini carta del comercio</strong>
+            </div>
+            <p className="android-safe-help">Carga hasta 5 productos. El precio es opcional: si lo dejas vacio, el vecino consulta por WhatsApp.</p>
+            {ensureMenuSlots(localDraft.menu).slice(0, 5).map((item, index) => (
+              <div className="android-safe-menu-row" key={`safe-menu-${index}`}>
+                <label>
+                  <span>Producto {index + 1}</span>
+                  <input value={item.name} onChange={(event) => updateMenuItem(index, 'name', event.target.value)} placeholder={index === 0 ? 'Ej: Combo del dia' : 'Ej: Producto o servicio'} />
+                </label>
+                <label>
+                  <span>Precio opcional</span>
+                  <input value={item.price || ''} onChange={(event) => updateMenuItem(index, 'price', event.target.value)} placeholder="Ej: $4.500" />
+                </label>
+                <div className="android-safe-row-actions">
+                  <button className={item.available !== false ? 'active' : ''} type="button" onClick={() => updateMenuItem(index, 'available', item.available === false)}>
+                    {item.available === false ? 'Oculto' : 'Disponible'}
+                  </button>
+                  <button type="button" onClick={() => clearMenuItem(index)}>Limpiar</button>
+                </div>
+              </div>
+            ))}
+            <button type="button" onClick={saveLocal}>
+              Guardar mini carta
+            </button>
+            <small>{filledMenuItems.length}/5 productos cargados.</small>
+          </section>
+        ) : (
+          <section className="android-safe-card android-safe-plan-card">
+            <span>{founderRequested ? 'Solicitud pendiente' : 'Mini carta bloqueada'}</span>
+            <h2>{founderRequested ? 'Cristian debe activar el plan.' : 'Primero va la ficha gratis.'}</h2>
+            <p>{founderRequested ? 'Cuando el admin active fundador, aca vas a poder cargar productos y pedidos.' : 'La mini carta, pedidos y 4 extras del mes se habilitan solo con plan fundador activo.'}</p>
+          </section>
+        )}
 
         <section className="android-safe-card android-safe-offers-list">
           <span>Promos del comercio</span>
@@ -2598,7 +2690,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   <div className="menu-editor-row" key={`menu-${index}`}>
                     <label>
                       <span>Producto {index + 1}</span>
-                      <input value={item.name} onChange={(event) => updateMenuItem(index, 'name', event.target.value)} placeholder={index === 0 ? 'Ej: Mila completa con papas' : 'Ej: Empanadas, gaseosa, combo...'} />
+                      <input value={item.name} onChange={(event) => updateMenuItem(index, 'name', event.target.value)} placeholder={index === 0 ? 'Ej: Combo del dia' : 'Ej: Producto, servicio o extra...'} />
                     </label>
                     <label>
                       <span>Precio</span>
@@ -2795,7 +2887,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
               orderHours: local.hours ? `Pedidos ${local.hours}` : 'Pedidos a definir',
               distance: 'cerca',
               menu: [
-                { name: 'Producto principal' },
+                { name: 'Producto destacado' },
                 { name: 'Agregar productos desde el menu' },
               ],
             }}
@@ -2885,7 +2977,9 @@ function ManagedPost({ offer, status, action, secondaryAction, onAction, onSecon
 function AdminScreen({
   businesses,
   offers,
-  pageViews,
+  adminMetrics,
+  analyticsExcluded,
+  onToggleAnalyticsExcluded,
   onBack,
   onOpenBusiness,
   onOpenOffer,
@@ -3064,9 +3158,24 @@ function AdminScreen({
           <span>promos activas</span>
         </article>
         <article>
-          <strong>{pageViews}</strong>
-          <span>visitas en este dispositivo</span>
+          <strong>{adminMetrics?.pageViews || 0}</strong>
+          <span>visitas reales</span>
         </article>
+        <article>
+          <strong>{adminMetrics?.uniqueVisitors || 0}</strong>
+          <span>vecinos unicos</span>
+        </article>
+      </section>
+
+      <section className="admin-guidance compact-admin-guidance">
+        <div>
+          <Eye size={18} />
+          <strong>Medicion de visitas</strong>
+        </div>
+        <p>Cuenta visitas guardadas en la base y excluye eventos marcados como admin. Para no sumar tus pruebas, deja activada la exclusion en este telefono o PC.</p>
+        <button type="button" onClick={onToggleAnalyticsExcluded}>
+          {analyticsExcluded ? 'Este dispositivo no cuenta' : 'No contar este dispositivo'}
+        </button>
       </section>
 
       <section className="admin-tabs" aria-label="Vistas de administracion">

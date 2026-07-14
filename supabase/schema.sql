@@ -62,7 +62,7 @@ create table if not exists public.businesses (
   delivery_zone text,
   has_delivery boolean not null default false,
   order_hours text,
-  image_key text not null default 'milanesa',
+  image_key text not null default 'generic',
   image_zoom integer not null default 120,
   image_position text not null default 'center center',
   tone text not null default 'orange',

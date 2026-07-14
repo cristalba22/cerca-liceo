@@ -6,12 +6,19 @@ alter table public.businesses
 
 create table if not exists public.app_events (
   id uuid primary key default gen_random_uuid(),
-  event_type text not null check (event_type in ('business_view', 'offer_view', 'whatsapp_click', 'favorite_click')),
+  event_type text not null,
   business_id uuid references public.businesses(id) on delete cascade,
   offer_id uuid references public.offers(id) on delete cascade,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+alter table public.app_events
+  drop constraint if exists app_events_event_type_check;
+
+alter table public.app_events
+  add constraint app_events_event_type_check
+  check (event_type in ('page_view', 'business_view', 'offer_view', 'whatsapp_click', 'favorite_click'));
 
 create index if not exists app_events_business_idx
 on public.app_events (business_id, created_at desc);
@@ -61,8 +68,7 @@ as $$
       where b.id = target_business_id
         and b.owner_id = auth.uid()
         and (
-          b.plan = 'orders'
-          or b.plan_status = 'active'
+          (b.plan = 'orders' and b.plan_status = 'active')
           or (
             select count(*)
             from public.offers o

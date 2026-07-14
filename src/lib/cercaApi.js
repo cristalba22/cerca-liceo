@@ -89,7 +89,7 @@ const normalizeBusiness = (business = {}) => {
     closeTime: safeBusiness.closeTime || safeBusiness.close_time || '',
     whatsapp: safeBusiness.whatsapp || '',
     instagram: safeBusiness.instagram || '',
-    description: safeBusiness.description || 'Comercio del barrio con atencion por WhatsApp.',
+    description: safeBusiness.description || 'Atencion por WhatsApp.',
     paymentMethods: safeBusiness.paymentMethods || safeBusiness.payment_methods || 'Efectivo y transferencia',
     tone: safeBusiness.tone || 'orange',
     image: safeBusiness.image || 'generic',
@@ -112,8 +112,8 @@ const normalizeBusiness = (business = {}) => {
     menu: safeMenu.length
       ? safeMenu
       : [
-          { name: 'Producto principal' },
-          { name: 'Consultar por WhatsApp' },
+          { name: '' },
+          { name: '' },
         ],
     ready: safeBusiness.ready ?? true,
   }
@@ -150,6 +150,36 @@ const summarizeEvents = (events, businessId) => {
     whatsappClicks: 0,
     favoriteClicks: 0,
   })
+}
+
+const summarizeAdminEvents = (events = []) => {
+  const relevant = events.filter((event) => {
+    const metadata = event.metadata || {}
+    return metadata.exclude !== true && metadata.exclude !== 'true' && metadata.excludeAdmin !== true && metadata.exclude_admin !== true
+  })
+  const visitors = new Set()
+
+  const summary = relevant.reduce((acc, event) => {
+    const type = event.event_type || event.type
+    const visitorId = event.metadata?.visitorId || event.metadata?.visitor_id
+    if (visitorId) visitors.add(visitorId)
+    if (type === 'page_view') acc.pageViews += 1
+    if (type === 'business_view') acc.businessViews += 1
+    if (type === 'offer_view') acc.offerViews += 1
+    if (type === 'whatsapp_click') acc.whatsappClicks += 1
+    if (type === 'favorite_click') acc.favoriteClicks += 1
+    return acc
+  }, {
+    pageViews: 0,
+    uniqueVisitors: 0,
+    businessViews: 0,
+    offerViews: 0,
+    whatsappClicks: 0,
+    favoriteClicks: 0,
+  })
+
+  summary.uniqueVisitors = visitors.size
+  return summary
 }
 
 const readLocalOffers = () => readStorage(LOCAL_OFFERS_KEY) || []
@@ -1191,5 +1221,23 @@ export const cercaApi = {
 
     if (error) return { metrics: localMetrics, error }
     return { metrics: summarizeEvents(data || [], businessId), error: null }
+  },
+
+  async getAdminMetrics() {
+    const localMetrics = summarizeAdminEvents(readLocalEvents())
+
+    if (!hasSupabaseConfig) {
+      return { metrics: localMetrics, error: null }
+    }
+
+    const since = new Date(Date.now() - 30 * 86400000).toISOString()
+    const { data, error } = await supabase
+      .from('app_events')
+      .select('event_type, metadata')
+      .gte('created_at', since)
+      .limit(5000)
+
+    if (error) return { metrics: localMetrics, error }
+    return { metrics: summarizeAdminEvents(data || []), error: null }
   },
 }

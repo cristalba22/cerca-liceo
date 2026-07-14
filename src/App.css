@@ -6834,6 +6834,21 @@ select:focus-visible {
   line-height: 1.35;
 }
 
+.admin-guidance button {
+  margin-top: 12px;
+  min-height: 40px;
+  padding: 0 14px;
+  color: #172112;
+  font-weight: 950;
+  background: #a7e92a;
+  border: 0;
+  border-radius: 999px;
+}
+
+.compact-admin-guidance {
+  background: #fffdf7;
+}
+
 .admin-next h2 {
   margin: 12px 0 0;
   color: #10150f;
@@ -11769,6 +11784,50 @@ html.android-compat .android-safe-form p {
   font-size: 13px;
   font-weight: 800;
   line-height: 1.35;
+}
+
+html.android-compat .android-safe-help {
+  padding: 12px;
+  background: #f6eedc;
+  border-radius: 16px;
+}
+
+html.android-compat .android-safe-menu-form {
+  gap: 14px;
+}
+
+html.android-compat .android-safe-menu-row {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: #f6eedc;
+  border-radius: 18px;
+}
+
+html.android-compat .night-mode .android-safe-menu-row,
+html.android-compat .night-mode .android-safe-help {
+  background: #10150f;
+}
+
+html.android-compat .android-safe-row-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+html.android-compat .android-safe-row-actions button {
+  min-height: 44px;
+  font-size: 13px;
+  background: #eee6d5 !important;
+}
+
+html.android-compat .android-safe-row-actions button.active {
+  background: #a7e92a !important;
+}
+
+html.android-compat .android-safe-menu-form > small {
+  color: #665f53;
+  font-weight: 900;
 }
 
 html.android-compat .android-safe-toggle {

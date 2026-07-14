@@ -11218,3 +11218,91 @@ html.android-compat iframe {
   display: none !important;
 }
 
+html.android-compat .profile-screen,
+html.android-compat .auth-screen,
+html.android-compat .register-screen {
+  background: #fffbee !important;
+}
+
+html.android-compat .profile-screen *,
+html.android-compat .auth-screen *,
+html.android-compat .register-screen * {
+  box-shadow: none !important;
+  filter: none !important;
+  text-shadow: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html.android-compat .account-start-card,
+html.android-compat .auth-form-card,
+html.android-compat .auth-register-strip,
+html.android-compat .register-form,
+html.android-compat .register-next,
+html.android-compat .register-free-note,
+html.android-compat .register-mail-note,
+html.android-compat .session-bar,
+html.android-compat .profile-plan,
+html.android-compat .contact-footer {
+  overflow: visible !important;
+  color: #172112 !important;
+  background: #fffdf7 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1) !important;
+}
+
+html.android-compat .account-start-card {
+  background: #f4ffd8 !important;
+}
+
+html.android-compat .account-start-card button,
+html.android-compat .auth-options button,
+html.android-compat .profile-register-panel button,
+html.android-compat .merchant-type-register button {
+  transform: none !important;
+  overflow: visible !important;
+  background: #fffdf7 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1) !important;
+}
+
+html.android-compat .account-start-card button:nth-child(3),
+html.android-compat .auth-options button:last-child,
+html.android-compat .auth-register-strip.commerce {
+  color: #fffbea !important;
+  background: #10150f !important;
+}
+
+html.android-compat .account-start-card button:nth-child(3) strong,
+html.android-compat .account-start-card button:nth-child(3) small,
+html.android-compat .auth-options button:last-child strong,
+html.android-compat .auth-options button:last-child small,
+html.android-compat .auth-register-strip.commerce strong,
+html.android-compat .auth-register-strip.commerce span {
+  color: #fffbea !important;
+}
+
+html.android-compat .profile-head,
+html.android-compat .auth-hero,
+html.android-compat .register-hero {
+  overflow: visible !important;
+  background: #10150f !important;
+  background-image: none !important;
+}
+
+html.android-compat .profile-head *,
+html.android-compat .auth-hero *,
+html.android-compat .register-hero * {
+  color: #fffbea !important;
+}
+
+html.android-compat .account-start-card::before,
+html.android-compat .account-start-card::after,
+html.android-compat .auth-form-card::before,
+html.android-compat .auth-form-card::after,
+html.android-compat .auth-register-strip::before,
+html.android-compat .auth-register-strip::after,
+html.android-compat .profile-register-panel::before,
+html.android-compat .profile-register-panel::after {
+  content: none !important;
+  display: none !important;
+}
+

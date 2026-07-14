@@ -1812,6 +1812,241 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
   const activeLocalOffers = localOffers.filter((offer) => offer.open !== false)
   const pausedLocalOffers = localOffers.filter((offer) => offer.open === false)
 
+  if (isAndroidCompatMode()) {
+    if (account && account.type !== 'merchant') {
+      return (
+        <div className="android-safe-screen">
+          <header className="android-safe-header">
+            <button type="button" onClick={onBack} aria-label="Volver">
+              <ArrowLeft size={22} />
+            </button>
+            <strong>Panel comercio</strong>
+            <ThemeToggle onToggleTheme={onToggleTheme} />
+          </header>
+
+          <section className="android-safe-card android-safe-intro">
+            <span>Cuenta vecino</span>
+            <h1>Esta parte es para comercios.</h1>
+            <p>Si tambien vendes algo en el barrio, podes usar tu cuenta como comercio y cargar ficha, WhatsApp, foto y promos.</p>
+          </section>
+
+          <section className="android-safe-actions">
+            <button type="button" onClick={onBack}>
+              <strong>Volver a mi cuenta</strong>
+              <small>Desde ahi podes cambiar tu cuenta a comercio.</small>
+            </button>
+          </section>
+        </div>
+      )
+    }
+
+    const safePhotoSrc = isUploadedImage(localDraft.image) ? localDraft.image : ''
+    const requestFounderPlan = async () => {
+      const nextDraft = {
+        ...localDraft,
+        plan: 'pedidos',
+        planStatus: 'manual_pending',
+        menu: ensureMenuSlots(localDraft.menu),
+      }
+      setLocalDraft(nextDraft)
+      setSaveStatus('Guardando solicitud de plan fundador...')
+      const result = await onSaveLocal({
+        ...nextDraft,
+        name: nextDraft.name || 'Mi comercio',
+        hours: formatSchedule(nextDraft),
+        ready: true,
+      })
+      setSaveStatus(result?.ok === false
+        ? (result.error?.message || 'No se pudo guardar la solicitud.')
+        : 'Solicitud guardada. Cristian la activa cuando coordinen el pago por fuera.')
+      window.open(founderPlanUrl, '_blank', 'noopener,noreferrer')
+    }
+
+    return (
+      <div className="android-safe-screen">
+        <header className="android-safe-header">
+          <button type="button" onClick={onBack} aria-label="Volver">
+            <ArrowLeft size={22} />
+          </button>
+          <strong>Mis publicaciones</strong>
+          <ThemeToggle onToggleTheme={onToggleTheme} />
+        </header>
+
+        <section className="android-safe-card android-safe-intro">
+          <span>{publicStateLabel}</span>
+          <h1>{localDraft.name || 'Tu comercio'}</h1>
+          <p>
+            Carga lo basico para aparecer gratis en la guia. El plan fundador se activa solo si lo pedis y el admin lo habilita.
+          </p>
+        </section>
+
+        {saveStatus && (
+          <section className={`android-safe-notice ${saveStatus.startsWith('Falta') ? 'needs-attention' : ''}`}>
+            <Check size={18} />
+            <span>{saveStatus}</span>
+          </section>
+        )}
+
+        <section className="android-safe-card android-safe-progress-card">
+          <span>Estado actual</span>
+          <h2>{planLabel}</h2>
+          <p>{completion}% completo. {pendingTasks.length ? `Faltan ${pendingTasks.length} puntos para que se vea mas confiable.` : 'Tu ficha ya esta completa.'}</p>
+          <i style={{ '--progress': `${completion}%` }}></i>
+        </section>
+
+        <section className="android-safe-actions android-safe-dashboard-actions">
+          <button type="button" onClick={saveLocal}>
+            <strong>{localIsPublic ? 'Guardar cambios' : 'Guardar ficha gratis'}</strong>
+            <small>Foto, datos, contacto, zona y horario.</small>
+          </button>
+          <button type="button" onClick={() => onPublish()}>
+            <strong>Publicar promo</strong>
+            <small>Tenes 1 publicacion semanal gratis que dura 3 dias.</small>
+          </button>
+        </section>
+
+        <section className="android-safe-form android-safe-business-form">
+          <div className="android-safe-field-title">
+            <span>Datos del comercio</span>
+            <strong>{localDraft.businessType === 'entrepreneur' ? 'Emprendimiento sin local' : 'Local con direccion'}</strong>
+          </div>
+
+          <div className="android-safe-mini-toggle" aria-label="Tipo de comercio">
+            <button className={localDraft.businessType !== 'entrepreneur' ? 'active' : ''} type="button" onClick={() => updateBusinessType('local')}>
+              Tengo local
+            </button>
+            <button className={localDraft.businessType === 'entrepreneur' ? 'active' : ''} type="button" onClick={() => updateBusinessType('entrepreneur')}>
+              Sin local
+            </button>
+          </div>
+
+          <label>
+            <span>{localDraft.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre del local'}</span>
+            <input value={localDraft.name} onChange={(event) => updateLocalDraft('name', event.target.value)} placeholder="Ej: Mr. Food" />
+          </label>
+
+          <div className="android-safe-two-cols">
+            <label>
+              <span>Rubro</span>
+              <select value={localDraft.category} onChange={(event) => updateLocalDraft('category', event.target.value)}>
+                <option>Comida</option>
+                <option>Panaderia</option>
+                <option>Verduleria</option>
+                <option>Carniceria</option>
+                <option>Despensa</option>
+                <option>Ferreteria</option>
+                <option>Belleza</option>
+                <option>Servicios</option>
+              </select>
+            </label>
+            <label>
+              <span>Seccion</span>
+              <select value={localDraft.section} onChange={(event) => updateLocalDraft('section', event.target.value)}>
+                {sections.filter((section) => section !== 'Todos').map((section) => (
+                  <option key={section}>{section}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label>
+            <span>WhatsApp</span>
+            <input inputMode="numeric" value={localDraft.whatsapp} onChange={(event) => updateLocalDraft('whatsapp', event.target.value.replace(/\D/g, ''))} placeholder="3517662142" />
+          </label>
+
+          <label>
+            <span>Instagram opcional</span>
+            <input value={localDraft.instagram} onChange={(event) => updateLocalDraft('instagram', event.target.value)} placeholder="@tuemprendimiento" />
+          </label>
+
+          <label>
+            <span>{localDraft.businessType === 'entrepreneur' ? 'Zona o referencia' : 'Direccion o referencia'}</span>
+            <input value={localDraft.address} onChange={(event) => updateLocalDraft('address', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' ? 'Ej: Entrego en Liceo Procrear' : 'Ej: Margarita Caprile 772'} />
+          </label>
+
+          <div className="android-safe-days" aria-label="Dias que abre">
+            {weekDays.map((day) => (
+              <button className={localDraft.openDays.includes(day) ? 'active' : ''} type="button" key={day} onClick={() => toggleOpenDay(day)}>
+                {day}
+              </button>
+            ))}
+          </div>
+
+          <div className="android-safe-two-cols">
+            <label>
+              <span>Desde</span>
+              <input type="time" value={localDraft.openTime} onChange={(event) => updateLocalDraft('openTime', event.target.value)} />
+            </label>
+            <label>
+              <span>Hasta</span>
+              <input type="time" value={localDraft.closeTime} onChange={(event) => updateLocalDraft('closeTime', event.target.value)} />
+            </label>
+          </div>
+
+          <label>
+            <span>Descripcion corta</span>
+            <textarea value={localDraft.description} onChange={(event) => updateLocalDraft('description', event.target.value)} placeholder="Contale al vecino que vendes o como trabajas." />
+          </label>
+
+          <label>
+            <span>Foto del comercio o producto</span>
+            <input type="file" accept="image/*" onChange={handleLocalPhoto} />
+          </label>
+
+          <div className="android-safe-photo-preview">
+            {safePhotoSrc ? (
+              <img src={safePhotoSrc} alt={`Foto de ${localDraft.name || 'comercio'}`} />
+            ) : (
+              <div>
+                <Camera size={24} />
+                <strong>Sin foto propia</strong>
+                <small>Subi una imagen clara para que te reconozcan.</small>
+              </div>
+            )}
+          </div>
+
+          <button type="button" onClick={saveLocal}>
+            Guardar ficha
+          </button>
+        </section>
+
+        <section className="android-safe-card android-safe-plan-card">
+          <span>Plan gratis</span>
+          <h2>Ficha + 1 promo semanal.</h2>
+          <p>La publicacion gratis dura 3 dias y se vence sola. La mini carta, pedidos y extras se habilitan con plan fundador.</p>
+        </section>
+
+        <section className="android-safe-card android-safe-plan-card">
+          <span>Plan fundador</span>
+          <h2>Mini carta + pedidos.</h2>
+          <p>Incluye mini carta, 4 publicaciones extra por mes y pedido armado para enviar por WhatsApp. Precio fundador Liceo: $8.000.</p>
+          <button type="button" onClick={requestFounderPlan}>
+            {founderRequested || founderActive ? 'Consultar por WhatsApp' : 'Quiero plan fundador'}
+          </button>
+        </section>
+
+        <section className="android-safe-card android-safe-offers-list">
+          <span>Promos del comercio</span>
+          <h2>{localOffers.length ? `${localOffers.length} publicaciones` : 'Sin publicaciones todavia'}</h2>
+          {!localOffers.length && <p>Cuando publiques una promo, aparece aca para verla, republicarla o pausarla.</p>}
+          {localOffers.map((offer) => (
+            <article key={offer.id}>
+              <strong>{offer.title}</strong>
+              <small>{offer.price || 'Sin precio'} - {offer.open === false ? 'Pausada' : 'Activa'}</small>
+              <div>
+                <button type="button" onClick={() => onRepostOffer(offer)}>Republicar</button>
+                <button type="button" onClick={() => onPauseOffer(offer)}>{offer.open === false ? 'Activar' : 'Pausar'}</button>
+                <button type="button" onClick={() => onDeleteOffer(offer)}>Eliminar</button>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        <ContactFooter />
+      </div>
+    )
+  }
+
   const panelButton = (id, eyebrow, title, meta, Icon) => (
     <button
       className={`merchant-panel-trigger ${openPanel === id ? 'active' : ''}`}

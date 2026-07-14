@@ -175,13 +175,30 @@ const hasBusinessPublicAddress = (business = {}) => {
 const isFounderPlanActive = (business = {}) => {
   const safeBusiness = business || {}
   const plan = safeBusiness.plan === 'orders' ? 'pedidos' : safeBusiness.plan
-  return plan === 'pedidos' && safeBusiness.planStatus === 'active'
+  if (plan !== 'pedidos' || safeBusiness.planStatus !== 'active') return false
+  if (!safeBusiness.paidUntil) return true
+  const paidUntil = new Date(`${safeBusiness.paidUntil}T23:59:59`)
+  return Number.isNaN(paidUntil.getTime()) || paidUntil.getTime() >= Date.now()
 }
 
 const isFounderPlanRequested = (business = {}) => {
   const safeBusiness = business || {}
   const plan = safeBusiness.plan === 'orders' ? 'pedidos' : safeBusiness.plan
   return plan === 'pedidos' && safeBusiness.planStatus !== 'active'
+}
+
+const isFounderPlanExpired = (business = {}) => {
+  const safeBusiness = business || {}
+  const plan = safeBusiness.plan === 'orders' ? 'pedidos' : safeBusiness.plan
+  if (plan !== 'pedidos' || safeBusiness.planStatus !== 'active' || !safeBusiness.paidUntil) return false
+  const paidUntil = new Date(`${safeBusiness.paidUntil}T23:59:59`)
+  return !Number.isNaN(paidUntil.getTime()) && paidUntil.getTime() < Date.now()
+}
+
+const getFounderPaidUntil = (days = 30) => {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return date.toISOString().slice(0, 10)
 }
 
 const getOpenStatus = (business = {}) => {
@@ -1026,9 +1043,9 @@ function App() {
             onActivateOrders={(business) => updateAdminBusiness(
               business,
               isFounderPlanActive(business)
-                ? { plan: 'gratis', planStatus: 'free' }
-                : { plan: 'pedidos', planStatus: 'active' },
-              isFounderPlanActive(business) ? 'Plan fundador desactivado.' : 'Plan fundador activado.',
+                ? { plan: 'gratis', planStatus: 'free', paidUntil: '' }
+                : { plan: 'pedidos', planStatus: 'active', paidUntil: getFounderPaidUntil(30) },
+              isFounderPlanActive(business) ? 'Plan fundador desactivado.' : 'Plan fundador activado por 30 dias.',
             )}
             onSaveNote={(business, adminNotes) => updateAdminBusiness(
               business,
@@ -3227,12 +3244,14 @@ function AdminScreen({
     if (business.isPublic === false) return 'Oculto'
     if (getBusinessQuality(business).length) return 'Revisar'
     if (isFounderPlanActive(business)) return 'Fundador activo'
+    if (isFounderPlanExpired(business)) return 'Fundador vencido'
     if (isFounderPlanRequested(business)) return 'Fundador pendiente'
     return 'Publicado'
   }
 
   const getPlanActionLabel = (business) => {
     if (isFounderPlanActive(business)) return 'Quitar fundador'
+    if (isFounderPlanExpired(business)) return 'Renovar fundador'
     if (isFounderPlanRequested(business)) return 'Activar fundador'
     return 'Activar fundador'
   }
@@ -3262,7 +3281,7 @@ function AdminScreen({
   const businessListByView = adminView === 'pendientes'
     ? priorityBusinesses.filter((business) => getBusinessQuality(business).length)
     : adminView === 'planes'
-      ? priorityBusinesses.filter((business) => isFounderPlanRequested(business) || isFounderPlanActive(business))
+      ? priorityBusinesses.filter((business) => isFounderPlanRequested(business) || isFounderPlanActive(business) || isFounderPlanExpired(business))
       : priorityBusinesses
   const visibleAdminBusinesses = adminView === 'promos' ? [] : businessListByView
   const adminOffers = adminView === 'promos' ? offers : activeOffers
@@ -3405,8 +3424,9 @@ function AdminScreen({
               </div>
             )}
             <div className="admin-plan-line">
-              <span>{isFounderPlanActive(business) ? 'Plan fundador activo' : isFounderPlanRequested(business) ? 'Pidio plan fundador' : 'Ficha gratis'}</span>
-              <span>{business.planStatus === 'active' ? 'Activo por admin' : business.planStatus === 'manual_pending' ? 'Pendiente de activar' : 'Gratis'}</span>
+              <span>{isFounderPlanActive(business) ? 'Plan fundador activo' : isFounderPlanExpired(business) ? 'Plan fundador vencido' : isFounderPlanRequested(business) ? 'Pidio plan fundador' : 'Ficha gratis'}</span>
+              <span>{business.planStatus === 'active' ? (isFounderPlanExpired(business) ? 'Vencido' : 'Activo por admin') : business.planStatus === 'manual_pending' ? 'Pendiente de activar' : 'Gratis'}</span>
+              {business.paidUntil && <span>Vence {new Date(`${business.paidUntil}T00:00:00`).toLocaleDateString('es-AR')}</span>}
               <span>{business.open ? 'Abierto segun ficha' : 'Marcado cerrado'}</span>
               <span>{businessOffers.length} promos</span>
             </div>

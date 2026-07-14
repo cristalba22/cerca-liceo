@@ -132,7 +132,10 @@ const mergeById = (items) => {
 
 const isOrdersPlanActive = (business = {}) => {
   const plan = business.plan === 'orders' ? 'pedidos' : business.plan
-  return plan === 'pedidos' && business.planStatus === 'active'
+  if (plan !== 'pedidos' || business.planStatus !== 'active') return false
+  if (!business.paidUntil) return true
+  const paidUntil = new Date(`${business.paidUntil}T23:59:59`)
+  return Number.isNaN(paidUntil.getTime()) || paidUntil.getTime() >= Date.now()
 }
 
 const readLocalEvents = () => readStorage(LOCAL_EVENTS_KEY) || []
@@ -275,6 +278,8 @@ const mapOfferRow = (row) => ({
   section: row.section || row.businesses?.section,
   price: row.price_label || (row.price ? `$${Number(row.price).toLocaleString('es-AR')}` : 'Consultar'),
   expires: row.expires_label || getExpiresLabel(row.expires_at),
+  expiresAt: row.expires_at || '',
+  createdAt: row.created_at || '',
   address: cleanText(row.businesses?.address || row.address),
   reference: cleanText(row.businesses?.reference || row.reference),
   hours: cleanText(row.businesses?.hours || row.hours),
@@ -636,7 +641,7 @@ export const cercaApi = {
 
   async listMyOffers() {
     if (!hasSupabaseConfig) {
-      return { offers: readLocalOffers(), error: null }
+      return { offers: readLocalOffers().filter(isOfferAlive), error: null }
     }
 
     const { data: auth } = await supabase.auth.getUser()
@@ -658,7 +663,7 @@ export const cercaApi = {
       .limit(50)
 
     return {
-      offers: data?.map(mapOfferRow).filter((offer) => !/eliminada/i.test(offer.highlight || '')) || [],
+      offers: data?.map(mapOfferRow).filter(isOfferAlive) || [],
       error,
     }
   },
@@ -787,6 +792,7 @@ export const cercaApi = {
     if ('isOpen' in changes) payload.is_open = changes.isOpen
     if ('plan' in changes) payload.plan = changes.plan === 'pedidos' ? 'orders' : 'free'
     if ('planStatus' in changes) payload.plan_status = changes.planStatus
+    if ('paidUntil' in changes) payload.paid_until = changes.paidUntil || null
     if ('adminNotes' in changes) payload.admin_notes = changes.adminNotes || null
     if ('name' in changes) payload.name = changes.name
     if ('category' in changes) payload.category = changes.category
@@ -972,7 +978,7 @@ export const cercaApi = {
       return { offer: null, error: new Error('Guarda la ficha del local antes de publicar una promo.') }
     }
 
-    const founderActive = business.plan === 'pedidos' && business.planStatus === 'active'
+    const founderActive = isOrdersPlanActive(business)
 
     if (!hasSupabaseConfig) {
       if (!founderActive) {

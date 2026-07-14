@@ -73,6 +73,7 @@ const writeStorage = (key, value) => {
 const normalizeBusiness = (business = {}) => {
   const safeBusiness = business || {}
   const safeMenu = Array.isArray(safeBusiness.menu) ? safeBusiness.menu : []
+  const normalizedPlan = safeBusiness.plan === 'orders' ? 'pedidos' : safeBusiness.plan
 
   return {
     id: safeBusiness.id,
@@ -104,7 +105,7 @@ const normalizeBusiness = (business = {}) => {
     orderHours: safeBusiness.orderHours || safeBusiness.hours || 'Horario a completar',
     deliveryZone: safeBusiness.deliveryZone || safeBusiness.section || 'Consultar zona',
     distance: safeBusiness.distance || 'cerca',
-    plan: safeBusiness.plan || 'gratis',
+    plan: normalizedPlan || 'gratis',
     planStatus: safeBusiness.planStatus || safeBusiness.plan_status || 'free',
     paidUntil: safeBusiness.paidUntil || safeBusiness.paid_until || '',
     adminNotes: safeBusiness.adminNotes || safeBusiness.admin_notes || '',
@@ -127,6 +128,11 @@ const mergeById = (items) => {
     seen.add(id)
     return true
   })
+}
+
+const isOrdersPlanActive = (business = {}) => {
+  const plan = business.plan === 'orders' ? 'pedidos' : business.plan
+  return plan === 'pedidos' && business.planStatus === 'active'
 }
 
 const readLocalEvents = () => readStorage(LOCAL_EVENTS_KEY) || []
@@ -920,7 +926,7 @@ export const cercaApi = {
 
     if (error || !data) return { business: null, error }
 
-    const planIsActive = draft.plan === 'pedidos' && draft.planStatus === 'active'
+    const planIsActive = isOrdersPlanActive(draft)
     const menu = (planIsActive ? (draft.menu || []) : [])
       .slice(0, 10)
       .filter((item) => item.name?.trim())

@@ -654,6 +654,12 @@ function App() {
       const without = current.filter((item) => item.id !== nextBusiness.id)
       return nextBusiness.isPublic === false ? without : [nextBusiness, ...without]
     })
+    if (isFounderPlanActive(nextBusiness)) {
+      const { businesses: refreshedBusinesses } = await cercaApi.listBusinesses()
+      if (refreshedBusinesses?.length) {
+        setFeedBusinesses(refreshedBusinesses)
+      }
+    }
     setFeedOffers((current) => current.map((offer) => (
       offer.businessId === nextBusiness.id || offer.business === nextBusiness.name
         ? {

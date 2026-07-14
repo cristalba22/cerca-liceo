@@ -2848,6 +2848,70 @@ function AdminScreen({
 function LoginScreen({ authNotice, onBack, onLogin, onForgotPassword, onQuickAccess, allowQuickAccess, onRegister, onToggleTheme }) {
   const [credentials, setCredentials] = useState({ email: '', password: '' })
 
+  if (isAndroidCompatMode()) {
+    return (
+      <div className="android-safe-screen">
+        <header className="android-safe-header">
+          <button type="button" onClick={onBack} aria-label="Volver">
+            <ArrowLeft size={22} />
+          </button>
+          <strong>Iniciar sesion</strong>
+          <ThemeToggle onToggleTheme={onToggleTheme} />
+        </header>
+
+        {authNotice && (
+          <section className="android-safe-notice">
+            <Check size={16} />
+            <span>{authNotice}</span>
+          </section>
+        )}
+
+        <section className="android-safe-card android-safe-intro">
+          <span>Acceso seguro</span>
+          <h1>Entrar a Cerca Liceo.</h1>
+          <p>Usa tu email y clave. Tambien podes seguir mirando ofertas sin cuenta.</p>
+        </section>
+
+        <section className="android-safe-form">
+          <label>
+            <span>Email</span>
+            <input value={credentials.email} onChange={(event) => setCredentials((current) => ({ ...current, email: event.target.value }))} placeholder="nombre@email.com" type="email" />
+          </label>
+          <label>
+            <span>Clave</span>
+            <input value={credentials.password} onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))} placeholder="Tu clave" type="password" />
+          </label>
+          <button type="button" onClick={() => onLogin(credentials)}>Iniciar sesion</button>
+          <button className="android-safe-link" type="button" onClick={onForgotPassword}>Olvide mi clave</button>
+        </section>
+
+        {allowQuickAccess && (
+          <section className="android-safe-actions" aria-label="Acceso rapido">
+            <button type="button" onClick={() => onQuickAccess('neighbor')}>
+              <strong>Continuar como vecino</strong>
+              <small>Favoritos y avisos.</small>
+            </button>
+            <button type="button" onClick={() => onQuickAccess('merchant')}>
+              <strong>Soy comerciante</strong>
+              <small>Panel, local y publicaciones.</small>
+            </button>
+          </section>
+        )}
+
+        <section className="android-safe-actions" aria-label="Crear cuenta">
+          <button type="button" onClick={() => onRegister('neighbor')}>
+            <strong>Crear cuenta vecino</strong>
+            <small>Gratis y opcional.</small>
+          </button>
+          <button type="button" onClick={() => onRegister('merchant')}>
+            <strong>Registrar comercio</strong>
+            <small>Ficha gratis para aparecer en la guia.</small>
+          </button>
+        </section>
+      </div>
+    )
+  }
+
   return (
     <div className="utility-screen auth-screen">
       <header className="detail-header">
@@ -2927,6 +2991,42 @@ function LoginScreen({ authNotice, onBack, onLogin, onForgotPassword, onQuickAcc
 function ForgotPasswordScreen({ authNotice, onBack, onSubmit, onToggleTheme }) {
   const [email, setEmail] = useState('')
 
+  if (isAndroidCompatMode()) {
+    return (
+      <div className="android-safe-screen">
+        <header className="android-safe-header">
+          <button type="button" onClick={onBack} aria-label="Volver">
+            <ArrowLeft size={22} />
+          </button>
+          <strong>Recuperar clave</strong>
+          <ThemeToggle onToggleTheme={onToggleTheme} />
+        </header>
+
+        {authNotice && (
+          <section className="android-safe-notice">
+            <Check size={16} />
+            <span>{authNotice}</span>
+          </section>
+        )}
+
+        <section className="android-safe-card android-safe-intro">
+          <span>Acceso seguro</span>
+          <h1>Recuperar clave.</h1>
+          <p>Escribi tu email y te mandamos un enlace para crear una clave nueva.</p>
+        </section>
+
+        <section className="android-safe-form">
+          <label>
+            <span>Email de la cuenta</span>
+            <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nombre@email.com" type="email" />
+          </label>
+          <button type="button" onClick={() => onSubmit(email)}>Mandar enlace</button>
+          <p>Si no aparece, revisa Spam o Promociones.</p>
+        </section>
+      </div>
+    )
+  }
+
   return (
     <div className="utility-screen auth-screen">
       <header className="detail-header">
@@ -2979,6 +3079,46 @@ function ResetPasswordScreen({ authNotice, onBack, onSubmit, onToggleTheme }) {
   const savePassword = () => {
     if (keysMismatch) return
     onSubmit(form.password)
+  }
+
+  if (isAndroidCompatMode()) {
+    return (
+      <div className="android-safe-screen">
+        <header className="android-safe-header">
+          <button type="button" onClick={onBack} aria-label="Volver">
+            <ArrowLeft size={22} />
+          </button>
+          <strong>Nueva clave</strong>
+          <ThemeToggle onToggleTheme={onToggleTheme} />
+        </header>
+
+        {authNotice && (
+          <section className="android-safe-notice">
+            <Check size={16} />
+            <span>{authNotice}</span>
+          </section>
+        )}
+
+        <section className="android-safe-card android-safe-intro">
+          <span>Cuenta verificada</span>
+          <h1>Nueva clave.</h1>
+          <p>Usa una clave de al menos 6 caracteres.</p>
+        </section>
+
+        <section className="android-safe-form">
+          <label>
+            <span>Nueva clave</span>
+            <input value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} placeholder="Minimo 6 caracteres" type="password" />
+          </label>
+          <label>
+            <span>Repetir clave</span>
+            <input value={form.confirm} onChange={(event) => setForm((current) => ({ ...current, confirm: event.target.value }))} placeholder="Escribila otra vez" type="password" />
+          </label>
+          {keysMismatch && <p className="form-warning">Las claves no coinciden.</p>}
+          <button type="button" onClick={savePassword}>Guardar clave</button>
+        </section>
+      </div>
+    )
   }
 
   return (
@@ -3365,6 +3505,145 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (isAndroidCompatMode()) {
+    if (pendingEmail) {
+      return (
+        <div className="android-safe-screen">
+          <header className="android-safe-header">
+            <button type="button" onClick={onBack} aria-label="Volver">
+              <ArrowLeft size={22} />
+            </button>
+            <strong>Confirmar email</strong>
+            <ThemeToggle onToggleTheme={onToggleTheme} />
+          </header>
+
+          <section className="android-safe-card android-safe-intro">
+            <span>{isMerchant ? 'Comercio registrado' : 'Cuenta creada'}</span>
+            <h1>Revisa tu email.</h1>
+            <p>Te va a llegar un correo de Cerca Liceo. Abrilo y toca confirmar cuenta. Despues volve e inicia sesion.</p>
+          </section>
+
+          <section className="android-safe-actions">
+            <button type="button" onClick={onLogin || onBack}>
+              <strong>Ya confirme</strong>
+              <small>Ir a iniciar sesion.</small>
+            </button>
+          </section>
+        </div>
+      )
+    }
+
+    if (submitted) {
+      return (
+        <div className="android-safe-screen">
+          <header className="android-safe-header">
+            <button type="button" onClick={onBack} aria-label="Volver">
+              <ArrowLeft size={22} />
+            </button>
+            <strong>Cuenta creada</strong>
+            <ThemeToggle onToggleTheme={onToggleTheme} />
+          </header>
+
+          <section className="android-safe-card android-safe-intro">
+            <span>{isMerchant ? 'Comercio listo' : 'Vecino listo'}</span>
+            <h1>{isMerchant ? 'Ahora carga tu local.' : 'Ya podes usar tu cuenta.'}</h1>
+            <p>{isMerchant ? 'Desde el panel comercio completas foto, zona, horarios y publicaciones.' : 'La cuenta sirve para favoritos y avisos.'}</p>
+          </section>
+
+          <section className="android-safe-actions">
+            <button type="button" onClick={onBack}>
+              <strong>Volver a mi cuenta</strong>
+              <small>Seguir en Cerca Liceo.</small>
+            </button>
+          </section>
+        </div>
+      )
+    }
+
+    return (
+      <div className="android-safe-screen">
+        <header className="android-safe-header">
+          <button type="button" onClick={onBack} aria-label="Volver">
+            <ArrowLeft size={22} />
+          </button>
+          <strong>Crear cuenta</strong>
+          <ThemeToggle onToggleTheme={onToggleTheme} />
+        </header>
+
+        <section className="android-safe-card android-safe-intro">
+          <span>{isMerchant ? 'Comerciante' : 'Vecino'}</span>
+          <h1>{isMerchant ? 'Registrar comercio.' : 'Crear cuenta vecino.'}</h1>
+          <p>{isMerchant ? 'Primero creas la cuenta. Despues cargas el local, foto, horarios y publicaciones desde el panel.' : 'La cuenta es opcional y sirve para guardar favoritos y recibir avisos.'}</p>
+        </section>
+
+        <section className="android-safe-actions android-safe-toggle">
+          <button className={accountType === 'neighbor' ? 'active' : ''} type="button" onClick={() => setAccountType('neighbor')}>
+            <strong>Vecino</strong>
+            <small>Cuenta gratis.</small>
+          </button>
+          <button className={accountType === 'merchant' ? 'active' : ''} type="button" onClick={() => setAccountType('merchant')}>
+            <strong>Comercio</strong>
+            <small>Para publicar.</small>
+          </button>
+        </section>
+
+        <section className="android-safe-form">
+          {submitFeedback && <p className="form-warning">{submitFeedback}</p>}
+          <label>
+            <span>Nombre y apellido</span>
+            <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder="Ej: Cristian Alba" />
+          </label>
+          <label>
+            <span>WhatsApp</span>
+            <input value={form.whatsapp} onChange={(event) => updateForm('whatsapp', event.target.value)} placeholder="3510000000" inputMode="numeric" />
+          </label>
+          <label>
+            <span>Email</span>
+            <input value={form.email} onChange={(event) => updateForm('email', event.target.value)} placeholder="nombre@email.com" type="email" />
+          </label>
+          <label>
+            <span>Clave</span>
+            <input value={form.password} onChange={(event) => updateForm('password', event.target.value)} placeholder="Minimo 6 caracteres" type="password" />
+          </label>
+          <label>
+            <span>Repetir clave</span>
+            <input value={form.confirmPassword} onChange={(event) => updateForm('confirmPassword', event.target.value)} placeholder="Escribila otra vez" type="password" />
+          </label>
+          <label>
+            <span>Seccion</span>
+            <select value={form.section} onChange={(event) => updateForm('section', event.target.value)}>
+              <option value="">Elegir seccion</option>
+              {sections.filter((section) => section !== 'Todos').map((section) => (
+                <option key={section} value={section}>{section}</option>
+              ))}
+            </select>
+          </label>
+          {isMerchant && (
+            <>
+              <label>
+                <span>Nombre comercial</span>
+                <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder="Ej: Lo de Meli" />
+              </label>
+              <label>
+                <span>Rubro principal</span>
+                <select value={form.category} onChange={(event) => updateForm('category', event.target.value)}>
+                  <option value="">Elegir rubro</option>
+                  {categories.filter((category) => category.name !== 'Todas').map((category) => (
+                    <option key={category.name} value={category.name}>{category.name}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
+          <p>Te puede llegar un email de Cerca Liceo para confirmar la cuenta.</p>
+          <button type="button" disabled={isSubmitting} onClick={submitRegister}>
+            {isSubmitting ? 'Creando cuenta...' : isMerchant ? 'Crear cuenta de comercio' : 'Crear cuenta vecino'}
+          </button>
+        </section>
+      </div>
+    )
   }
 
   if (pendingEmail) {

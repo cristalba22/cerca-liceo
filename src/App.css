@@ -11486,3 +11486,153 @@ html.android-compat .android-safe-notice svg {
   flex: 0 0 auto;
   color: #5d9600;
 }
+
+html.android-compat .android-safe-form {
+  display: grid;
+  gap: 12px;
+  margin: 14px 18px 0;
+  padding: 18px;
+  color: #172112;
+  background: #fffdf7 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 22px;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  contain: layout paint;
+}
+
+html.android-compat .night-mode .android-safe-form {
+  color: #fffbea;
+  background: #182014 !important;
+  border-color: rgba(255, 251, 234, 0.12);
+}
+
+html.android-compat .android-safe-form label {
+  display: grid;
+  gap: 7px;
+}
+
+html.android-compat .android-safe-form label span {
+  color: #665f53;
+  font-size: 11px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+html.android-compat .night-mode .android-safe-form label span {
+  color: rgba(255, 251, 234, 0.7);
+}
+
+html.android-compat .android-safe-form input,
+html.android-compat .android-safe-form select {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 14px;
+  color: #10150f;
+  font-size: 16px;
+  font-weight: 850;
+  background: #f6eedc !important;
+  border: 1px solid rgba(16, 21, 15, 0.12);
+  border-radius: 16px;
+  box-shadow: none !important;
+  outline: 0;
+}
+
+html.android-compat .night-mode .android-safe-form input,
+html.android-compat .night-mode .android-safe-form select {
+  color: #fffbea;
+  background: #10150f !important;
+  border-color: rgba(255, 251, 234, 0.16);
+}
+
+html.android-compat .android-safe-form button {
+  min-height: 54px;
+  padding: 0 16px;
+  color: #172112;
+  font-size: 15px;
+  font-weight: 1000;
+  background: #a7e92a !important;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: none !important;
+}
+
+html.android-compat .android-safe-form button:disabled {
+  opacity: 0.62;
+}
+
+html.android-compat .android-safe-form .android-safe-link {
+  color: #172112;
+  background: #eee6d5 !important;
+}
+
+html.android-compat .android-safe-form p {
+  margin: 0;
+  color: #665f53;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+html.android-compat .android-safe-toggle {
+  grid-template-columns: 1fr 1fr;
+}
+
+html.android-compat .android-safe-toggle button {
+  min-height: 84px;
+}
+
+html.android-compat .android-safe-toggle button.active {
+  background: #a7e92a !important;
+}
+
+html.android-compat .utility-screen,
+html.android-compat .auth-screen,
+html.android-compat .register-screen,
+html.android-compat .profile-screen,
+html.android-compat .android-safe-screen {
+  position: relative;
+  z-index: 10;
+  overflow: visible !important;
+  transform: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+html.android-compat .utility-screen *,
+html.android-compat .auth-screen *,
+html.android-compat .register-screen *,
+html.android-compat .profile-screen *,
+html.android-compat .android-safe-screen * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  animation: none !important;
+  transition: none !important;
+  will-change: auto !important;
+}
+
+html.android-compat .utility-screen::before,
+html.android-compat .utility-screen::after,
+html.android-compat .auth-screen::before,
+html.android-compat .auth-screen::after,
+html.android-compat .register-screen::before,
+html.android-compat .register-screen::after,
+html.android-compat .profile-screen::before,
+html.android-compat .profile-screen::after {
+  content: none !important;
+  display: none !important;
+}
+
+html.android-compat .detail-header,
+html.android-compat .android-safe-header {
+  position: relative !important;
+  z-index: 9999 !important;
+  overflow: visible !important;
+}

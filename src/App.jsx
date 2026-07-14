@@ -263,6 +263,11 @@ const buildLocalDraft = (local, account) => ({
   paymentMethods: local?.paymentMethods || '',
   delivery: local?.delivery || account?.salesMode || 'Retiro y delivery',
   plan: local?.plan || 'gratis',
+  planStatus: local?.planStatus || 'free',
+  paidUntil: local?.paidUntil || '',
+  adminNotes: local?.adminNotes || '',
+  isPublic: local?.isPublic ?? true,
+  open: local?.open ?? true,
   image: local?.image || '',
   imageZoom: local?.imageZoom || 120,
   imagePosition: local?.imagePosition || 'center center',
@@ -332,6 +337,12 @@ function App() {
   const [feedBusinesses, setFeedBusinesses] = useState(realDataMode ? [] : businesses)
   const [adminBusinesses, setAdminBusinesses] = useState([])
   const [publishTemplate, setPublishTemplate] = useState(null)
+  const [merchantMetrics, setMerchantMetrics] = useState({
+    businessViews: 0,
+    offerViews: 0,
+    whatsappClicks: 0,
+    favoriteClicks: 0,
+  })
   const [authNotice, setAuthNotice] = useState('')
   const [pageViews, setPageViews] = useState(() => Number(window.localStorage.getItem('cerca-liceo-page-views') || 0))
 
@@ -348,6 +359,12 @@ function App() {
     setFeedOffers((current) => mergeUniqueById([...myOffers, ...current]))
   }
 
+  const loadMerchantMetrics = async (businessId = merchantLocal?.id) => {
+    if (!businessId) return
+    const { metrics } = await cercaApi.getBusinessMetrics({ businessId })
+    if (metrics) setMerchantMetrics(metrics)
+  }
+
   useEffect(() => {
     let ignore = false
 
@@ -361,6 +378,7 @@ function App() {
           if (!ignore && business) {
             setMerchantLocal(business)
             await loadMerchantOffers()
+            await loadMerchantMetrics(business.id)
           }
         }
       }
@@ -518,6 +536,7 @@ function App() {
       if (business) {
         setMerchantLocal(business)
         await loadMerchantOffers()
+        await loadMerchantMetrics(business.id)
       } else {
         setMerchantLocal(null)
       }
@@ -564,7 +583,23 @@ function App() {
       ? { ...business, image: draft.image, imageZoom: draft.imageZoom, imagePosition: draft.imagePosition }
       : business
     setMerchantLocal(nextBusiness)
-    setFeedBusinesses((current) => [nextBusiness, ...current.filter((item) => item.id !== nextBusiness.id)])
+    await loadMerchantMetrics(nextBusiness.id)
+    setFeedBusinesses((current) => {
+      const without = current.filter((item) => item.id !== nextBusiness.id)
+      return nextBusiness.isPublic === false ? without : [nextBusiness, ...without]
+    })
+    setFeedOffers((current) => current.map((offer) => (
+      offer.businessId === nextBusiness.id || offer.business === nextBusiness.name
+        ? {
+            ...offer,
+            open: nextBusiness.open !== false,
+            openDays: nextBusiness.openDays,
+            openTime: nextBusiness.openTime,
+            closeTime: nextBusiness.closeTime,
+            hours: nextBusiness.hours,
+          }
+        : offer
+    )))
     setAuthNotice(warning || 'Local guardado correctamente.')
     return { ok: true, business: nextBusiness, warning: warning || '' }
   }
@@ -607,20 +642,34 @@ function App() {
   }
 
   const publishOffer = async (offerDraft) => {
-    const { offer, error, warning } = await cercaApi.createOffer(offerDraft)
+    const isEditing = Boolean(offerDraft.offerId)
+    const { offer, error, warning } = isEditing
+      ? await cercaApi.updateOffer(offerDraft)
+      : await cercaApi.createOffer(offerDraft)
     if (error) {
-      setAuthNotice(error.message || 'No se pudo publicar la promo.')
-      return { ok: false, message: error.message || 'No se pudo publicar la promo.' }
+      const message = error.message || (isEditing ? 'No se pudo editar la promo.' : 'No se pudo publicar la promo.')
+      setAuthNotice(message)
+      return { ok: false, message }
     }
-    setFeedOffers((current) => [offer, ...current.filter((item) => item.id !== offer.id)])
+    setFeedOffers((current) => isEditing
+      ? current.map((item) => (item.id === offer.id ? offer : item))
+      : [offer, ...current.filter((item) => item.id !== offer.id)])
     setPublishTemplate(null)
-    setAuthNotice(warning || 'Promo publicada correctamente.')
-    return { ok: true, message: warning || 'Promo publicada correctamente.' }
+    const message = warning || (isEditing ? 'Promo actualizada correctamente.' : 'Promo publicada correctamente.')
+    setAuthNotice(message)
+    return { ok: true, message }
   }
 
-  const openPublish = (template = null) => {
-    setPublishTemplate(template)
+  const openPublish = (template = null, mode = 'new') => {
+    setPublishTemplate(template ? { ...template, editMode: mode } : null)
     setScreen('publish')
+  }
+
+  const trackInteraction = async ({ type, businessId, offerId, metadata }) => {
+    await cercaApi.trackEvent({ type, businessId, offerId, metadata })
+    if (merchantLocal?.id && businessId === merchantLocal.id) {
+      await loadMerchantMetrics(merchantLocal.id)
+    }
   }
 
   const pauseOffer = async (offer) => {
@@ -768,6 +817,7 @@ function App() {
             offer={selectedOffer}
             relatedOffers={feedOffers}
             onToggleTheme={() => setDarkMode((value) => !value)}
+            onTrack={trackInteraction}
             onBack={() => {
               setScreen('home')
               setSelectedOffer(null)
@@ -779,6 +829,7 @@ function App() {
           <BusinessDetailScreen
             business={selectedBusiness}
             onToggleTheme={() => setDarkMode((value) => !value)}
+            onTrack={trackInteraction}
             onBack={() => {
               setScreen('directory')
               setSelectedBusiness(null)
@@ -792,6 +843,7 @@ function App() {
             onToggleTheme={() => setDarkMode((value) => !value)}
             onBack={() => setScreen('home')}
             onOpen={(business) => {
+              trackInteraction({ type: 'business_view', businessId: business.id })
               setSelectedBusiness(business)
               setScreen('business-detail')
             }}
@@ -823,6 +875,7 @@ function App() {
             onPauseOffer={pauseOffer}
             onDeleteOffer={deleteOffer}
             onRepostOffer={repostOffer}
+            metrics={merchantMetrics}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
         )}
@@ -886,10 +939,18 @@ function App() {
             account={account}
             local={merchantLocal}
             onUpgradeToMerchant={upgradeAccountToMerchant}
+            onPrivacy={() => setScreen('privacy')}
             onRegister={(type) => {
               setRegisterType(type)
               setScreen('register')
             }}
+            onToggleTheme={() => setDarkMode((value) => !value)}
+          />
+        )}
+
+        {screen === 'privacy' && (
+          <PrivacyScreen
+            onBack={() => setScreen('profile')}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
         )}
@@ -1153,9 +1214,11 @@ function App() {
                     offer={offer}
                     key={offer.id || `${offer.title}-${index}`}
                     onOpen={() => {
+                      trackInteraction({ type: 'offer_view', businessId: offer.businessId, offerId: offer.id })
                       setSelectedOffer(offer)
                       setScreen('detail')
                     }}
+                    onTrack={trackInteraction}
                   />
                 ))
                   ) : (
@@ -1181,7 +1244,7 @@ function App() {
               </>
             )}
 
-            <ContactFooter />
+            <ContactFooter onPrivacy={() => setScreen('privacy')} />
 
             <nav className="bottom-nav" aria-label="Navegacion inferior">
               <button className="active" type="button">
@@ -1236,7 +1299,7 @@ function HeroDeal({ offer, onOpen }) {
   )
 }
 
-function ContactFooter() {
+function ContactFooter({ onPrivacy }) {
   const supportMessage = 'Hola Cristian, vi Cerca Liceo y queria consultar por el proyecto.'
   const whatsappUrl = makeWhatsAppUrl('3517662142', supportMessage)
 
@@ -1256,6 +1319,12 @@ function ContactFooter() {
           <Share2 size={16} />
           Email
         </a>
+        {onPrivacy && (
+          <button type="button" onClick={onPrivacy}>
+            <ShieldCheck size={16} />
+            Privacidad
+          </button>
+        )}
       </div>
       <small>Soporte: 351 766 2142 - crisalbavideografo@gmail.com</small>
     </footer>
@@ -1383,6 +1452,7 @@ function NeighborhoodLiveMap({ businesses = [], onOpen, onDirectory }) {
 }
 
 function PublishScreen({ account, local, template, offers = [], onBack, onMerchantPanel, onPublishOffer, onToggleTheme }) {
+  const isEditingOffer = template?.editMode === 'edit' && template?.id
   const firstOfferTemplate = {
     title: '',
     description: '',
@@ -1433,12 +1503,13 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
   const canPublish = hasMerchantAccount && local
   const weekStart = Date.now() - 7 * 86400000
   const weeklyPosts = offers.filter((offer) => (
+    offer.id !== template?.id &&
     (offer.businessId === local?.id || offer.business === local?.name) &&
     new Date(offer.createdAt || Date.now()).getTime() >= weekStart
   ))
   const freePostUsed = weeklyPosts.length > 0 && !template
   const founderActive = isFounderPlanActive(local)
-  const canUseExtraPost = !freePostUsed || founderActive
+  const canUseExtraPost = isEditingOffer || !freePostUsed || founderActive
   const founderPlanUrl = makeWhatsAppUrl(
     '3517662142',
     `Hola Cristian, quiero pedir el plan fundador Liceo para ${local?.name || account?.businessName || 'mi comercio'}. Necesito mini carta, 4 publicaciones extra al mes y pedidos por WhatsApp.`,
@@ -1479,6 +1550,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
       return
     }
     const result = await onPublishOffer({
+      offerId: isEditingOffer ? template.id : null,
       business: local,
       title: previewOffer.title,
       description: previewOffer.description,
@@ -1500,16 +1572,16 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
       </header>
 
       <section className="publish-hero">
-        <span>{template ? 'Editar similar' : canPublish ? '1 gratis por semana' : 'Antes de publicar'}</span>
-        <h1>{template ? 'Ajusta esta promo y publicala de nuevo.' : canPublish ? 'Subi una promo que se vea fuerte en el feed.' : 'Primero deja tu local listo.'}</h1>
-        <p>{template ? 'Trajimos el texto, precio y foto de la publicacion anterior. Cambia lo necesario y sale como una nueva promo.' : canPublish ? 'Elegis rubro, seccion, precio opcional, direccion y WhatsApp. La promo dura 3 o 4 dias y despues se baja sola.' : 'Para que la publicacion sea confiable, primero cargamos nombre del local, direccion, horario y WhatsApp.'}</p>
+        <span>{isEditingOffer ? 'Editar publicacion' : template ? 'Reusar texto' : canPublish ? '1 gratis por semana' : 'Antes de publicar'}</span>
+        <h1>{isEditingOffer ? 'Corregi esta promo sin duplicarla.' : template ? 'Ajusta esta promo y publicala de nuevo.' : canPublish ? 'Subi una promo que se vea fuerte en el feed.' : 'Primero deja tu local listo.'}</h1>
+        <p>{isEditingOffer ? 'Cambia titulo, descripcion, precio, foto o vigencia. Se actualiza la misma publicacion.' : template ? 'Trajimos el texto, precio y foto de la publicacion anterior. Cambia lo necesario y sale como una nueva promo.' : canPublish ? 'Elegis rubro, seccion, precio opcional, direccion y WhatsApp. La promo dura 3 o 4 dias y despues se baja sola.' : 'Para que la publicacion sea confiable, primero cargamos nombre del local, direccion, horario y WhatsApp.'}</p>
       </section>
 
       <section className="merchant-status-card">
         <div>
           <span>Estado para publicar</span>
           <h2>{canPublish ? `${local.name} puede publicar hoy.` : hasMerchantAccount ? 'Falta cargar la ficha del local.' : 'Falta crear cuenta comercio.'}</h2>
-        <p>{canPublish ? (freePostUsed ? (founderActive ? 'Ya usaste la gratis. Como tenes plan fundador, podes usar una publicacion extra del mes.' : 'Ya usaste la promo gratis de esta semana. Para publicar extras, pedi el plan fundador y te lo activa el admin.') : 'Tenes 1 publicacion semanal gratis. Dura 3 o 4 dias y se baja sola.') : 'No se pide tarjeta ni pago para empezar. La ficha del local queda gratis y visible para vecinos.'}</p>
+          <p>{canPublish ? (isEditingOffer ? 'Estas editando una promo ya publicada. No consume otra publicacion semanal.' : freePostUsed ? (founderActive ? 'Ya usaste la gratis. Como tenes plan fundador, podes usar una publicacion extra del mes.' : 'Ya usaste la promo gratis de esta semana. Para publicar extras, pedi el plan fundador y te lo activa el admin.') : 'Tenes 1 publicacion semanal gratis. Dura 3 o 4 dias y se baja sola.') : 'No se pide tarjeta ni pago para empezar. La ficha del local queda gratis y visible para vecinos.'}</p>
         </div>
         <button type="button" onClick={onMerchantPanel}>
           {canPublish ? 'Ver panel' : 'Completar local'}
@@ -1530,9 +1602,9 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
 
       <section className="publish-grid">
         <div className="template-card wide">
-          <span>{freePostUsed ? 'Publicacion extra' : 'Publicacion semanal gratis'}</span>
-          <strong>{freePostUsed ? 'Ya usaste la gratis de esta semana.' : 'Carga una promo simple y clara.'}</strong>
-          <p>{freePostUsed ? (founderActive ? 'Esta sale como extra del plan fundador.' : 'Disponible cuando el admin active tu plan fundador.') : 'La promo queda visible 3 o 4 dias y despues se baja sola.'}</p>
+          <span>{isEditingOffer ? 'Edicion directa' : freePostUsed ? 'Publicacion extra' : 'Publicacion semanal gratis'}</span>
+          <strong>{isEditingOffer ? 'No se crea duplicado.' : freePostUsed ? 'Ya usaste la gratis de esta semana.' : 'Carga una promo simple y clara.'}</strong>
+          <p>{isEditingOffer ? 'Se actualiza esta publicacion en el inicio y en tu panel.' : freePostUsed ? (founderActive ? 'Esta sale como extra del plan fundador.' : 'Disponible cuando el admin active tu plan fundador.') : 'La promo queda visible 3 o 4 dias y despues se baja sola.'}</p>
         </div>
         <div className="fake-field wide progress-field">
           <span>Calidad de publicacion</span>
@@ -1650,13 +1722,13 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
           ? (freePostUsed && !founderActive ? () => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer') : publishPreparedOffer)
           : onMerchantPanel}
       >
-        {canPublish ? (canSendOffer ? (freePostUsed ? 'Publicar extra fundador' : 'Publicar gratis') : freePostUsed && !founderActive ? 'Pedir plan fundador' : `Completar ${publishMissing[0]}`) : 'Completar local primero'}
+        {canPublish ? (canSendOffer ? (isEditingOffer ? 'Guardar cambios' : freePostUsed ? 'Publicar extra fundador' : 'Publicar gratis') : freePostUsed && !founderActive && !isEditingOffer ? 'Pedir plan fundador' : `Completar ${publishMissing[0]}`) : 'Completar local primero'}
       </button>
     </div>
   )
 }
 
-function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPublish, onPauseOffer, onDeleteOffer, onRepostOffer, onToggleTheme }) {
+function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal, onBack, onPublish, onPauseOffer, onDeleteOffer, onRepostOffer, onToggleTheme }) {
   const [openPanel, setOpenPanel] = useState(local ? 'preview' : 'basic')
   const [saveStatus, setSaveStatus] = useState('')
   const [localDraft, setLocalDraft] = useState(() => buildLocalDraft(local, account))
@@ -1752,6 +1824,27 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
 
     setSaveStatus(result?.warning || 'Local guardado. Ya aparece en la guia del barrio.')
     setOpenPanel(result?.warning ? 'photo' : 'preview')
+  }
+
+  const saveLocalWithOverrides = async (overrides, successMessage) => {
+    const nextDraft = {
+      ...localDraft,
+      ...overrides,
+      menu: ensureMenuSlots(localDraft.menu),
+    }
+    setLocalDraft(nextDraft)
+    setSaveStatus('Guardando cambios...')
+    const result = await onSaveLocal({
+      ...nextDraft,
+      name: nextDraft.name || 'Mi comercio',
+      hours: formatSchedule(nextDraft),
+      ready: true,
+    })
+    if (result?.ok === false) {
+      setSaveStatus(result.error?.message || 'No se pudo guardar. Revisa los datos e intenta de nuevo.')
+      return
+    }
+    setSaveStatus(successMessage || result?.warning || 'Cambios guardados.')
   }
 
   const completedFields = [
@@ -1932,6 +2025,23 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
         </section>
 
         <section className="android-safe-actions android-safe-dashboard-actions">
+          <button type="button" onClick={() => saveLocalWithOverrides(
+            { open: localDraft.open === false },
+            localDraft.open === false ? 'Local marcado como abierto.' : 'Local marcado como cerrado por ahora.',
+          )}>
+            <strong>{localDraft.open === false ? 'Estoy cerrado' : 'Estoy abierto'}</strong>
+            <small>{localDraft.open === false ? 'Tocar para abrir.' : 'Tocar para cerrar temporalmente.'}</small>
+          </button>
+          <button type="button" onClick={() => saveLocalWithOverrides(
+            { isPublic: localDraft.isPublic === false },
+            localDraft.isPublic === false ? 'Ficha visible nuevamente.' : 'Ficha pausada. No aparece en la guia.',
+          )}>
+            <strong>{localDraft.isPublic === false ? 'Ficha pausada' : 'Ficha visible'}</strong>
+            <small>{localDraft.isPublic === false ? 'Mostrar en guia.' : 'Pausar sin borrar.'}</small>
+          </button>
+        </section>
+
+        <section className="android-safe-actions android-safe-dashboard-actions">
           <button type="button" onClick={saveLocal}>
             <strong>{localIsPublic ? 'Guardar cambios' : 'Guardar ficha gratis'}</strong>
             <small>Foto, datos, contacto, zona y horario.</small>
@@ -2079,7 +2189,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
           ))}
         </section>
 
-        <ContactFooter />
+        <ContactFooter onPrivacy={() => setScreen('privacy')} />
       </div>
     )
   }
@@ -2168,6 +2278,33 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
         <button type="button" onClick={saveLocal}>{localIsPublic ? 'Actualizar' : 'Guardar'}</button>
       </section>
 
+      <section className="merchant-quick-controls" aria-label="Controles rapidos del comercio">
+        <button
+          className={localDraft.open === false ? 'is-off' : 'is-on'}
+          type="button"
+          onClick={() => saveLocalWithOverrides(
+            { open: localDraft.open === false },
+            localDraft.open === false ? 'Local marcado como abierto.' : 'Local marcado como cerrado por ahora.',
+          )}
+        >
+          <Clock3 size={17} />
+          <span>{localDraft.open === false ? 'Estoy cerrado' : 'Estoy abierto'}</span>
+          <small>{localDraft.open === false ? 'Tocar para abrir' : 'Tocar para cerrar'}</small>
+        </button>
+        <button
+          className={localDraft.isPublic === false ? 'is-off' : 'is-on'}
+          type="button"
+          onClick={() => saveLocalWithOverrides(
+            { isPublic: localDraft.isPublic === false },
+            localDraft.isPublic === false ? 'Ficha visible nuevamente.' : 'Ficha pausada. No aparece en la guia.',
+          )}
+        >
+          <Eye size={17} />
+          <span>{localDraft.isPublic === false ? 'Ficha pausada' : 'Ficha visible'}</span>
+          <small>{localDraft.isPublic === false ? 'Mostrar de nuevo' : 'Pausar sin borrar'}</small>
+        </button>
+      </section>
+
       <section className="dashboard-checklist" aria-label="Checklist del local">
         {dashboardTasks.map((task) => (
           <button className={task.done ? 'done' : task.optional ? 'optional' : 'todo'} type="button" key={task.id} onClick={() => setOpenPanel(task.id)}>
@@ -2186,12 +2323,12 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
           <span>promos activas</span>
         </article>
         <article>
-          <strong>{localDraft.openDays.length}</strong>
-          <span>dias abierto</span>
+          <strong>{metrics.offerViews || 0}</strong>
+          <span>vistas promos</span>
         </article>
         <article>
-          <strong>{filledMenuItems.length}</strong>
-          <span>productos en carta</span>
+          <strong>{metrics.whatsappClicks || 0}</strong>
+          <span>clics WhatsApp</span>
         </article>
       </section>
 
@@ -2649,7 +2786,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
               image: local.image,
               imageZoom: local.imageZoom,
               imagePosition: local.imagePosition,
-              open: true,
+              open: local.open !== false,
               rating: 'Nuevo',
               followers: 0,
               verified: false,
@@ -2692,9 +2829,9 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                 offer={offer}
                 status="Activa"
                 action="Republicar"
-                secondaryAction="Editar similar"
+                secondaryAction="Editar promo"
                 onAction={() => onRepostOffer(offer)}
-                onSecondaryAction={() => onPublish(offer)}
+                onSecondaryAction={() => onPublish(offer, 'edit')}
                 onPause={() => onPauseOffer(offer)}
                 onDelete={() => onDeleteOffer(offer)}
               />
@@ -2705,9 +2842,9 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                 offer={offer}
                 status="Pausada"
                 action="Republicar"
-                secondaryAction="Editar similar"
+                secondaryAction="Editar promo"
                 onAction={() => onRepostOffer(offer)}
-                onSecondaryAction={() => onPublish(offer)}
+                onSecondaryAction={() => onPublish(offer, 'edit')}
                 onPause={() => onPauseOffer(offer)}
                 onDelete={() => onDeleteOffer(offer)}
               />
@@ -3449,7 +3586,7 @@ function ResetPasswordScreen({ authNotice, onBack, onSubmit, onToggleTheme }) {
   )
 }
 
-function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchantPanel, onPublish, onAdmin, onResetSession, onUpgradeToMerchant, authNotice, onToggleTheme }) {
+function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchantPanel, onPublish, onAdmin, onResetSession, onUpgradeToMerchant, onPrivacy, authNotice, onToggleTheme }) {
   const isLogged = Boolean(account)
   const isMerchant = account?.type === 'merchant'
   const isAdmin = account?.role === 'admin' || !cercaApi.isSupabaseEnabled()
@@ -3725,7 +3862,72 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
         </a>
       </section>
 
-      <ContactFooter />
+      <ContactFooter onPrivacy={onPrivacy} />
+    </div>
+  )
+}
+
+function PrivacyScreen({ onBack, onToggleTheme }) {
+  return (
+    <div className="utility-screen privacy-screen">
+      <header className="detail-header">
+        <button type="button" onClick={onBack} aria-label="Volver">
+          <ArrowLeft size={22} />
+        </button>
+        <strong>Privacidad</strong>
+        <ThemeToggle onToggleTheme={onToggleTheme} />
+      </header>
+
+      <section className="privacy-hero">
+        <span>Reglas claras</span>
+        <h1>Cerca Liceo cuida datos simples del barrio.</h1>
+        <p>La pagina sirve para encontrar comercios, promociones y contactos. El vecino puede usarla gratis sin registrarse.</p>
+      </section>
+
+      <section className="privacy-list">
+        <article>
+          <ShieldCheck size={18} />
+          <div>
+            <strong>Para vecinos</strong>
+            <p>No hace falta crear cuenta para mirar ofertas, locales, horarios o contactos.</p>
+          </div>
+        </article>
+        <article>
+          <Store size={18} />
+          <div>
+            <strong>Para comercios</strong>
+            <p>Se guardan los datos que cargues para mostrar tu ficha: nombre, rubro, zona, horario, WhatsApp, Instagram y fotos.</p>
+          </div>
+        </article>
+        <article>
+          <MessageCircle size={18} />
+          <div>
+            <strong>WhatsApp</strong>
+            <p>Los pedidos y consultas se envian directo al comercio. Cerca Liceo no cobra comision por venta.</p>
+          </div>
+        </article>
+        <article>
+          <Eye size={18} />
+          <div>
+            <strong>Control</strong>
+            <p>El comercio puede pausar su ficha, marcar cerrado, editar datos y pedir ayuda para corregir o borrar informacion.</p>
+          </div>
+        </article>
+      </section>
+
+      <section className="privacy-contact">
+        <span>Contacto directo</span>
+        <h2>Soporte del proyecto</h2>
+        <p>Creador: Cristian Eduardo Alba. Para cambios, bajas o consultas escribi por WhatsApp o email.</p>
+        <div>
+          <a href={makeWhatsAppUrl('3517662142', 'Hola Cristian, queria consultar por privacidad o datos en Cerca Liceo.')} target="_blank" rel="noreferrer">
+            <MessageCircle size={16} /> WhatsApp
+          </a>
+          <a href="mailto:crisalbavideografo@gmail.com?subject=Privacidad%20Cerca%20Liceo">
+            <Share2 size={16} /> Email
+          </a>
+        </div>
+      </section>
     </div>
   )
 }
@@ -4463,7 +4665,7 @@ function BusinessCard({ business, onOpen, large = false }) {
   )
 }
 
-function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
+function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
   const publicAddress = hasBusinessPublicAddress(business)
   const founderActive = isFounderPlanActive(business)
   const mapQuery = `${business.address || business.section}, Cordoba, Argentina`
@@ -4660,7 +4862,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
               <h2>Contacta directo al comercio.</h2>
               <p>Este comercio todavia no tiene mini carta ni pedidos armados. Podes consultar productos, disponibilidad y precios por WhatsApp.</p>
             </div>
-            <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar.`)} target="_blank" rel="noreferrer">
+            <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar.`)} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
               <MessageCircle size={14} /> Consultar por WhatsApp
             </a>
           </section>
@@ -4684,7 +4886,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
             </div>
             <p>Esta ficha no muestra direccion. Podes consultar disponibilidad, punto de entrega o envio por WhatsApp.</p>
             <div className="contact-location-actions">
-              <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar.`)} target="_blank" rel="noreferrer">
+              <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar.`)} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
                 <MessageCircle size={14} /> WhatsApp
               </a>
               {instagramUrl && (
@@ -4696,7 +4898,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
           </section>
         )}
         {founderActive && (
-        <a className={`detail-whatsapp ${cartItems.length ? '' : 'is-disabled'}`} href={cartItems.length ? whatsappUrl : undefined} target="_blank" rel="noreferrer" aria-disabled={!cartItems.length}>
+        <a className={`detail-whatsapp ${cartItems.length ? '' : 'is-disabled'}`} href={cartItems.length ? whatsappUrl : undefined} target="_blank" rel="noreferrer" aria-disabled={!cartItems.length} onClick={() => cartItems.length && onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
           <MessageCircle size={19} />
           {cartItems.length ? 'Consultar por WhatsApp' : 'Elegir productos primero'}
         </a>
@@ -4708,7 +4910,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme }) {
             <span>{selectedCount} productos</span>
             <strong>{formattedTotal}</strong>
           </div>
-          <a href={whatsappUrl} target="_blank" rel="noreferrer">
+          <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
             Enviar pedido
             <MessageCircle size={17} />
           </a>
@@ -4788,7 +4990,7 @@ function WelcomeScreen({ onEnter }) {
   )
 }
 
-function DetailScreen({ offer, relatedOffers = [], onBack, onToggleTheme }) {
+function DetailScreen({ offer, relatedOffers = [], onBack, onToggleTheme, onTrack }) {
   const publicAddress = hasBusinessPublicAddress(offer)
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${offer.address}, Cordoba, Argentina`)}`
   const whatsappUrl = getOfferWhatsappUrl(offer)
@@ -4902,7 +5104,7 @@ function DetailScreen({ offer, relatedOffers = [], onBack, onToggleTheme }) {
           </div>
         </section>
 
-        <a className="detail-whatsapp sticky-whatsapp" href={whatsappUrl} target="_blank" rel="noreferrer">
+        <a className="detail-whatsapp sticky-whatsapp" href={whatsappUrl} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: offer.businessId, offerId: offer.id })}>
           <MessageCircle size={19} />
           Consultar por WhatsApp
         </a>
@@ -4923,7 +5125,7 @@ function InfoItem({ icon, label, value }) {
   )
 }
 
-function OfferCard({ offer, onOpen }) {
+function OfferCard({ offer, onOpen, onTrack }) {
   const whatsappUrl = getOfferWhatsappUrl(offer)
   const openStatus = getOfferOpenStatus(offer)
 
@@ -4957,7 +5159,16 @@ function OfferCard({ offer, onOpen }) {
           <span>{offer.saves} guardados</span>
         </div>
       </div>
-      <a className="whatsapp-button" href={whatsappUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
+      <a
+        className="whatsapp-button"
+        href={whatsappUrl}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(event) => {
+          event.stopPropagation()
+          onTrack?.({ type: 'whatsapp_click', businessId: offer.businessId, offerId: offer.id })
+        }}
+      >
         <MessageCircle size={17} />
         WhatsApp
       </a>

@@ -1970,11 +1970,12 @@ select:focus-visible {
 
 .contact-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
   gap: 9px;
 }
 
-.contact-actions a {
+.contact-actions a,
+.contact-actions button {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -1985,10 +1986,12 @@ select:focus-visible {
   font-weight: 1000;
   text-decoration: none;
   background: #a7e92a;
+  border: 0;
   border-radius: 999px;
 }
 
-.contact-actions a:last-child {
+.contact-actions a:last-child,
+.contact-actions button {
   color: #fffbea;
   background: rgba(255, 251, 234, 0.12);
 }
@@ -1998,6 +2001,109 @@ select:focus-visible {
   font-size: 11px;
   font-weight: 850;
   line-height: 1.25;
+}
+
+.privacy-screen {
+  padding-bottom: 28px;
+}
+
+.privacy-hero,
+.privacy-contact {
+  margin: 14px 20px;
+  padding: 22px;
+  color: #172112;
+  background: linear-gradient(135deg, #efffc1, #fffdf6 62%, #ffe8d1);
+  border: 1px solid rgba(23, 33, 18, 0.08);
+  border-radius: 24px;
+}
+
+.privacy-hero span,
+.privacy-contact span,
+.privacy-list strong {
+  display: inline-flex;
+  width: fit-content;
+  padding: 7px 10px;
+  color: #172112;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background: #a7e92a;
+  border-radius: 999px;
+}
+
+.privacy-hero h1,
+.privacy-contact h2 {
+  margin: 14px 0 8px;
+  color: #10150f;
+  font-size: 31px;
+  line-height: 0.98;
+}
+
+.privacy-hero p,
+.privacy-contact p,
+.privacy-list p {
+  margin: 0;
+  color: #625a4e;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.42;
+}
+
+.privacy-list {
+  display: grid;
+  gap: 10px;
+  margin: 14px 20px;
+}
+
+.privacy-list article {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px;
+  color: #172112;
+  background: #fffdf6;
+  border: 1px solid rgba(23, 33, 18, 0.08);
+  border-radius: 20px;
+}
+
+.privacy-list svg {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  padding: 10px;
+  color: #172112;
+  background: #a7e92a;
+  border-radius: 999px;
+}
+
+.privacy-list strong {
+  margin-bottom: 7px;
+}
+
+.privacy-contact div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.privacy-contact a {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #172112;
+  font-size: 13px;
+  font-weight: 950;
+  text-decoration: none;
+  background: #a7e92a;
+  border-radius: 999px;
+}
+
+.privacy-contact a:last-child {
+  color: #fffbea;
+  background: #10150f;
 }
 
 .business-strip {
@@ -5175,6 +5281,51 @@ select:focus-visible {
   font-size: 11px;
   font-weight: 850;
   line-height: 1.2;
+}
+
+.merchant-quick-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 20px 12px;
+}
+
+.merchant-quick-controls button {
+  display: grid;
+  min-height: 94px;
+  padding: 14px;
+  text-align: left;
+  color: #172112;
+  background: #fffdf5;
+  border: 1px solid rgba(23, 33, 18, 0.1);
+  border-radius: 22px;
+  box-shadow: 0 16px 32px rgba(42, 31, 16, 0.08);
+}
+
+.merchant-quick-controls button.is-on {
+  background: linear-gradient(135deg, #9bf01f, #78dfcc);
+}
+
+.merchant-quick-controls button.is-off {
+  color: #fffbea;
+  background: #10150f;
+}
+
+.merchant-quick-controls svg {
+  margin-bottom: 8px;
+}
+
+.merchant-quick-controls span {
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.merchant-quick-controls small {
+  margin-top: 4px;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.72;
 }
 
 .dashboard-metrics {

@@ -5,6 +5,7 @@ const LOCAL_ACCOUNT_KEY = 'cerca-liceo-account'
 const LOCAL_BUSINESS_KEY = 'cerca-liceo-business'
 const LOCAL_BUSINESSES_KEY = 'cerca-liceo-businesses'
 const LOCAL_OFFERS_KEY = 'cerca-liceo-offers'
+const LOCAL_EVENTS_KEY = 'cerca-liceo-events'
 const PHOTO_BUCKET = 'business-photos'
 
 const isDataImage = (value) => typeof value === 'string' && value.startsWith('data:image/')
@@ -94,7 +95,7 @@ const normalizeBusiness = (business = {}) => {
     image: safeBusiness.image || 'generic',
     imageZoom: safeBusiness.imageZoom || safeBusiness.image_zoom || 120,
     imagePosition: safeBusiness.imagePosition || safeBusiness.image_position || 'center center',
-    open: safeBusiness.open ?? true,
+    open: safeBusiness.open ?? safeBusiness.is_open ?? true,
     rating: safeBusiness.rating || 'Nuevo',
     followers: safeBusiness.followers || 0,
     verified: safeBusiness.verified || false,
@@ -125,6 +126,29 @@ const mergeById = (items) => {
     if (seen.has(id)) return false
     seen.add(id)
     return true
+  })
+}
+
+const readLocalEvents = () => readStorage(LOCAL_EVENTS_KEY) || []
+
+const writeLocalEvents = (events) => {
+  writeStorage(LOCAL_EVENTS_KEY, events.slice(0, 300))
+}
+
+const summarizeEvents = (events, businessId) => {
+  const relevant = events.filter((event) => !businessId || event.business_id === businessId || event.businessId === businessId)
+  return relevant.reduce((acc, event) => {
+    const type = event.event_type || event.type
+    if (type === 'business_view') acc.businessViews += 1
+    if (type === 'offer_view') acc.offerViews += 1
+    if (type === 'whatsapp_click') acc.whatsappClicks += 1
+    if (type === 'favorite_click') acc.favoriteClicks += 1
+    return acc
+  }, {
+    businessViews: 0,
+    offerViews: 0,
+    whatsappClicks: 0,
+    favoriteClicks: 0,
   })
 }
 
@@ -805,7 +829,8 @@ export const cercaApi = {
         : 'free',
       paid_until: draft.paidUntil || null,
       admin_notes: draft.adminNotes || null,
-      is_public: true,
+      is_public: draft.isPublic ?? true,
+      is_open: draft.open !== false,
       updated_at: new Date().toISOString(),
     }
 
@@ -874,7 +899,19 @@ export const cercaApi = {
       return { offer: null, error: new Error('Guarda la ficha del local antes de publicar una promo.') }
     }
 
+    const founderActive = business.plan === 'pedidos' && business.planStatus === 'active'
+
     if (!hasSupabaseConfig) {
+      if (!founderActive) {
+        const weekStart = Date.now() - 7 * 86400000
+        const weeklyOffers = readLocalOffers().filter((offer) => (
+          (offer.businessId === business.id || offer.business === business.name) &&
+          new Date(offer.createdAt || Date.now()).getTime() >= weekStart
+        ))
+        if (weeklyOffers.length >= 1) {
+          return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi el plan fundador.') }
+        }
+      }
       const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString()
       const offer = {
         id: createClientId(),
@@ -910,6 +947,24 @@ export const cercaApi = {
       return { offer, error: null }
     }
 
+    if (!founderActive) {
+      const rpcCheck = await supabase.rpc('can_create_weekly_free_offer', { target_business_id: business.id })
+      if (!rpcCheck.error && rpcCheck.data === false) {
+        return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi el plan fundador.') }
+      }
+      if (rpcCheck.error) {
+        const weekStart = new Date(Date.now() - 7 * 86400000).toISOString()
+        const { count, error: countError } = await supabase
+          .from('offers')
+          .select('id', { count: 'exact', head: true })
+          .eq('business_id', business.id)
+          .gte('created_at', weekStart)
+        if (!countError && count >= 1) {
+          return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi el plan fundador.') }
+        }
+      }
+    }
+
     const { url: offerImageUrl, error: imageError } = await uploadPublicImage(imageKey, 'offers')
 
     const payload = {
@@ -938,6 +993,56 @@ export const cercaApi = {
       offer: data ? mapOfferRow(data) : null,
       error,
       warning: imageError ? 'La promo se publico. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
+    }
+  },
+
+  async updateOffer({ offerId, business, title, description, priceLabel, imageKey, expiresInDays = 4 }) {
+    if (!offerId) {
+      return { offer: null, error: new Error('No se encontro la publicacion para editar.') }
+    }
+
+    if (!hasSupabaseConfig) {
+      const nextOffers = readLocalOffers().map((offer) => (
+        offer.id === offerId
+          ? {
+              ...offer,
+              title,
+              description,
+              price: priceLabel || 'Consultar',
+              image: imageKey || offer.image || business?.image || 'generic',
+              expires: `${expiresInDays} dias`,
+              expiresAt: new Date(Date.now() + expiresInDays * 86400000).toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+          : offer
+      ))
+      writeLocalOffers(nextOffers)
+      return { offer: nextOffers.find((offer) => offer.id === offerId) || null, error: null }
+    }
+
+    const { url: offerImageUrl, error: imageError } = await uploadPublicImage(imageKey, 'offers')
+    const payload = {
+      title,
+      description,
+      price_label: priceLabel || 'Consultar',
+      image_key: imageError
+        ? (isDataImage(imageKey) ? imageKey : imageKey || business?.image || 'generic')
+        : offerImageUrl || imageKey || business?.image || 'generic',
+      expires_at: new Date(Date.now() + expiresInDays * 86400000).toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data, error } = await supabase
+      .from('offers')
+      .update(payload)
+      .eq('id', offerId)
+      .select('*, businesses(*)')
+      .single()
+
+    return {
+      offer: data ? mapOfferRow(data) : null,
+      error,
+      warning: imageError ? 'La promo se actualizo. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
     }
   },
 
@@ -1030,5 +1135,61 @@ export const cercaApi = {
       .single()
 
     return { offer: data ? mapOfferRow(data) : null, error }
+  },
+
+  async trackEvent({ type, businessId, offerId, metadata = {} }) {
+    const event = {
+      id: createClientId(),
+      event_type: type,
+      type,
+      business_id: businessId || null,
+      businessId: businessId || null,
+      offer_id: offerId || null,
+      offerId: offerId || null,
+      metadata,
+      created_at: new Date().toISOString(),
+    }
+
+    if (!hasSupabaseConfig) {
+      writeLocalEvents([event, ...readLocalEvents()])
+      return { error: null }
+    }
+
+    const { error } = await supabase
+      .from('app_events')
+      .insert({
+        event_type: type,
+        business_id: businessId || null,
+        offer_id: offerId || null,
+        metadata,
+      })
+
+    if (error) {
+      writeLocalEvents([event, ...readLocalEvents()])
+    }
+    return { error }
+  },
+
+  async getBusinessMetrics({ businessId }) {
+    if (!businessId) {
+      return { metrics: summarizeEvents(readLocalEvents()), error: null }
+    }
+
+    const localMetrics = summarizeEvents(readLocalEvents(), businessId)
+
+    if (!hasSupabaseConfig) {
+      return { metrics: localMetrics, error: null }
+    }
+
+    const since = new Date(Date.now() - 30 * 86400000).toISOString()
+    const { data, error } = await supabase
+      .from('app_events')
+      .select('event_type, business_id')
+      .eq('business_id', businessId)
+      .gte('created_at', since)
+      .limit(1000)
+
+    if (error) return { metrics: localMetrics, error }
+    return { metrics: summarizeEvents(data || [], businessId), error: null }
   },
 }

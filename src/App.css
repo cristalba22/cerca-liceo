@@ -11636,3 +11636,63 @@ html.android-compat .android-safe-header {
   z-index: 9999 !important;
   overflow: visible !important;
 }
+
+html.android-compat .contact-footer {
+  color: #172112 !important;
+  background: #fffdf7 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1) !important;
+}
+
+html.android-compat .contact-footer strong,
+html.android-compat .contact-footer p,
+html.android-compat .contact-footer small {
+  color: #172112 !important;
+}
+
+html.android-compat .contact-footer p,
+html.android-compat .contact-footer small {
+  opacity: 0.82;
+}
+
+html.android-compat .contact-actions a {
+  color: #172112 !important;
+  background: #a7e92a !important;
+}
+
+html.android-compat .contact-actions a:last-child {
+  color: #172112 !important;
+  background: #eee6d5 !important;
+}
+
+html.android-compat .night-mode .contact-footer {
+  color: #fffbea !important;
+  background: #182014 !important;
+  border-color: rgba(255, 251, 234, 0.12) !important;
+}
+
+html.android-compat .night-mode .contact-footer strong,
+html.android-compat .night-mode .contact-footer p,
+html.android-compat .night-mode .contact-footer small {
+  color: #fffbea !important;
+}
+
+html.android-compat .android-safe-mini-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+html.android-compat .android-safe-mini-toggle button {
+  min-height: 48px;
+  padding: 8px 10px;
+  color: #172112;
+  font-size: 13px;
+  font-weight: 1000;
+  background: #eee6d5 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 16px;
+}
+
+html.android-compat .android-safe-mini-toggle button.active {
+  background: #a7e92a !important;
+}

@@ -481,6 +481,65 @@ export const cercaApi = {
     }
   },
 
+  async upgradeAccountToMerchant(defaults = {}) {
+    if (!hasSupabaseConfig) {
+      const current = readStorage(LOCAL_ACCOUNT_KEY)
+      if (!current) return { account: null, error: new Error('Primero inicia sesion.') }
+      const account = {
+        ...current,
+        type: 'merchant',
+        businessType: defaults.businessType || current.businessType || 'local',
+        category: defaults.category || current.category || 'Comida',
+        businessName: defaults.businessName || current.businessName || '',
+        salesMode: defaults.salesMode || current.salesMode || 'WhatsApp',
+      }
+      writeStorage(LOCAL_ACCOUNT_KEY, account)
+      return { account, error: null }
+    }
+
+    const { data: auth, error: authError } = await supabase.auth.getUser()
+    if (authError || !auth.user) {
+      return { account: null, error: authError || new Error('Primero inicia sesion.') }
+    }
+
+    const { profile } = await getOrCreateProfile(auth.user)
+    const nextProfile = {
+      id: auth.user.id,
+      account_type: 'merchant',
+      full_name: profile?.full_name || auth.user.user_metadata?.full_name || auth.user.email?.split('@')[0] || 'Comerciante Liceo',
+      whatsapp: profile?.whatsapp || auth.user.user_metadata?.whatsapp || '',
+      section: profile?.section || auth.user.user_metadata?.section || 'Liceo Procrear',
+      interests: profile?.interests || auth.user.user_metadata?.interests || '',
+    }
+
+    const { data: updatedProfile, error: profileError } = await supabase
+      .from('profiles')
+      .upsert(nextProfile, { onConflict: 'id' })
+      .select('*')
+      .single()
+
+    if (profileError) return { account: null, error: profileError }
+
+    await supabase.auth.updateUser({
+      data: {
+        account_type: 'merchant',
+        business_type: defaults.businessType || auth.user.user_metadata?.business_type || 'local',
+      },
+    })
+
+    return {
+      account: {
+        ...accountFromProfile(updatedProfile, auth.user),
+        type: 'merchant',
+        businessType: defaults.businessType || auth.user.user_metadata?.business_type || 'local',
+        category: defaults.category || 'Comida',
+        businessName: defaults.businessName || '',
+        salesMode: defaults.salesMode || 'WhatsApp',
+      },
+      error: null,
+    }
+  },
+
   async listOffers({ section = 'Todos', category = 'Todas', query = '' } = {}) {
     if (!hasSupabaseConfig) {
       const normalized = query.trim().toLowerCase()

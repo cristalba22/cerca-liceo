@@ -585,6 +585,20 @@ function App() {
     return true
   }
 
+  const upgradeAccountToMerchant = async () => {
+    const { account: merchantAccount, error } = await cercaApi.upgradeAccountToMerchant({
+      businessType: 'local',
+      category: 'Comida',
+      salesMode: 'WhatsApp',
+    })
+    if (error) {
+      setAuthNotice(error.message || 'No pudimos cambiar la cuenta a comercio.')
+      return
+    }
+    setAccount(merchantAccount)
+    setAuthNotice('Listo. Tu cuenta ahora puede publicar como comercio. Carga tu ficha desde Panel comercio.')
+  }
+
   const publishOffer = async (offerDraft) => {
     const { offer, error, warning } = await cercaApi.createOffer(offerDraft)
     if (error) {
@@ -864,6 +878,7 @@ function App() {
             authNotice={authNotice}
             account={account}
             local={merchantLocal}
+            onUpgradeToMerchant={upgradeAccountToMerchant}
             onRegister={(type) => {
               setRegisterType(type)
               setScreen('register')
@@ -3162,7 +3177,7 @@ function ResetPasswordScreen({ authNotice, onBack, onSubmit, onToggleTheme }) {
   )
 }
 
-function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchantPanel, onPublish, onAdmin, onResetSession, authNotice, onToggleTheme }) {
+function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchantPanel, onPublish, onAdmin, onResetSession, onUpgradeToMerchant, authNotice, onToggleTheme }) {
   const isLogged = Boolean(account)
   const isMerchant = account?.type === 'merchant'
   const isAdmin = account?.role === 'admin' || !cercaApi.isSupabaseEnabled()
@@ -3232,10 +3247,16 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
                 </>
               )}
               {!isMerchant && (
-                <button type="button">
-                  <strong>Favoritos y avisos</strong>
-                  <small>Proximamente para vecinos registrados.</small>
-                </button>
+                <>
+                  <button type="button">
+                    <strong>Favoritos y avisos</strong>
+                    <small>Proximamente para vecinos registrados.</small>
+                  </button>
+                  <button type="button" onClick={onUpgradeToMerchant}>
+                    <strong>Usar mi cuenta como comercio</strong>
+                    <small>Si tenes local o emprendimiento, activa el panel.</small>
+                  </button>
+                </>
               )}
               {isAdmin && (
                 <button type="button" onClick={onAdmin}>
@@ -3346,6 +3367,10 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
                 <Bell size={19} />
                 Avisos del barrio
               </button>
+              <button type="button" onClick={onUpgradeToMerchant}>
+                <Store size={19} />
+                Pasar a comercio
+              </button>
             </>
           )}
           {isMerchant && (
@@ -3376,6 +3401,17 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
           <p>{local ? `${local.category} en ${local.section}. ${hasBusinessPublicAddress(local) ? local.address : 'Contacto directo por WhatsApp o Instagram.'}` : 'Completa foto, zona, horarios, WhatsApp y mini carta para que los vecinos te encuentren.'}</p>
           <div>
             <button type="button" onClick={onMerchantPanel}>{local ? 'Editar local' : 'Cargar local'}</button>
+          </div>
+        </section>
+      )}
+
+      {isLogged && !isMerchant && (
+        <section className="merchant-entry-card">
+          <span>Tambien vendes?</span>
+          <h2>Usa esta misma cuenta como comercio.</h2>
+          <p>Si te registraste como vecino por error, no hace falta crear otra cuenta. Activas el panel y despues cargas local fisico o emprendimiento sin direccion.</p>
+          <div>
+            <button type="button" onClick={onUpgradeToMerchant}>Activar comercio</button>
           </div>
         </section>
       )}
@@ -3622,9 +3658,26 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
           </label>
           {isMerchant && (
             <>
+              <section className="android-safe-mini-toggle" aria-label="Tipo de comercio">
+                <button
+                  className={form.businessType !== 'entrepreneur' ? 'active' : ''}
+                  type="button"
+                  onClick={() => updateForm('businessType', 'local')}
+                >
+                  Tengo local
+                </button>
+                <button
+                  className={form.businessType === 'entrepreneur' ? 'active' : ''}
+                  type="button"
+                  onClick={() => updateForm('businessType', 'entrepreneur')}
+                >
+                  Emprendo sin local
+                </button>
+              </section>
+              <p>{form.businessType === 'entrepreneur' ? 'No hace falta publicar direccion. Despues cargas zona, WhatsApp e Instagram.' : 'Despues podes cargar direccion, horario y boton para llegar.'}</p>
               <label>
-                <span>Nombre comercial</span>
-                <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder="Ej: Lo de Meli" />
+                <span>{form.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre comercial'}</span>
+                <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder={form.businessType === 'entrepreneur' ? 'Ej: Dulces de Lau' : 'Ej: Lo de Meli'} />
               </label>
               <label>
                 <span>Rubro principal</span>
@@ -3633,6 +3686,18 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
                   {categories.filter((category) => category.name !== 'Todas').map((category) => (
                     <option key={category.name} value={category.name}>{category.name}</option>
                   ))}
+                </select>
+              </label>
+              <label>
+                <span>Como vendes hoy</span>
+                <select value={form.salesMode} onChange={(event) => updateForm('salesMode', event.target.value)}>
+                  <option value="">Seleccionar</option>
+                  <option>Local fisico</option>
+                  <option>WhatsApp</option>
+                  <option>Instagram</option>
+                  <option>Delivery propio</option>
+                  <option>Por encargo</option>
+                  <option>Retiro coordinado</option>
                 </select>
               </label>
             </>

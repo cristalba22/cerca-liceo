@@ -36,6 +36,15 @@
     />
     <meta name="twitter:image" content="https://cercaliceo.com.ar/og-cerca-liceo.svg" />
     <title>Cerca Liceo - Ofertas y locales del barrio</title>
+    <script>
+      (function () {
+        var ua = navigator.userAgent || '';
+        var forceCompat = /(?:\?|&)androidCompat=1(?:&|$)/.test(window.location.search);
+        if (forceCompat || /Android/i.test(ua)) {
+          document.documentElement.className += ' android-compat';
+        }
+      })();
+    </script>
     <style>
       :root {
         color: #10150f;

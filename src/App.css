@@ -11129,3 +11129,92 @@ button:active,
   }
 }
 
+html.android-compat body {
+  background: #f8f2df;
+}
+
+html.android-compat .app-shell {
+  background: #10120f;
+}
+
+html.android-compat .app-screen {
+  box-shadow: none;
+  isolation: isolate;
+}
+
+html.android-compat .app-header,
+html.android-compat .detail-header,
+html.android-compat .bottom-nav,
+html.android-compat .action-toast {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: #fffbee !important;
+}
+
+html.android-compat .night-mode .app-header,
+html.android-compat .night-mode .detail-header,
+html.android-compat .night-mode .bottom-nav,
+html.android-compat .night-mode .action-toast {
+  background: #10150f !important;
+}
+
+html.android-compat .app-header,
+html.android-compat .detail-header {
+  position: relative;
+  top: auto;
+}
+
+html.android-compat .bottom-nav {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: min(100%, 430px);
+  margin: 0 auto;
+  transform: none;
+}
+
+html.android-compat .action-toast {
+  transform: none;
+  left: 14px;
+  right: 14px;
+  width: auto;
+}
+
+html.android-compat .section-row,
+html.android-compat .category-dock,
+html.android-compat .free-limit {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  animation: none !important;
+  background:
+    linear-gradient(90deg, rgba(16, 21, 15, 0.08), rgba(16, 21, 15, 0.08)) 20px calc(100% - 3px) / calc(100% - 40px) 2px no-repeat;
+}
+
+html.android-compat .smart-rail::after,
+html.android-compat .business-strip::after,
+html.android-compat .related-block::after {
+  animation: none !important;
+}
+
+html.android-compat .welcome-screen::before,
+html.android-compat .helper-hero::before,
+html.android-compat .profile-head::before,
+html.android-compat .wizard-board::before {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
+html.android-compat .welcome-phone,
+html.android-compat .welcome-orbit,
+html.android-compat .welcome-main-cta,
+html.android-compat .phone-dot,
+html.android-compat .radar-pin,
+html.android-compat .floating-cart,
+html.android-compat .action-toast {
+  animation: none !important;
+}
+
+html.android-compat iframe {
+  display: none !important;
+}
+

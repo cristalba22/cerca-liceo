@@ -909,6 +909,7 @@ function App() {
             initialType={registerType}
             onComplete={registerAccount}
             onBack={() => setScreen('profile')}
+            onLogin={() => setScreen('login')}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
         )}
@@ -3180,7 +3181,7 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
   )
 }
 
-function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggleTheme }) {
+function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin, onToggleTheme }) {
   const [accountType, setAccountType] = useState(initialType)
   const [submitted, setSubmitted] = useState(false)
   const [pendingEmail, setPendingEmail] = useState(false)
@@ -3191,6 +3192,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
     whatsapp: '',
     email: '',
     password: '',
+    confirmPassword: '',
     section: '',
     businessName: '',
     businessType: 'local',
@@ -3200,17 +3202,49 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
   })
   const isMerchant = accountType === 'merchant'
   const updateForm = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }))
+    const cleanValue = field === 'whatsapp'
+      ? value.replace(/\D/g, '').slice(0, 15)
+      : value
+    setForm((current) => ({ ...current, [field]: cleanValue }))
+  }
+  const validateRegisterForm = () => {
+    const fullName = form.name.trim().replace(/\s+/g, ' ')
+    const email = form.email.trim()
+    if (fullName.split(' ').filter(Boolean).length < 2) {
+      return 'Escribi nombre y apellido para que la cuenta quede clara.'
+    }
+    if (form.whatsapp && form.whatsapp.length < 8) {
+      return 'El WhatsApp tiene que tener solo numeros y al menos 8 digitos.'
+    }
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      return 'Escribi un email valido. Ahi va a llegar la confirmacion de Cerca Liceo.'
+    }
+    if (form.password.length < 6) {
+      return 'La clave tiene que tener al menos 6 caracteres.'
+    }
+    if (form.password !== form.confirmPassword) {
+      return 'Las claves no coinciden. Escribilas igual en los dos campos.'
+    }
+    if (isMerchant && !form.category) {
+      return 'Elegi el rubro principal para que despues el local aparezca bien filtrado.'
+    }
+    return ''
   }
   const submitRegister = async () => {
     if (isSubmitting) return
     setSubmitFeedback('')
+    const validationMessage = validateRegisterForm()
+    if (validationMessage) {
+      setSubmitFeedback(validationMessage)
+      return
+    }
     setIsSubmitting(true)
     try {
       const created = await onComplete({
         ...form,
         type: accountType,
-        name: form.name || (isMerchant ? 'Comerciante' : 'Vecino'),
+        name: form.name.trim(),
+        email: form.email.trim(),
         section: form.section || 'Liceo Procrear',
         businessName: form.businessName || '',
         businessType: form.businessType,
@@ -3268,7 +3302,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
               <span>Volver e ingresar</span>
             </article>
           </div>
-          <button type="button" onClick={onBack}>Ya confirme, iniciar sesion</button>
+          <button type="button" onClick={onLogin || onBack}>Ya confirme, iniciar sesion</button>
           <small>Si no aparece, revisa spam o escribi por WhatsApp al 351 766 2142.</small>
         </section>
       </div>
@@ -3376,12 +3410,12 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
 
       <section className="register-form">
         <label>
-          <span>Nombre</span>
-          <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder={isMerchant ? 'Nombre del responsable' : 'Tu nombre'} />
+          <span>Nombre y apellido</span>
+          <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder={isMerchant ? 'Ej: Cristian Alba' : 'Ej: Laura Perez'} autoComplete="name" />
         </label>
         <label>
           <span>WhatsApp</span>
-          <input value={form.whatsapp} onChange={(event) => updateForm('whatsapp', event.target.value)} placeholder="351 000 0000" />
+          <input value={form.whatsapp} onChange={(event) => updateForm('whatsapp', event.target.value)} placeholder="3517662142" inputMode="numeric" pattern="[0-9]*" autoComplete="tel" />
         </label>
         <label>
           <span>Email</span>
@@ -3389,7 +3423,11 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
         </label>
         <label>
           <span>Clave</span>
-          <input value={form.password} onChange={(event) => updateForm('password', event.target.value)} placeholder="Minimo 6 caracteres" type="password" />
+          <input value={form.password} onChange={(event) => updateForm('password', event.target.value)} placeholder="Minimo 6 caracteres" type="password" autoComplete="new-password" />
+        </label>
+        <label>
+          <span>Repetir clave</span>
+          <input value={form.confirmPassword} onChange={(event) => updateForm('confirmPassword', event.target.value)} placeholder="Escribila otra vez" type="password" autoComplete="new-password" />
         </label>
         <label>
           <span>Seccion</span>
@@ -3457,6 +3495,14 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onToggle
             <input value={form.interests} onChange={(event) => updateForm('interests', event.target.value)} placeholder="Comida, despensa, belleza, ferreteria..." />
           </label>
         )}
+      </section>
+
+      <section className="register-mail-note">
+        <ShieldCheck size={18} />
+        <div>
+          <strong>Despues de crear la cuenta, revisa tu email.</strong>
+          <span>Te va a llegar un correo de confirmacion. Si todavia figura como Supabase Auth, es el sistema seguro que usa Cerca Liceo para activar cuentas.</span>
+        </div>
       </section>
 
       <section className="register-next">

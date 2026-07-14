@@ -381,8 +381,11 @@ export const cercaApi = {
 
   async registerAccount(form) {
     if (!hasSupabaseConfig) {
-      writeStorage(LOCAL_ACCOUNT_KEY, form)
-      return { account: form, error: null }
+      const publicAccount = { ...form }
+      delete publicAccount.password
+      delete publicAccount.confirmPassword
+      writeStorage(LOCAL_ACCOUNT_KEY, publicAccount)
+      return { account: publicAccount, error: null }
     }
 
     const email = normalizeEmail(form.email)

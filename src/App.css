@@ -7494,6 +7494,43 @@ select:focus-visible {
   box-shadow: 0 0 0 4px rgba(167, 233, 42, 0.18), 0 10px 20px rgba(31, 30, 22, 0.07);
 }
 
+.register-mail-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 20px 14px;
+  padding: 14px;
+  color: #172112;
+  background: linear-gradient(145deg, #effec6, #fff8e8);
+  border: 1px solid rgba(105, 142, 16, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 10px 20px rgba(31, 30, 22, 0.07);
+}
+
+.register-mail-note svg {
+  flex: 0 0 auto;
+  color: #6a8d17;
+}
+
+.register-mail-note strong,
+.register-mail-note span {
+  display: block;
+}
+
+.register-mail-note strong {
+  color: #10150f;
+  font-size: 14px;
+  line-height: 1.1;
+}
+
+.register-mail-note span {
+  margin-top: 4px;
+  color: #665f53;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
 .register-next {
   margin: 0 20px 14px;
   padding: 18px;
@@ -7538,6 +7575,28 @@ select:focus-visible {
   white-space: nowrap;
   background: #f0e7d0;
   border-radius: 999px;
+}
+
+@media (max-width: 430px) {
+  .register-form {
+    grid-template-columns: 1fr;
+    padding-inline: 16px;
+  }
+
+  .register-mail-note,
+  .register-next,
+  .register-free-note {
+    margin-inline: 16px;
+  }
+
+  .register-checks {
+    padding-inline: 16px;
+  }
+
+  .primary-action {
+    width: calc(100% - 32px);
+    margin-inline: 16px;
+  }
 }
 
 .register-success {
@@ -8077,6 +8136,8 @@ select:focus-visible {
 }
 
 .account-start-card {
+  position: relative;
+  overflow: hidden;
   margin: 0 20px 14px;
   padding: 18px;
   color: #172112;
@@ -8124,9 +8185,11 @@ select:focus-visible {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
   margin-top: 16px;
+  min-width: 0;
 }
 
 .account-start-card button {
+  position: relative;
   display: grid;
   min-height: 112px;
   align-content: space-between;
@@ -8139,6 +8202,7 @@ select:focus-visible {
   background: rgba(255, 251, 234, 0.78);
   border: 1px solid rgba(16, 21, 15, 0.08);
   border-radius: 20px;
+  overflow: hidden;
 }
 
 .account-start-card button:hover,
@@ -8156,6 +8220,7 @@ select:focus-visible {
 .account-start-card button strong {
   font-size: 16px;
   line-height: 0.98;
+  overflow-wrap: anywhere;
 }
 
 .account-start-card button small {
@@ -8181,6 +8246,36 @@ select:focus-visible {
 
 .account-start-card button:nth-child(3) svg {
   color: #a7e92a;
+}
+
+@media (max-width: 430px) {
+  .account-start-card {
+    margin-inline: 14px;
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .account-start-card h2 {
+    font-size: 26px;
+    line-height: 1;
+  }
+
+  .account-start-card .account-choice-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .account-start-card button,
+  .account-start-card button:nth-child(3) {
+    grid-column: auto;
+    min-height: 86px;
+    align-content: center;
+  }
+
+  .account-start-card button strong {
+    font-size: 15px;
+    line-height: 1.05;
+  }
 }
 
 .neighbor-benefits {
@@ -9397,6 +9492,7 @@ select:focus-visible {
 .night-mode .register-roadmap article,
 .night-mode .merchant-plan-mini div,
 .night-mode .merchant-explainer div,
+.night-mode .register-mail-note,
 .night-mode .register-free-note,
 .night-mode .auth-form-card,
 .night-mode .auth-register-strip,
@@ -9422,6 +9518,7 @@ select:focus-visible {
 .night-mode .merchant-next-steps strong,
 .night-mode .merchant-plan-mini strong,
 .night-mode .merchant-explainer strong,
+.night-mode .register-mail-note strong,
 .night-mode .register-free-note strong,
 .night-mode .auth-form-card h2,
 .night-mode .auth-register-strip strong,
@@ -9437,6 +9534,7 @@ select:focus-visible {
 .night-mode .merchant-next-steps span,
 .night-mode .merchant-plan-mini p,
 .night-mode .merchant-explainer p,
+.night-mode .register-mail-note span,
 .night-mode .register-free-note span,
 .night-mode .auth-register-strip span,
 .night-mode .session-bar span,

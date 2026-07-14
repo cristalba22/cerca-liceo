@@ -256,14 +256,14 @@ const menuCatalogSections = [
     hint: 'Combos, promos o lo mas pedido',
   },
   {
-    title: 'Carta principal',
-    shortTitle: 'Carta',
-    hint: 'Productos que siempre vendes',
+    title: 'Catalogo principal',
+    shortTitle: 'Catalogo',
+    hint: 'Productos o servicios que siempre ofreces',
   },
   {
-    title: 'Bebidas y extras',
+    title: 'Extras y variantes',
     shortTitle: 'Extras',
-    hint: 'Agregados, bebidas o servicios',
+    hint: 'Packs, tamanos, marcas, agregados o consultas',
   },
 ]
 
@@ -1636,7 +1636,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
   const canUseExtraPost = isEditingOffer || !freePostUsed || founderActive
   const founderPlanUrl = makeWhatsAppUrl(
     '3517662142',
-    `Hola Cristian, quiero pedir el plan fundador Liceo para ${local?.name || account?.businessName || 'mi comercio'}. Necesito mini carta, 4 publicaciones extra al mes y pedidos por WhatsApp.`,
+    `Hola Cristian, quiero pedir el plan fundador Liceo para ${local?.name || account?.businessName || 'mi comercio'}. Necesito catalogo, 4 publicaciones extra al mes y pedidos por WhatsApp.`,
   )
   const [publishStatus, setPublishStatus] = useState('')
   const publishMissing = [
@@ -2025,7 +2025,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     {
       id: 'menu',
       done: founderActive,
-      title: 'Mini carta opcional',
+      title: 'Catalogo opcional',
       meta: founderActive ? 'Plan fundador activo' : founderRequested ? 'Solicitud pendiente' : 'Extra del fundador',
       optional: true,
     },
@@ -2052,7 +2052,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   const planLabel = founderActive ? 'Plan fundador activo' : founderRequested ? 'Fundador pendiente' : 'Ficha gratis'
   const founderPlanUrl = makeWhatsAppUrl(
     '3517662142',
-    `Hola Cristian, quiero activar el plan fundador Liceo para ${localDraft.name || account?.businessName || 'mi comercio'}. Me interesa mini carta, 4 publicaciones extra al mes y pedidos por WhatsApp.`
+    `Hola Cristian, quiero activar el plan fundador Liceo para ${localDraft.name || account?.businessName || 'mi comercio'}. Me interesa catalogo, 4 publicaciones extra al mes y pedidos por WhatsApp.`
   )
   const filledMenuItems = ensureMenuSlots(localDraft.menu).filter((item) => item.name.trim())
   const menuEditorSections = buildMenuSections(localDraft.menu)
@@ -2303,8 +2303,8 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
 
         <section className="android-safe-card android-safe-plan-card">
           <span>Plan fundador</span>
-          <h2>Mini carta + pedidos.</h2>
-          <p>Extra opcional: mini carta, 4 publicaciones extra por mes y pedido armado para enviar por WhatsApp. Precio fundador Liceo: $8.000.</p>
+          <h2>Catalogo + pedidos.</h2>
+          <p>Extra opcional: catalogo de productos o servicios, 4 publicaciones extra por mes y consulta armada para enviar por WhatsApp. Precio fundador Liceo: $8.000.</p>
           <button type="button" onClick={requestFounderPlan}>
             {founderRequested || founderActive ? 'Consultar por WhatsApp' : 'Quiero plan fundador'}
           </button>
@@ -2314,9 +2314,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <section className="android-safe-form android-safe-menu-form">
             <div className="android-safe-field-title">
               <span>Plan fundador activo</span>
-              <strong>Mini carta del comercio</strong>
+              <strong>Catalogo del comercio</strong>
             </div>
-            <p className="android-safe-help">Carga hasta {MAX_MENU_ITEMS} productos separados por secciones. El precio es opcional: si lo dejas vacio, el vecino consulta por WhatsApp.</p>
+            <p className="android-safe-help">Carga hasta {MAX_MENU_ITEMS} productos o servicios separados por secciones. El precio es opcional: si lo dejas vacio, el vecino consulta por WhatsApp.</p>
             {menuEditorSections.map((section) => (
               <div className="android-safe-menu-group" key={`safe-${section.title}`}>
                 <div className="android-safe-menu-group-head">
@@ -2348,15 +2348,15 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
               </div>
             ))}
             <button type="button" onClick={saveLocal}>
-              Guardar mini carta
+              Guardar catalogo
             </button>
-            <small>{filledMenuItems.length}/{MAX_MENU_ITEMS} productos cargados.</small>
+            <small>{filledMenuItems.length}/{MAX_MENU_ITEMS} items cargados.</small>
           </section>
         ) : (
           <section className="android-safe-card android-safe-plan-card">
-            <span>{founderRequested ? 'Solicitud pendiente' : 'Mini carta bloqueada'}</span>
+            <span>{founderRequested ? 'Solicitud pendiente' : 'Catalogo bloqueado'}</span>
             <h2>{founderRequested ? 'Cristian debe activar el plan.' : 'Primero va la ficha gratis.'}</h2>
-            <p>{founderRequested ? 'Cuando el admin active fundador, aca vas a poder cargar productos y pedidos.' : 'La mini carta, pedidos y 4 extras del mes se habilitan solo con plan fundador activo.'}</p>
+            <p>{founderRequested ? 'Cuando el admin active fundador, aca vas a poder cargar catalogo y pedidos.' : 'El catalogo, pedidos y 4 extras del mes se habilitan solo con plan fundador activo.'}</p>
           </section>
         )}
 
@@ -2453,7 +2453,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         </button>
         <button type="button" onClick={() => setOpenPanel(founderActive ? 'menu' : 'plan')}>
           <ShoppingBasket size={18} />
-          <span>{founderActive ? 'Mini carta' : 'Plan fundador'}</span>
+          <span>{founderActive ? 'Catalogo' : 'Plan fundador'}</span>
         </button>
       </section>
 
@@ -2753,21 +2753,21 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('menu', 'Paso 4', 'Mini carta', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} productos` : founderRequested ? 'Pendiente' : 'Bloqueada', ShoppingBasket)}
+          {panelButton('menu', 'Paso 4', 'Catalogo', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} items` : founderRequested ? 'Pendiente' : 'Bloqueado', ShoppingBasket)}
           {openPanel === 'menu' && (
             <div className="merchant-panel-body">
               {!founderActive ? (
                 <section className="paid-feature-preview locked-feature">
                   <div>
                     <span>{founderRequested ? 'Solicitud pendiente' : 'Plan fundador'}</span>
-                    <h3>La mini carta se activa cuando el admin habilita el plan.</h3>
+                    <h3>El catalogo se activa cuando el admin habilita el plan.</h3>
                     <p>
                       Tu ficha gratis puede aparecer igual con foto, WhatsApp, horario y 1 promo semanal.
-                      La mini carta, pedidos por WhatsApp y 4 publicaciones extra quedan reservados para el plan fundador.
+                      El catalogo, pedidos por WhatsApp y 4 publicaciones extra quedan reservados para el plan fundador.
                     </p>
                   </div>
                   <ul>
-                    <li><Check size={14} /> Mini carta de productos</li>
+                    <li><Check size={14} /> Catalogo de productos o servicios</li>
                     <li><Check size={14} /> Pedido armado por WhatsApp</li>
                     <li><Check size={14} /> 4 publicaciones extra por mes</li>
                   </ul>
@@ -2776,11 +2776,11 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   </button>
                 </section>
               ) : (
-                <section className="menu-editor menu-editor-standalone" aria-label="Mini carta del local">
+                <section className="menu-editor menu-editor-standalone" aria-label="Catalogo del comercio">
                 <div>
-                  <span>Mini carta editable</span>
+                  <span>Catalogo editable</span>
                   <h3>Catalogo corto para vender por WhatsApp.</h3>
-                  <p>Completas hasta {MAX_MENU_ITEMS} productos por secciones. Si no queres mostrar precio, dejalo vacio y aparece como consulta por WhatsApp.</p>
+                  <p>Completas hasta {MAX_MENU_ITEMS} productos o servicios por secciones. Si no queres mostrar precio, dejalo vacio y aparece como consulta por WhatsApp.</p>
                 </div>
                 {menuEditorSections.map((section) => (
                   <div className="menu-editor-group" key={section.title}>
@@ -2814,8 +2814,8 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   </div>
                 ))}
                 <div className="menu-save-actions">
-                  <span>{filledMenuItems.length ? `${filledMenuItems.length} productos listos para la ficha.` : 'Todavia no cargaste productos.'}</span>
-                  <button type="button" onClick={saveLocal}>Guardar mini carta</button>
+                  <span>{filledMenuItems.length ? `${filledMenuItems.length} items listos para la ficha.` : 'Todavia no cargaste productos o servicios.'}</span>
+                  <button type="button" onClick={saveLocal}>Guardar catalogo</button>
                 </div>
               </section>
               )}
@@ -2851,7 +2851,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                 >
                   <span>{founderActive ? 'Activo por admin' : founderRequested ? 'Pendiente de admin' : 'Pago opcional'}</span>
                   <strong>Plan fundador Liceo</strong>
-                  <small>Mini carta, 4 publicaciones extra al mes y pedido armado para mandar por WhatsApp.</small>
+                  <small>Catalogo, 4 publicaciones extra al mes y pedido armado para mandar por WhatsApp.</small>
                   <b>$8.000 fundador Liceo</b>
                 </button>
               </section>
@@ -2859,11 +2859,11 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
               <section className={`paid-feature-preview ${founderActive ? 'is-active' : ''}`}>
                 <div>
                   <span>{founderActive ? 'Activo en plan fundador' : founderRequested ? 'Solicitud pendiente' : 'Disponible al pedir plan'}</span>
-                  <h3>Mini carta y pedido por WhatsApp</h3>
-                  <p>{founderActive ? 'El vecino elige productos, suma el pedido y lo manda listo al comercio.' : founderRequested ? 'Tu solicitud queda pendiente hasta que Cristian active el plan desde administracion.' : 'En el plan gratis la ficha aparece igual, con 1 publicacion semanal que dura 3 dias.'}</p>
+                  <h3>Catalogo y pedido por WhatsApp</h3>
+                  <p>{founderActive ? 'El vecino elige productos o servicios, suma la consulta y la manda lista al comercio.' : founderRequested ? 'Tu solicitud queda pendiente hasta que Cristian active el plan desde administracion.' : 'En el plan gratis la ficha aparece igual, con 1 publicacion semanal que dura 3 dias.'}</p>
                 </div>
                 <ul>
-                  <li><Check size={14} /> Mini carta de productos</li>
+                  <li><Check size={14} /> Catalogo de productos o servicios</li>
                   <li><Check size={14} /> 4 publicaciones extra por mes</li>
                   <li><Check size={14} /> Pedido armado al WhatsApp del comercio</li>
                   <li><Check size={14} /> Precio opcional</li>
@@ -2899,8 +2899,8 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                 </article>
                 <article className={founderActive || founderRequested ? 'active paid' : 'paid'}>
                   <span>Plan fundador Liceo</span>
-                  <strong>Mini carta + pedidos + extras</strong>
-                  <p>Incluye mini carta, 4 publicaciones extra al mes y pedido armado que llega directo por WhatsApp.</p>
+                  <strong>Catalogo + pedidos + extras</strong>
+                  <p>Incluye catalogo, 4 publicaciones extra al mes y pedido armado que llega directo por WhatsApp.</p>
                   <b>$8.000 / mes</b>
                 </article>
               </section>
@@ -2949,13 +2949,13 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                             </ul>
                           </div>
                         )) : (
-                          <div className="public-menu-empty">Carga productos para mostrar el catalogo.</div>
+                          <div className="public-menu-empty">Carga productos o servicios para mostrar el catalogo.</div>
                         )}
                       </div>
                     ) : (
                       <div className="public-menu-locked">
                         <ShieldCheck size={14} />
-                        <span>Mini carta y pedidos se muestran cuando el admin activa el plan fundador.</span>
+                        <span>Catalogo y pedidos se muestran cuando el admin activa el plan fundador.</span>
                       </div>
                     )}
                   </div>
@@ -2963,7 +2963,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                 {founderActive && (
                   <div className="public-order-strip">
                     <span>Mini menu</span>
-                    <strong>3 productos seleccionados</strong>
+                    <strong>3 items seleccionados</strong>
                     <button type="button">Enviar pedido por WhatsApp</button>
                   </div>
                 )}
@@ -3005,7 +3005,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
               distance: 'cerca',
               menu: [
                 { name: 'Producto destacado' },
-                { name: 'Agregar productos desde el menu' },
+                { name: 'Agregar productos o servicios al catalogo' },
               ],
             }}
             onOpen={() => {}}
@@ -3183,7 +3183,7 @@ function AdminScreen({
     if (business.businessType !== 'entrepreneur' && !hasBusinessPublicAddress(business)) issues.push('direccion')
     if (!business.openDays?.length) issues.push('dias')
     if (!business.hours || business.hours.includes('completar')) issues.push('horario')
-    if (isFounderPlanActive(business) && !business.menu?.filter((item) => item.name).length) issues.push('mini carta')
+    if (isFounderPlanActive(business) && !business.menu?.filter((item) => item.name).length) issues.push('catalogo')
     if (!business.verified) issues.push('verificar')
     if (business.isPublic === false) issues.push('oculto')
     return issues
@@ -3331,7 +3331,7 @@ function AdminScreen({
           <BadgeCheck size={18} />
           <strong>Regla de calidad</strong>
         </div>
-        <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, horario claro y promos vigentes. La mini carta solo cuenta si tienen fundador activo.</p>
+        <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, horario claro y promos vigentes. El catalogo solo cuenta si tienen fundador activo.</p>
       </section>
 
       {adminView !== 'promos' && (
@@ -4042,7 +4042,7 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
         <section className="merchant-entry-card">
           <span>{local ? 'Local publicado' : 'Para comercios'}</span>
           <h2>{local ? local.name : 'Carga tu ficha y apareces en la guia.'}</h2>
-          <p>{local ? `${local.category} en ${local.section}. ${hasBusinessPublicAddress(local) ? local.address : 'Contacto directo por WhatsApp o Instagram.'}` : 'Completa foto, zona, horarios, WhatsApp y mini carta para que los vecinos te encuentren.'}</p>
+          <p>{local ? `${local.category} en ${local.section}. ${hasBusinessPublicAddress(local) ? local.address : 'Contacto directo por WhatsApp o Instagram.'}` : 'Completa foto, zona, horarios, WhatsApp y catalogo para que los vecinos te encuentren.'}</p>
           <div>
             <button type="button" onClick={onMerchantPanel}>{local ? 'Editar local' : 'Cargar local'}</button>
           </div>
@@ -4081,8 +4081,8 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
           </article>
           <article>
             <ShoppingBasket size={18} />
-            <strong>Mini carta + pedidos</strong>
-            <p>El vecino elige productos, suma el pedido y lo envia armado al WhatsApp del comercio.</p>
+            <strong>Catalogo + pedidos</strong>
+            <p>El vecino elige productos o servicios, suma la consulta y la envia armada al WhatsApp del comercio.</p>
             <span>$8.000 / mes precio fundador</span>
           </article>
         </div>
@@ -4483,7 +4483,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
           <h1>{isMerchant ? 'Ahora carga tu local desde el panel.' : 'Ya podes guardar favoritos.'}</h1>
           <p>
             {isMerchant
-              ? 'El registro queda simple. El local, horarios, fotos, publicaciones y productos se agregan despues desde el panel comercio.'
+              ? 'El registro queda simple. El local, horarios, fotos, publicaciones y catalogo se agregan despues desde el panel comercio.'
               : 'Recorda que Cerca Liceo se puede usar igual sin cuenta. La cuenta solo suma preferencias y avisos.'}
           </p>
           <button type="button" onClick={onBack}>
@@ -4831,7 +4831,7 @@ function BusinessCard({ business, onOpen, large = false }) {
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${business.address || business.section}, Cordoba, Argentina`)}`
   const whatsappUrl = makeWhatsAppUrl(
     business.whatsapp,
-    `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar por productos y horarios.`,
+    `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar por lo que ofrecen y horarios.`,
   )
   const instagramUrl = makeInstagramUrl(business.instagram)
 
@@ -5044,8 +5044,8 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
             <div className="order-studio">
               <div className="order-studio-head">
                 <span>Pedido por WhatsApp</span>
-                <h2>Elegis productos y sale el mensaje listo.</h2>
-                <p>Sin cuenta, sin comision y sin escribir todo de nuevo. Ideal para comida de noche o pedidos rapidos.</p>
+                <h2>Elegis items y sale el mensaje listo.</h2>
+                <p>Sin cuenta, sin comision y sin escribir todo de nuevo. Sirve para comida, despensa, servicios o emprendimientos del barrio.</p>
               </div>
               {!openStatus.open && (
                 <div className="closed-note">
@@ -5054,7 +5054,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
                 </div>
               )}
               <div className="order-tabs" aria-label="Secciones del local">
-                <button className="active" type="button">Productos</button>
+                <button className="active" type="button">Catalogo</button>
                 <button type="button">Ofertas</button>
                 <button type="button">Info</button>
               </div>
@@ -5121,7 +5121,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
             <div className="order-studio-head">
               <span>Ficha gratis</span>
               <h2>Contacta directo al comercio.</h2>
-              <p>Este comercio todavia no tiene mini carta ni pedidos armados. Podes consultar productos, disponibilidad y precios por WhatsApp.</p>
+              <p>Este comercio todavia no tiene catalogo ni pedidos armados. Podes consultar productos, servicios, disponibilidad y precios por WhatsApp.</p>
             </div>
             <a className="map-link-button" href={makeWhatsAppUrl(business.whatsapp, `Hola ${business.name}, te encontre en Cerca Liceo. Queria consultar.`)} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
               <MessageCircle size={14} /> Consultar por WhatsApp
@@ -5161,14 +5161,14 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
         {founderActive && (
         <a className={`detail-whatsapp ${cartItems.length ? '' : 'is-disabled'}`} href={cartItems.length ? whatsappUrl : undefined} target="_blank" rel="noreferrer" aria-disabled={!cartItems.length} onClick={() => cartItems.length && onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
           <MessageCircle size={19} />
-          {cartItems.length ? 'Consultar por WhatsApp' : 'Elegir productos primero'}
+          {cartItems.length ? 'Consultar por WhatsApp' : 'Elegir items primero'}
         </a>
         )}
       </section>
       {founderActive && cartItems.length > 0 && (
         <div className="order-cart-bar">
           <div>
-            <span>{selectedCount} productos</span>
+            <span>{selectedCount} items</span>
             <strong>{formattedTotal}</strong>
           </div>
           <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={() => onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>

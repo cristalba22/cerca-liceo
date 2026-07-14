@@ -71,6 +71,15 @@ const isUploadedImage = (image) => typeof image === 'string' && (
   image.startsWith('http')
 )
 
+const directScreens = new Set(['home', 'profile', 'login', 'register', 'forgot-password', 'reset-password'])
+const androidHardScreens = new Set(['profile', 'login', 'register', 'forgot-password', 'reset-password'])
+
+const getInitialScreen = () => {
+  const params = new URLSearchParams(window.location.search)
+  const requestedScreen = params.get('screen')
+  return directScreens.has(requestedScreen) ? requestedScreen : 'welcome'
+}
+
 const formatOpenDays = (days = []) => {
   if (days.length === 7) return 'Todos los dias'
   if (days.join(',') === 'Lun,Mar,Mie,Jue,Vie') return 'Lun a Vie'
@@ -315,7 +324,7 @@ const readCompressedImage = (file) => new Promise((resolve, reject) => {
 })
 
 function App() {
-  const [screen, setScreen] = useState('welcome')
+  const [screen, setScreen] = useState(getInitialScreen)
   const [selectedOffer, setSelectedOffer] = useState(null)
   const [selectedBusiness, setSelectedBusiness] = useState(null)
   const [query, setQuery] = useState('')
@@ -332,6 +341,30 @@ function App() {
   const [publishTemplate, setPublishTemplate] = useState(null)
   const [authNotice, setAuthNotice] = useState('')
   const [pageViews, setPageViews] = useState(() => Number(window.localStorage.getItem('cerca-liceo-page-views') || 0))
+
+  const goToScreen = (nextScreen, options = {}) => {
+    const isAndroidCompat = document.documentElement.classList.contains('android-compat')
+    if (isAndroidCompat && androidHardScreens.has(nextScreen) && screen !== nextScreen && !options.soft) {
+      const params = new URLSearchParams(window.location.search)
+      params.set('screen', nextScreen)
+      params.set('androidCompat', '1')
+      params.set('viewReset', Date.now().toString())
+      window.location.assign(`${window.location.pathname}?${params.toString()}`)
+      return
+    }
+
+    if (nextScreen === 'home' || nextScreen === 'welcome') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.has('screen')) {
+        params.delete('screen')
+        params.delete('viewReset')
+        const nextUrl = params.toString() ? `${window.location.pathname}?${params.toString()}` : window.location.pathname
+        window.history.replaceState({}, '', nextUrl)
+      }
+    }
+
+    setScreen(nextScreen)
+  }
 
   useEffect(() => {
     const currentViews = Number(window.localStorage.getItem('cerca-liceo-page-views') || 0)
@@ -490,7 +523,7 @@ function App() {
       setMerchantLocal(null)
     }
     setAuthNotice(type === 'merchant' ? 'Sesion iniciada como comercio.' : 'Sesion iniciada como vecino.')
-    setScreen('profile')
+    goToScreen('profile')
   }
 
   const loginAccount = async (credentials) => {
@@ -517,12 +550,12 @@ function App() {
         : business
           ? 'Sesion iniciada. Tu local ya esta cargado.'
           : 'Sesion iniciada. Ahora podes cargar tu local gratis.')
-      setScreen('profile')
+      goToScreen('profile')
       return
     }
     setMerchantLocal(null)
     setAuthNotice('Sesion iniciada correctamente.')
-    setScreen('profile')
+    goToScreen('profile')
   }
 
   const requestPasswordReset = async (email) => {
@@ -541,7 +574,7 @@ function App() {
       return
     }
     setAuthNotice('Clave actualizada. Ya podes iniciar sesion con tu nueva clave.')
-    setScreen('login')
+    goToScreen('login')
     window.history.replaceState({}, '', window.location.pathname)
   }
 
@@ -572,7 +605,7 @@ function App() {
     }
     if (!savedAccount) {
       setAuthNotice('La cuenta se creo, pero no pudimos cargar el perfil. Inicia sesion para continuar.')
-      setScreen('login')
+      goToScreen('login')
       return false
     }
     setAccount(savedAccount)
@@ -738,7 +771,7 @@ function App() {
   return (
     <main className={`app-shell ${darkMode ? 'night-mode' : ''}`}>
       <section className="app-screen" aria-label="Cerca Liceo">
-        {screen === 'welcome' && <WelcomeScreen onEnter={() => setScreen('home')} />}
+        {screen === 'welcome' && <WelcomeScreen onEnter={() => goToScreen('home')} />}
 
         {screen === 'detail' && selectedOffer && (
           <DetailScreen
@@ -746,7 +779,7 @@ function App() {
             relatedOffers={feedOffers}
             onToggleTheme={() => setDarkMode((value) => !value)}
             onBack={() => {
-              setScreen('home')
+              goToScreen('home')
               setSelectedOffer(null)
             }}
           />
@@ -767,7 +800,7 @@ function App() {
           <DirectoryScreen
             businesses={feedBusinesses}
             onToggleTheme={() => setDarkMode((value) => !value)}
-            onBack={() => setScreen('home')}
+            onBack={() => goToScreen('home')}
             onOpen={(business) => {
               setSelectedBusiness(business)
               setScreen('business-detail')
@@ -782,7 +815,7 @@ function App() {
             template={publishTemplate}
             offers={feedOffers}
             pageViews={pageViews}
-            onBack={() => setScreen('profile')}
+            onBack={() => goToScreen('profile', { soft: true })}
             onMerchantPanel={() => setScreen('my-posts')}
             onPublishOffer={publishOffer}
             onToggleTheme={() => setDarkMode((value) => !value)}
@@ -795,7 +828,7 @@ function App() {
             local={merchantLocal}
             offers={feedOffers}
             onSaveLocal={saveMerchantLocal}
-            onBack={() => setScreen('profile')}
+            onBack={() => goToScreen('profile', { soft: true })}
             onPublish={openPublish}
             onPauseOffer={pauseOffer}
             onDeleteOffer={deleteOffer}
@@ -808,7 +841,7 @@ function App() {
           <AdminScreen
             businesses={adminBusinesses.length ? adminBusinesses : feedBusinesses}
             offers={feedOffers}
-            onBack={() => setScreen('profile')}
+            onBack={() => goToScreen('profile', { soft: true })}
             onOpenBusiness={(business) => {
               setSelectedBusiness(business)
               setScreen('business-detail')
@@ -853,8 +886,8 @@ function App() {
 
         {screen === 'profile' && (
           <ProfileScreen
-            onBack={() => setScreen('home')}
-            onLogin={() => setScreen('login')}
+            onBack={() => goToScreen('home')}
+            onLogin={() => goToScreen('login')}
             onMerchantPanel={() => setScreen('my-posts')}
             onPublish={() => openPublish()}
             onAdmin={() => setScreen('admin')}
@@ -864,7 +897,7 @@ function App() {
             local={merchantLocal}
             onRegister={(type) => {
               setRegisterType(type)
-              setScreen('register')
+              goToScreen('register')
             }}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
@@ -873,14 +906,14 @@ function App() {
         {screen === 'login' && (
           <LoginScreen
             authNotice={authNotice}
-            onBack={() => setScreen('profile')}
+            onBack={() => goToScreen('profile', { soft: true })}
             onLogin={loginAccount}
-            onForgotPassword={() => setScreen('forgot-password')}
+            onForgotPassword={() => goToScreen('forgot-password')}
             onQuickAccess={loginQuick}
             allowQuickAccess={!cercaApi.isSupabaseEnabled()}
             onRegister={(type) => {
               setRegisterType(type)
-              setScreen('register')
+              goToScreen('register')
             }}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
@@ -889,7 +922,7 @@ function App() {
         {screen === 'forgot-password' && (
           <ForgotPasswordScreen
             authNotice={authNotice}
-            onBack={() => setScreen('login')}
+            onBack={() => goToScreen('login', { soft: true })}
             onSubmit={requestPasswordReset}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
@@ -898,7 +931,7 @@ function App() {
         {screen === 'reset-password' && (
           <ResetPasswordScreen
             authNotice={authNotice}
-            onBack={() => setScreen('login')}
+            onBack={() => goToScreen('login', { soft: true })}
             onSubmit={updatePassword}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
@@ -908,8 +941,8 @@ function App() {
           <RegisterScreen
             initialType={registerType}
             onComplete={registerAccount}
-            onBack={() => setScreen('profile')}
-            onLogin={() => setScreen('login')}
+            onBack={() => goToScreen('profile', { soft: true })}
+            onLogin={() => goToScreen('login')}
             onToggleTheme={() => setDarkMode((value) => !value)}
           />
         )}
@@ -1168,15 +1201,15 @@ function App() {
                 <Search size={21} />
                 Explorar
               </button>
-              <button className="publish" type="button" onClick={() => setScreen('profile')}>
+              <button className="publish" type="button" onClick={() => goToScreen('profile')}>
                 <Heart size={23} />
                 Favoritos
               </button>
-              <button type="button" onClick={() => setScreen('profile')}>
+              <button type="button" onClick={() => goToScreen('profile')}>
                 <Bell size={21} />
                 Avisos
               </button>
-              <button type="button" onClick={() => setScreen('profile')}>
+              <button type="button" onClick={() => goToScreen('profile')}>
                 <UserRound size={21} />
                 Mi cuenta
               </button>

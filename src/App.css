@@ -1,4 +1,5 @@
 .app-shell {
+  min-height: 100vh;
   min-height: 100svh;
   padding: clamp(0px, 2vw, 22px);
   background:
@@ -30,6 +31,7 @@ select:focus-visible {
 .app-screen {
   position: relative;
   width: min(100%, 430px);
+  min-height: 100vh;
   min-height: 100svh;
   margin: 0 auto;
   padding-bottom: 88px;
@@ -448,6 +450,58 @@ select:focus-visible {
   padding: 18px 20px 14px;
   background: rgba(255, 251, 238, 0.88);
   backdrop-filter: blur(16px);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .action-toast,
+  .app-header,
+  .bottom-nav,
+  .detail-header {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .app-header,
+  .detail-header,
+  .bottom-nav {
+    background: #fffbee;
+  }
+
+  .night-mode .app-header,
+  .night-mode .detail-header,
+  .night-mode .bottom-nav {
+    background: #10150f;
+  }
+
+  .action-toast {
+    background: #fffdf7;
+  }
+}
+
+@media (max-width: 520px) {
+  .action-toast,
+  .app-header,
+  .bottom-nav,
+  .detail-header {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .app-header,
+  .detail-header,
+  .bottom-nav {
+    background: #fffbee;
+  }
+
+  .night-mode .app-header,
+  .night-mode .detail-header,
+  .night-mode .bottom-nav {
+    background: #10150f;
+  }
+
+  .action-toast {
+    background: #fffdf7;
+  }
 }
 
 .brand-lockup {
@@ -2604,6 +2658,7 @@ select:focus-visible {
 }
 
 .directory-screen {
+  min-height: 100vh;
   min-height: 100svh;
   padding-bottom: 28px;
   background: #fffbea;
@@ -3075,6 +3130,7 @@ select:focus-visible {
 }
 
 .welcome-screen {
+  min-height: 100vh;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -3237,6 +3293,7 @@ select:focus-visible {
 }
 
 .detail-screen {
+  min-height: 100vh;
   min-height: 100svh;
   padding-bottom: 96px;
   background: #fffbea;
@@ -6892,6 +6949,7 @@ select:focus-visible {
 }
 
 .utility-screen {
+  min-height: 100vh;
   min-height: 100svh;
   padding-bottom: 28px;
   color: #10150f;
@@ -7600,6 +7658,7 @@ select:focus-visible {
 }
 
 .register-success {
+  min-height: calc(100vh - 96px);
   min-height: calc(100svh - 96px);
   margin: 0 20px;
   padding: 24px;
@@ -8182,8 +8241,8 @@ select:focus-visible {
 
 .account-start-card .account-choice-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  grid-template-columns: 1fr;
+  gap: 10px;
   margin-top: 16px;
   min-width: 0;
 }
@@ -8191,10 +8250,11 @@ select:focus-visible {
 .account-start-card button {
   position: relative;
   display: grid;
-  min-height: 112px;
-  align-content: space-between;
-  gap: 8px;
-  padding: 13px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  min-height: 74px;
+  gap: 8px 10px;
+  padding: 13px 14px;
   color: #172112;
   text-align: left;
   font-size: 12px;
@@ -8215,11 +8275,12 @@ select:focus-visible {
 
 .account-start-card button svg {
   color: #86c900;
+  grid-row: span 2;
 }
 
 .account-start-card button strong {
   font-size: 16px;
-  line-height: 0.98;
+  line-height: 1.06;
   overflow-wrap: anywhere;
 }
 
@@ -8230,8 +8291,7 @@ select:focus-visible {
 }
 
 .account-start-card button:nth-child(3) {
-  grid-column: 1 / -1;
-  min-height: 92px;
+  min-height: 74px;
   color: #fffbea;
   background:
     linear-gradient(90deg, transparent 47%, rgba(130, 219, 204, 0.16) 48%, rgba(130, 219, 204, 0.16) 51%, transparent 52%),
@@ -8267,14 +8327,12 @@ select:focus-visible {
 
   .account-start-card button,
   .account-start-card button:nth-child(3) {
-    grid-column: auto;
-    min-height: 86px;
-    align-content: center;
+    min-height: 72px;
   }
 
   .account-start-card button strong {
     font-size: 15px;
-    line-height: 1.05;
+    line-height: 1.08;
   }
 }
 
@@ -9760,6 +9818,7 @@ select:focus-visible {
   }
 
   .app-screen {
+    min-height: calc(100vh - 56px);
     min-height: calc(100svh - 56px);
     padding-bottom: 88px;
     border-radius: 44px;
@@ -9982,6 +10041,7 @@ button:active,
 
 .welcome-screen {
   position: relative;
+  min-height: 100vh;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
@@ -11014,3 +11074,4 @@ button:active,
     grid-template-columns: repeat(2, 1fr);
   }
 }
+

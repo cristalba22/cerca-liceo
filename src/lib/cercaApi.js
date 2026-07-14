@@ -9,6 +9,13 @@ const PHOTO_BUCKET = 'business-photos'
 
 const isDataImage = (value) => typeof value === 'string' && value.startsWith('data:image/')
 
+const createClientId = () => {
+  const randomUuid = globalThis.crypto?.randomUUID
+  if (typeof randomUuid === 'function') return randomUuid.call(globalThis.crypto)
+  const randomPart = Math.random().toString(36).slice(2, 11)
+  return `${Date.now().toString(36)}-${randomPart}`
+}
+
 const dataUrlToBlob = async (dataUrl) => {
   const response = await fetch(dataUrl)
   return response.blob()
@@ -21,7 +28,7 @@ const uploadPublicImage = async (dataUrl, folder = 'general') => {
   if (!auth.user) return { url: dataUrl, error: new Error('Necesitas iniciar sesion para subir fotos.') }
 
   const blob = await dataUrlToBlob(dataUrl)
-  const path = `${auth.user.id}/${folder}/${crypto.randomUUID()}.jpg`
+  const path = `${auth.user.id}/${folder}/${createClientId()}.jpg`
   const { error } = await supabase.storage
     .from(PHOTO_BUCKET)
     .upload(path, blob, {
@@ -687,7 +694,7 @@ export const cercaApi = {
   async saveBusiness(draft) {
     if (!hasSupabaseConfig) {
       const current = readStorage(LOCAL_BUSINESS_KEY)
-      const business = normalizeBusiness({ ...draft, id: current?.id || window.crypto.randomUUID(), ready: true })
+      const business = normalizeBusiness({ ...draft, id: current?.id || createClientId(), ready: true })
       const savedBusinesses = readStorage(LOCAL_BUSINESSES_KEY) || []
       writeStorage(LOCAL_BUSINESSES_KEY, mergeById([business, ...savedBusinesses]))
       writeStorage(LOCAL_BUSINESS_KEY, business)
@@ -811,7 +818,7 @@ export const cercaApi = {
     if (!hasSupabaseConfig) {
       const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString()
       const offer = {
-        id: window.crypto.randomUUID(),
+        id: createClientId(),
         title,
         business: business.name,
         businessId: business.id,
@@ -931,7 +938,7 @@ export const cercaApi = {
     if (!hasSupabaseConfig) {
       const reposted = {
         ...offer,
-        id: window.crypto.randomUUID(),
+        id: createClientId(),
         open: true,
         paused: false,
         expires: `${expiresInDays} dias`,

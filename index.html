@@ -40,7 +40,11 @@
       (function () {
         var ua = navigator.userAgent || '';
         var forceCompat = /(?:\?|&)androidCompat=1(?:&|$)/.test(window.location.search);
-        if (forceCompat || /Android/i.test(ua)) {
+        var forceFull = /(?:\?|&)fullUi=1(?:&|$)/.test(window.location.search);
+        var androidVersion = (ua.match(/Android\s([0-9]+)/i) || [])[1];
+        var oldAndroid = androidVersion && Number(androidVersion) <= 11;
+        var fragileAndroid = /Xiaomi|Redmi|M2003J15|M2003J15SC|Mi\s|MI\s|POCO/i.test(ua);
+        if (!forceFull && (forceCompat || oldAndroid || fragileAndroid)) {
           document.documentElement.className += ' android-compat';
         }
       })();

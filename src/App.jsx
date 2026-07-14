@@ -246,35 +246,35 @@ const mergeUniqueById = (items) => {
 }
 
 const buildLocalDraft = (local, account) => ({
-  name: local?.name || account?.businessName || '',
+  name: local?.name || '',
   businessType: local?.businessType || account?.businessType || 'local',
   hasPublicAddress: local?.hasPublicAddress ?? true,
-  category: local?.category || account?.category || 'Comida',
+  category: local?.category || 'Comida',
   section: local?.section || account?.section || 'Liceo Procrear',
   address: local?.address || '',
-  reference: local?.reference || 'Cerca de la plaza o ingreso principal',
-  hours: local?.hours || '20:00 a 00:30',
-  openDays: local?.openDays || ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
-  openTime: local?.openTime || '09:00',
-  closeTime: local?.closeTime || '21:00',
-  whatsapp: local?.whatsapp || account?.whatsapp || '',
+  reference: local?.reference || '',
+  hours: local?.hours || '',
+  openDays: local?.openDays || [],
+  openTime: local?.openTime || '',
+  closeTime: local?.closeTime || '',
+  whatsapp: local?.whatsapp || '',
   instagram: local?.instagram || '',
-  description: local?.description || 'Comercio del barrio con atencion por WhatsApp.',
-  paymentMethods: local?.paymentMethods || 'Efectivo y transferencia',
+  description: local?.description || '',
+  paymentMethods: local?.paymentMethods || '',
   delivery: local?.delivery || account?.salesMode || 'Retiro y delivery',
   plan: local?.plan || 'gratis',
-  image: local?.image || 'milanesa',
+  image: local?.image || '',
   imageZoom: local?.imageZoom || 120,
   imagePosition: local?.imagePosition || 'center center',
   menu: ensureMenuSlots(
     local?.menu?.length
       ? local.menu
       : [
-        { name: 'Producto principal', price: '$' },
-        { name: 'Promo del dia', price: '$' },
-        { name: 'Combo familiar', price: '$' },
-        { name: 'Bebida o extra', price: '$' },
-        { name: 'Consultar por WhatsApp', price: '' },
+        { name: '', price: '' },
+        { name: '', price: '' },
+        { name: '', price: '' },
+        { name: '', price: '' },
+        { name: '', price: '' },
       ],
   ),
 })
@@ -462,6 +462,13 @@ function App() {
       window.localStorage.removeItem('cerca-liceo-business')
     }
   }, [merchantLocal])
+
+  useEffect(() => {
+    if (!account?.id || !merchantLocal?.ownerId) return
+    if (merchantLocal.ownerId !== account.id) {
+      setMerchantLocal(null)
+    }
+  }, [account?.id, merchantLocal?.ownerId])
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -1922,7 +1929,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
 
           <label>
             <span>{localDraft.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre del local'}</span>
-            <input value={localDraft.name} onChange={(event) => updateLocalDraft('name', event.target.value)} placeholder="Ej: Mr. Food" />
+            <input value={localDraft.name} onChange={(event) => updateLocalDraft('name', event.target.value)} placeholder="Ej: Comidas del Barrio" />
           </label>
 
           <div className="android-safe-two-cols">
@@ -1951,7 +1958,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
 
           <label>
             <span>WhatsApp</span>
-            <input inputMode="numeric" value={localDraft.whatsapp} onChange={(event) => updateLocalDraft('whatsapp', event.target.value.replace(/\D/g, ''))} placeholder="3517662142" />
+            <input inputMode="numeric" value={localDraft.whatsapp} onChange={(event) => updateLocalDraft('whatsapp', event.target.value.replace(/\D/g, ''))} placeholder="3510000000" />
           </label>
 
           <label>
@@ -1961,7 +1968,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
 
           <label>
             <span>{localDraft.businessType === 'entrepreneur' ? 'Zona o referencia' : 'Direccion o referencia'}</span>
-            <input value={localDraft.address} onChange={(event) => updateLocalDraft('address', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' ? 'Ej: Entrego en Liceo Procrear' : 'Ej: Margarita Caprile 772'} />
+            <input value={localDraft.address} onChange={(event) => updateLocalDraft('address', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' ? 'Ej: Entrego por zona Liceo' : 'Ej: Calle, manzana o referencia'} />
           </label>
 
           <div className="android-safe-days" aria-label="Dias que abre">
@@ -2217,7 +2224,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
               <div className="local-builder-fields">
                 <label>
                   <span>{localDraft.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre del local'}</span>
-                  <input value={localDraft.name} onChange={(event) => updateLocalDraft('name', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' ? 'Ej: Dulces de Lau' : 'Ej: Lo de Meli'} />
+                  <input value={localDraft.name} onChange={(event) => updateLocalDraft('name', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' ? 'Ej: Hecho en Casa' : 'Ej: Almacen del Barrio'} />
                 </label>
                 <label>
                   <span>Rubro</span>
@@ -3864,7 +3871,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
           {submitFeedback && <p className="form-warning">{submitFeedback}</p>}
           <label>
             <span>Nombre y apellido</span>
-            <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder="Ej: Cristian Alba" />
+            <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder="Ej: Nombre y apellido" />
           </label>
           <label>
             <span>WhatsApp</span>
@@ -3912,7 +3919,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
               <p>{form.businessType === 'entrepreneur' ? 'No hace falta publicar direccion. Despues cargas zona, WhatsApp e Instagram.' : 'Despues podes cargar direccion, horario y boton para llegar.'}</p>
               <label>
                 <span>{form.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre comercial'}</span>
-                <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder={form.businessType === 'entrepreneur' ? 'Ej: Dulces de Lau' : 'Ej: Lo de Meli'} />
+                <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder={form.businessType === 'entrepreneur' ? 'Ej: Hecho en Casa' : 'Ej: Almacen del Barrio'} />
               </label>
               <label>
                 <span>Rubro principal</span>
@@ -4091,11 +4098,11 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
       <section className="register-form">
         <label>
           <span>Nombre y apellido</span>
-          <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder={isMerchant ? 'Ej: Cristian Alba' : 'Ej: Laura Perez'} autoComplete="name" />
+          <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder={isMerchant ? 'Ej: Nombre y apellido' : 'Ej: Nombre y apellido'} autoComplete="name" />
         </label>
         <label>
           <span>WhatsApp</span>
-          <input value={form.whatsapp} onChange={(event) => updateForm('whatsapp', event.target.value)} placeholder="3517662142" inputMode="numeric" pattern="[0-9]*" autoComplete="tel" />
+          <input value={form.whatsapp} onChange={(event) => updateForm('whatsapp', event.target.value)} placeholder="3510000000" inputMode="numeric" pattern="[0-9]*" autoComplete="tel" />
         </label>
         <label>
           <span>Email</span>
@@ -4123,7 +4130,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
           <>
             <label className="wide">
               <span>Nombre comercial si ya lo tenes</span>
-              <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder={form.businessType === 'entrepreneur' ? 'Ej: Dulces de Lau' : 'Ej: Lo de Meli'} />
+              <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder={form.businessType === 'entrepreneur' ? 'Ej: Hecho en Casa' : 'Ej: Almacen del Barrio'} />
             </label>
             <div className="merchant-type-register wide">
               <span>Tipo de comercio</span>

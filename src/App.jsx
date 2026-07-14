@@ -1759,51 +1759,61 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
     localDraft.openTime,
     localDraft.closeTime,
     localDraft.whatsapp,
-    isUploadedImage(localDraft.image),
   ].filter(Boolean).length
-  const completion = Math.round((completedFields / 10) * 100)
+  const completion = Math.round((completedFields / 9) * 100)
   const scheduleLabel = formatSchedule(localDraft)
   const founderActive = isFounderPlanActive(localDraft)
   const founderRequested = isFounderPlanRequested(localDraft)
-  const dashboardTasks = [
+  const requiredTasks = [
     {
       id: 'basic',
       done: Boolean(localDraft.name && localDraft.whatsapp),
-      title: 'Datos basicos',
-      meta: localDraft.name && localDraft.whatsapp ? 'Nombre y WhatsApp listos' : 'Nombre y WhatsApp',
-    },
-    {
-      id: 'photo',
-      done: isUploadedImage(localDraft.image),
-      title: 'Foto real',
-      meta: isUploadedImage(localDraft.image) ? 'Foto cargada' : 'Subi una foto propia',
+      title: 'Nombre y WhatsApp',
+      meta: localDraft.name && localDraft.whatsapp ? 'Listo para contacto' : 'Obligatorio para aparecer',
     },
     {
       id: 'location',
       done: Boolean((hasBusinessPublicAddress(localDraft) || localDraft.businessType === 'entrepreneur') && localDraft.openDays.length && localDraft.openTime && localDraft.closeTime),
       title: localDraft.businessType === 'entrepreneur' ? 'Zona y horario' : 'Direccion y horario',
-      meta: hasBusinessPublicAddress(localDraft) || localDraft.businessType === 'entrepreneur' ? scheduleLabel : 'Direccion, dias y horas',
+      meta: hasBusinessPublicAddress(localDraft) || localDraft.businessType === 'entrepreneur' ? scheduleLabel : 'Obligatorio para orientar al vecino',
     },
+  ]
+  const qualityTasks = [
+    {
+      id: 'photo',
+      done: isUploadedImage(localDraft.image),
+      title: 'Foto real',
+      meta: isUploadedImage(localDraft.image) ? 'Foto cargada' : 'Recomendado para dar confianza',
+      optional: true,
+    },
+  ]
+  const optionalTasks = [
     {
       id: 'menu',
       done: founderActive,
-      title: 'Mini carta',
-      meta: founderActive ? 'Plan fundador activo' : founderRequested ? 'Solicitud pendiente' : 'Plan fundador',
+      title: 'Mini carta opcional',
+      meta: founderActive ? 'Plan fundador activo' : founderRequested ? 'Solicitud pendiente' : 'Extra del fundador',
+      optional: true,
     },
     {
       id: 'plan',
       done: Boolean(localDraft.plan),
-      title: 'Plan',
+      title: 'Plan fundador opcional',
       meta: founderActive ? 'Fundador activo' : founderRequested ? 'Fundador pendiente' : 'Ficha gratis',
+      optional: true,
     },
   ]
-  const pendingTasks = dashboardTasks.filter((task) => !task.done)
+  const dashboardTasks = [...requiredTasks, ...qualityTasks, ...optionalTasks]
+  const pendingTasks = requiredTasks.filter((task) => !task.done)
+  const pendingQualityTasks = qualityTasks.filter((task) => !task.done)
   const nextPanel = pendingTasks[0]?.id || 'preview'
   const localIsPublic = Boolean(local)
   const publicStateLabel = localIsPublic
     ? pendingTasks.length
-      ? 'Visible con pendientes'
-      : 'Local completo'
+      ? 'Visible con datos pendientes'
+      : pendingQualityTasks.length
+        ? 'Ficha gratis activa'
+        : 'Ficha completa'
     : 'Alta pendiente'
   const planLabel = founderActive ? 'Plan fundador activo' : founderRequested ? 'Fundador pendiente' : 'Ficha gratis'
   const founderPlanUrl = makeWhatsAppUrl(
@@ -1818,6 +1828,21 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
   ))
   const activeLocalOffers = localOffers.filter((offer) => offer.open !== false)
   const pausedLocalOffers = localOffers.filter((offer) => offer.open === false)
+  const handlePublishFromPanel = () => {
+    if (!local) {
+      setSaveStatus('Primero guarda la ficha gratis. Despues podes publicar tu promo semanal.')
+      setOpenPanel(nextPanel === 'preview' ? 'basic' : nextPanel)
+      return
+    }
+
+    if (pendingTasks.length) {
+      setSaveStatus(`Primero completa: ${pendingTasks[0].title}.`)
+      setOpenPanel(pendingTasks[0].id)
+      return
+    }
+
+    onPublish()
+  }
 
   if (isAndroidCompatMode()) {
     if (account && account.type !== 'merchant') {
@@ -1895,9 +1920,9 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
         )}
 
         <section className="android-safe-card android-safe-progress-card">
-          <span>Estado actual</span>
-          <h2>{planLabel}</h2>
-          <p>{completion}% completo. {pendingTasks.length ? `Faltan ${pendingTasks.length} puntos para que se vea mas confiable.` : 'Tu ficha ya esta completa.'}</p>
+          <span>Ficha gratis</span>
+          <h2>{pendingTasks.length ? 'Completa lo basico' : localIsPublic ? 'Lista para publicar promos' : 'Lista para guardar'}</h2>
+          <p>{completion}% completo. {pendingTasks.length ? `Falta: ${pendingTasks.map((task) => task.title.toLowerCase()).join(' y ')}.` : pendingQualityTasks.length ? 'Ya podes aparecer. Sumale foto cuando puedas para dar mas confianza.' : 'Tu ficha esta completa.'}</p>
           <i style={{ '--progress': `${completion}%` }}></i>
         </section>
 
@@ -1906,7 +1931,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
             <strong>{localIsPublic ? 'Guardar cambios' : 'Guardar ficha gratis'}</strong>
             <small>Foto, datos, contacto, zona y horario.</small>
           </button>
-          <button type="button" onClick={() => onPublish()}>
+          <button type="button" onClick={handlePublishFromPanel}>
             <strong>Publicar promo</strong>
             <small>Tenes 1 publicacion semanal gratis que dura 3 dias.</small>
           </button>
@@ -2020,13 +2045,13 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
         <section className="android-safe-card android-safe-plan-card">
           <span>Plan gratis</span>
           <h2>Ficha + 1 promo semanal.</h2>
-          <p>La publicacion gratis dura 3 dias y se vence sola. La mini carta, pedidos y extras se habilitan con plan fundador.</p>
+          <p>La publicacion gratis dura 3 dias y se vence sola. No necesitas el plan fundador para aparecer en la guia.</p>
         </section>
 
         <section className="android-safe-card android-safe-plan-card">
           <span>Plan fundador</span>
           <h2>Mini carta + pedidos.</h2>
-          <p>Incluye mini carta, 4 publicaciones extra por mes y pedido armado para enviar por WhatsApp. Precio fundador Liceo: $8.000.</p>
+          <p>Extra opcional: mini carta, 4 publicaciones extra por mes y pedido armado para enviar por WhatsApp. Precio fundador Liceo: $8.000.</p>
           <button type="button" onClick={requestFounderPlan}>
             {founderRequested || founderActive ? 'Consultar por WhatsApp' : 'Quiero plan fundador'}
           </button>
@@ -2105,11 +2130,11 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
         <div className="merchant-hero-copy">
           <span>{publicStateLabel}</span>
           <h1>{localDraft.name || 'Tu local'}</h1>
-          <p>{localIsPublic ? `Aparece en la guia como ${localDraft.category} en ${localDraft.section}. ${pendingTasks.length ? 'Completa los pendientes para que se vea mas confiable.' : 'Ya esta listo para recibir consultas.'}` : 'Completa los datos importantes y guardalo para aparecer gratis en la guia.'}</p>
+          <p>{localIsPublic ? `Aparece en la guia como ${localDraft.category} en ${localDraft.section}. ${pendingTasks.length ? 'Completa lo basico para que el vecino entienda como contactarte.' : pendingQualityTasks.length ? 'Ya puede recibir consultas. Una foto real lo hace mas confiable.' : 'Ya esta listo para recibir consultas.'}` : 'Completa lo basico y guarda la ficha gratis. Despues podes publicar tu promo semanal.'}</p>
         </div>
         <div className="merchant-score-card">
           <strong>{completion}%</strong>
-          <span>{pendingTasks.length ? `${pendingTasks.length} pendientes` : 'Listo'}</span>
+          <span>{pendingTasks.length ? `${pendingTasks.length} basicos` : 'Listo'}</span>
           <i style={{ '--progress': `${completion}%` }}></i>
         </div>
       </section>
@@ -2119,7 +2144,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
           <Check size={18} />
           <span>{pendingTasks.length ? 'Completar pendiente' : 'Ver ficha'}</span>
         </button>
-        <button type="button" onClick={() => onPublish()}>
+        <button type="button" onClick={handlePublishFromPanel}>
           <Flame size={18} />
           <span>Publicar promo</span>
         </button>
@@ -2133,14 +2158,14 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
         <div>
           <span>Estado actual</span>
           <strong>{planLabel}</strong>
-          <p>{localIsPublic ? (founderActive ? 'Mini carta, pedidos y publicaciones extra estan activos.' : founderRequested ? 'Tu ficha gratis sigue visible. El plan fundador queda pendiente hasta que el admin lo active.' : 'Tu ficha queda gratis con 1 promo semanal. Mini carta, pedidos y extras se piden aparte.') : 'Todavia no esta publicada. Guardala cuando completes los datos basicos.'}</p>
+          <p>{localIsPublic ? (pendingTasks.length ? `Falta completar ${pendingTasks.map((task) => task.title.toLowerCase()).join(' y ')}.` : founderActive ? 'Ficha gratis activa y plan fundador habilitado.' : founderRequested ? 'Ficha gratis activa. El plan fundador queda pendiente hasta que el admin lo active.' : 'Ficha gratis activa: guia del barrio y 1 promo semanal que vence sola.') : 'Todavia no esta publicada. Guarda la ficha cuando completes lo basico.'}</p>
         </div>
         <button type="button" onClick={saveLocal}>{localIsPublic ? 'Actualizar' : 'Guardar'}</button>
       </section>
 
       <section className="dashboard-checklist" aria-label="Checklist del local">
         {dashboardTasks.map((task) => (
-          <button className={task.done ? 'done' : 'todo'} type="button" key={task.id} onClick={() => setOpenPanel(task.id)}>
+          <button className={task.done ? 'done' : task.optional ? 'optional' : 'todo'} type="button" key={task.id} onClick={() => setOpenPanel(task.id)}>
             <b>{task.done ? <Check size={15} /> : <ChevronRight size={15} />}</b>
             <span>
               <strong>{task.title}</strong>
@@ -2644,7 +2669,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
             <span>Publicaciones</span>
             <h2>Promos del local</h2>
           </div>
-          <button type="button" onClick={() => onPublish()}>Nueva promo</button>
+          <button type="button" onClick={handlePublishFromPanel}>Nueva promo</button>
         </div>
 
         {localOffers.length === 0 ? (
@@ -2652,7 +2677,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
             <Flame size={22} />
             <strong>Todavia no tenes promos publicadas.</strong>
             <p>Cuando tengas una oferta del dia, subila en menos de un minuto. Dura 3 o 4 dias y despues se baja sola.</p>
-            <button type="button" onClick={() => onPublish()}>Crear primera promo</button>
+            <button type="button" onClick={handlePublishFromPanel}>Crear primera promo</button>
           </section>
         ) : (
           <>
@@ -2690,7 +2715,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
         <span>Extra opcional</span>
         <h2>Mas publicaciones cuando haga falta.</h2>
         <p>La ficha y una promo semanal quedan gratis. Si una semana queres publicar mas ofertas, ahi se cobra extra.</p>
-        <button type="button" onClick={() => onPublish()}>Preparar otra promo</button>
+        <button type="button" onClick={handlePublishFromPanel}>Preparar otra promo</button>
       </section>
     </div>
   )

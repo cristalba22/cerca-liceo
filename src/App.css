@@ -5108,6 +5108,11 @@ select:focus-visible {
   background: linear-gradient(145deg, #eefbc8, #fffdf7);
 }
 
+.dashboard-checklist button.optional {
+  background: #f7f0df;
+  border-style: dashed;
+}
+
 .dashboard-checklist b {
   display: grid;
   width: 34px;
@@ -5120,6 +5125,10 @@ select:focus-visible {
 
 .dashboard-checklist button.done b {
   background: #a7e92a;
+}
+
+.dashboard-checklist button.optional b {
+  background: #eee6d5;
 }
 
 .dashboard-checklist strong,

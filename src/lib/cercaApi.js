@@ -91,7 +91,7 @@ const normalizeBusiness = (business = {}) => {
     description: safeBusiness.description || 'Comercio del barrio con atencion por WhatsApp.',
     paymentMethods: safeBusiness.paymentMethods || safeBusiness.payment_methods || 'Efectivo y transferencia',
     tone: safeBusiness.tone || 'orange',
-    image: safeBusiness.image || 'milanesa',
+    image: safeBusiness.image || 'generic',
     imageZoom: safeBusiness.imageZoom || safeBusiness.image_zoom || 120,
     imagePosition: safeBusiness.imagePosition || safeBusiness.image_position || 'center center',
     open: safeBusiness.open ?? true,
@@ -176,7 +176,7 @@ const mapBusinessRow = (row) => ({
   whatsapp: row.whatsapp,
   instagram: row.instagram,
   tone: row.tone || 'orange',
-  image: row.image_key || 'milanesa',
+  image: row.image_key || 'generic',
   imageZoom: row.image_zoom || 120,
   imagePosition: row.image_position || 'center center',
   open: row.is_open,
@@ -223,7 +223,7 @@ const mapOfferRow = (row) => ({
   closeTime: row.businesses?.close_time || '',
   description: cleanText(row.description),
   tone: row.tone || row.businesses?.tone || 'orange',
-  image: row.image_key || row.businesses?.image_key || 'milanesa',
+  image: row.image_key || row.businesses?.image_key || 'generic',
   whatsapp: row.businesses?.whatsapp || row.whatsapp || '',
   instagram: row.businesses?.instagram || '',
   open: row.businesses?.is_open ?? true,
@@ -773,8 +773,8 @@ export const cercaApi = {
 
     const { url: imageUrl, error: imageError } = await uploadPublicImage(draft.image, 'locals')
     const safeImageKey = imageError
-      ? (isDataImage(draft.image) ? draft.image : existingBusiness?.image_key || draft.image || 'milanesa')
-      : imageUrl || draft.image || existingBusiness?.image_key || 'milanesa'
+      ? (isDataImage(draft.image) ? draft.image : existingBusiness?.image_key || draft.image || 'generic')
+      : imageUrl || draft.image || existingBusiness?.image_key || 'generic'
 
     const payload = {
       owner_id: auth.user.id,
@@ -895,7 +895,7 @@ export const cercaApi = {
         closeTime: business.closeTime || '',
         description,
         tone: business.tone || 'orange',
-        image: imageKey || business.image || 'milanesa',
+        image: imageKey || business.image || 'generic',
         whatsapp: business.whatsapp || '',
         instagram: business.instagram || '',
         open: true,
@@ -920,8 +920,8 @@ export const cercaApi = {
       section: business.section,
       price_label: priceLabel,
       image_key: imageError
-        ? (isDataImage(imageKey) ? imageKey : business.image || imageKey || 'milanesa')
-        : offerImageUrl || imageKey || business.image || 'milanesa',
+        ? (isDataImage(imageKey) ? imageKey : business.image || imageKey || 'generic')
+        : offerImageUrl || imageKey || business.image || 'generic',
       tone: business.tone || 'orange',
       highlight: 'Nueva promo',
       expires_at: new Date(Date.now() + expiresInDays * 86400000).toISOString(),
@@ -1016,7 +1016,7 @@ export const cercaApi = {
       category: offer.category,
       section: offer.section,
       price_label: offer.price,
-      image_key: offer.image || 'milanesa',
+      image_key: offer.image || 'generic',
       tone: offer.tone || 'orange',
       highlight: 'Republicada',
       expires_at: new Date(Date.now() + expiresInDays * 86400000).toISOString(),

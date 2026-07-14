@@ -750,7 +750,7 @@ function App() {
       hours: offer.hours || 'Horario a confirmar',
       whatsapp: offer.whatsapp || '',
       tone: offer.tone || 'orange',
-      image: offer.image || 'milanesa',
+      image: offer.image || 'generic',
       open: getOfferOpenStatus(offer).open,
       isPublic: true,
       menu: [{ name: offer.title, price: offer.price }],
@@ -2269,7 +2269,7 @@ function MyPostsScreen({ account, local, offers = [], onSaveLocal, onBack, onPub
                       Belleza: 'beauty',
                     }
                     updateLocalDraft('category', category)
-                    updateLocalDraft('image', imageByCategory[category] || 'milanesa')
+                    updateLocalDraft('image', imageByCategory[category] || 'generic')
                   }}>
                     <option>Comida</option>
                     <option>Panaderia</option>

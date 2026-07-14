@@ -3073,6 +3073,23 @@ select:focus-visible {
   gap: 9px;
 }
 
+.order-catalog-section {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 251, 238, 0.54);
+  border: 1px solid rgba(16, 21, 15, 0.06);
+  border-radius: 22px;
+}
+
+.order-catalog-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 2px 4px 0;
+}
+
 .product-row {
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr) 96px;
@@ -4205,12 +4222,24 @@ select:focus-visible {
 }
 
 .night-mode .order-tabs button.active,
+.night-mode .order-catalog-section,
 .night-mode .product-row,
 .night-mode .order-options button,
 .night-mode .order-note input {
   color: #fffbea;
   background: #303426;
   border-color: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .order-catalog-title strong,
+.night-mode .menu-editor-group-head strong,
+.night-mode .public-menu-group strong {
+  color: #fffbea;
+}
+
+.night-mode .order-catalog-title span,
+.night-mode .menu-editor-group-head small {
+  color: #bfb6a4;
 }
 
 .night-mode .product-copy b {
@@ -4525,6 +4554,8 @@ select:focus-visible {
   background: #a7e92a;
 }
 
+.night-mode .menu-editor-group,
+.night-mode .public-menu-group,
 .night-mode .menu-editor-row label,
 .night-mode .public-menu-list li,
 .night-mode .public-menu-locked {
@@ -6271,6 +6302,41 @@ select:focus-visible {
   line-height: 1.3;
 }
 
+.menu-editor-group {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(246, 238, 220, 0.62);
+  border: 1px solid rgba(16, 21, 15, 0.07);
+  border-radius: 20px;
+}
+
+.menu-editor-group-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-end;
+  padding: 2px 2px 4px;
+}
+
+.menu-editor-group-head strong,
+.order-catalog-title strong,
+.public-menu-group strong {
+  color: #10150f;
+  font-size: 15px;
+  font-weight: 1000;
+  line-height: 1;
+}
+
+.menu-editor-group-head small,
+.order-catalog-title span {
+  color: #756d60;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-align: right;
+}
+
 .menu-editor-row {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(82px, 0.65fr);
@@ -6583,8 +6649,29 @@ select:focus-visible {
 
 .public-menu-list {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.public-menu-group {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  background: rgba(16, 21, 15, 0.045);
+  border-radius: 15px;
+}
+
+.public-menu-group strong {
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.public-menu-group ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -6603,6 +6690,15 @@ select:focus-visible {
 
 .public-menu-list b {
   flex: 0 0 auto;
+}
+
+.public-menu-empty {
+  padding: 10px;
+  color: #665f53;
+  font-size: 12px;
+  font-weight: 900;
+  background: rgba(16, 21, 15, 0.06);
+  border-radius: 14px;
 }
 
 .public-menu-locked {
@@ -11881,6 +11977,31 @@ html.android-compat .android-safe-menu-form {
   gap: 14px;
 }
 
+html.android-compat .android-safe-menu-group {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  background: #fffdf7;
+  border: 1px solid #ded2bc;
+  border-radius: 20px;
+}
+
+html.android-compat .android-safe-menu-group-head {
+  display: grid;
+  gap: 3px;
+}
+
+html.android-compat .android-safe-menu-group-head strong {
+  color: #10150f;
+  font-size: 16px;
+}
+
+html.android-compat .android-safe-menu-group-head span {
+  color: #665f53;
+  font-size: 12px;
+  font-weight: 850;
+}
+
 html.android-compat .android-safe-menu-row {
   display: grid;
   gap: 10px;
@@ -11890,8 +12011,17 @@ html.android-compat .android-safe-menu-row {
 }
 
 html.android-compat .night-mode .android-safe-menu-row,
-html.android-compat .night-mode .android-safe-help {
+html.android-compat .night-mode .android-safe-help,
+html.android-compat .night-mode .android-safe-menu-group {
   background: #10150f;
+}
+
+html.android-compat .night-mode .android-safe-menu-group-head strong {
+  color: #fffbea;
+}
+
+html.android-compat .night-mode .android-safe-menu-group-head span {
+  color: rgba(255, 251, 234, 0.68);
 }
 
 html.android-compat .android-safe-row-actions {

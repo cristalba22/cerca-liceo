@@ -928,7 +928,7 @@ export const cercaApi = {
 
     const planIsActive = isOrdersPlanActive(draft)
     const menu = (planIsActive ? (draft.menu || []) : [])
-      .slice(0, 10)
+      .slice(0, 15)
       .filter((item) => item.name?.trim())
       .map((item, index) => ({
         business_id: data.id,

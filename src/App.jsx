@@ -247,13 +247,33 @@ const getOfferWhatsappUrl = (offer) => {
   return makeWhatsAppUrl(phone, message)
 }
 
+const MAX_MENU_ITEMS = 15
+const MENU_SECTION_SIZE = 5
+const menuCatalogSections = [
+  {
+    title: 'Destacados',
+    shortTitle: 'Destacados',
+    hint: 'Combos, promos o lo mas pedido',
+  },
+  {
+    title: 'Carta principal',
+    shortTitle: 'Carta',
+    hint: 'Productos que siempre vendes',
+  },
+  {
+    title: 'Bebidas y extras',
+    shortTitle: 'Extras',
+    hint: 'Agregados, bebidas o servicios',
+  },
+]
+
 const createMenuSlot = (_index) => ({
   name: '',
   price: '',
   available: true,
 })
 
-const ensureMenuSlots = (menu = [], minSlots = 5) => {
+const ensureMenuSlots = (menu = [], minSlots = MAX_MENU_ITEMS) => {
   const normalized = menu.map((item) => ({
     name: item.name || '',
     price: item.price || '',
@@ -266,6 +286,29 @@ const ensureMenuSlots = (menu = [], minSlots = 5) => {
 
   return normalized
 }
+
+const buildMenuSections = (menu = []) => {
+  const slots = ensureMenuSlots(menu, MAX_MENU_ITEMS).slice(0, MAX_MENU_ITEMS)
+
+  return menuCatalogSections.map((section, sectionIndex) => {
+    const start = sectionIndex * MENU_SECTION_SIZE
+    return {
+      ...section,
+      start,
+      items: slots.slice(start, start + MENU_SECTION_SIZE).map((item, index) => ({
+        ...item,
+        slotIndex: start + index,
+      })),
+    }
+  })
+}
+
+const buildFilledMenuSections = (menu = []) => buildMenuSections(menu)
+  .map((section) => ({
+    ...section,
+    items: section.items.filter((item) => item.available !== false && item.name?.trim()),
+  }))
+  .filter((section) => section.items.length)
 
 const mergeUniqueById = (items) => {
   const seen = new Set()
@@ -2012,6 +2055,8 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     `Hola Cristian, quiero activar el plan fundador Liceo para ${localDraft.name || account?.businessName || 'mi comercio'}. Me interesa mini carta, 4 publicaciones extra al mes y pedidos por WhatsApp.`
   )
   const filledMenuItems = ensureMenuSlots(localDraft.menu).filter((item) => item.name.trim())
+  const menuEditorSections = buildMenuSections(localDraft.menu)
+  const publicMenuSections = buildFilledMenuSections(localDraft.menu)
   const localOffers = offers.filter((offer) => (
     offer.businessId === local?.id ||
     offer.business === local?.name ||
@@ -2271,29 +2316,41 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
               <span>Plan fundador activo</span>
               <strong>Mini carta del comercio</strong>
             </div>
-            <p className="android-safe-help">Carga hasta 5 productos. El precio es opcional: si lo dejas vacio, el vecino consulta por WhatsApp.</p>
-            {ensureMenuSlots(localDraft.menu).slice(0, 5).map((item, index) => (
-              <div className="android-safe-menu-row" key={`safe-menu-${index}`}>
-                <label>
-                  <span>Producto {index + 1}</span>
-                  <input value={item.name} onChange={(event) => updateMenuItem(index, 'name', event.target.value)} placeholder={index === 0 ? 'Ej: Combo del dia' : 'Ej: Producto o servicio'} />
-                </label>
-                <label>
-                  <span>Precio opcional</span>
-                  <input value={item.price || ''} onChange={(event) => updateMenuItem(index, 'price', event.target.value)} placeholder="Ej: $4.500" />
-                </label>
-                <div className="android-safe-row-actions">
-                  <button className={item.available !== false ? 'active' : ''} type="button" onClick={() => updateMenuItem(index, 'available', item.available === false)}>
-                    {item.available === false ? 'Oculto' : 'Disponible'}
-                  </button>
-                  <button type="button" onClick={() => clearMenuItem(index)}>Limpiar</button>
+            <p className="android-safe-help">Carga hasta {MAX_MENU_ITEMS} productos separados por secciones. El precio es opcional: si lo dejas vacio, el vecino consulta por WhatsApp.</p>
+            {menuEditorSections.map((section) => (
+              <div className="android-safe-menu-group" key={`safe-${section.title}`}>
+                <div className="android-safe-menu-group-head">
+                  <strong>{section.shortTitle}</strong>
+                  <span>{section.hint}</span>
                 </div>
+                {section.items.map((item, localIndex) => {
+                  const index = section.start + localIndex
+
+                  return (
+                    <div className="android-safe-menu-row" key={`safe-menu-${index}`}>
+                      <label>
+                        <span>{section.shortTitle} {localIndex + 1}</span>
+                        <input value={item.name} onChange={(event) => updateMenuItem(index, 'name', event.target.value)} placeholder={index === 0 ? 'Ej: Combo del dia' : 'Ej: Producto o servicio'} />
+                      </label>
+                      <label>
+                        <span>Precio opcional</span>
+                        <input value={item.price || ''} onChange={(event) => updateMenuItem(index, 'price', event.target.value)} placeholder="Ej: $4.500" />
+                      </label>
+                      <div className="android-safe-row-actions">
+                        <button className={item.available !== false ? 'active' : ''} type="button" onClick={() => updateMenuItem(index, 'available', item.available === false)}>
+                          {item.available === false ? 'Oculto' : 'Disponible'}
+                        </button>
+                        <button type="button" onClick={() => clearMenuItem(index)}>Limpiar</button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             ))}
             <button type="button" onClick={saveLocal}>
               Guardar mini carta
             </button>
-            <small>{filledMenuItems.length}/5 productos cargados.</small>
+            <small>{filledMenuItems.length}/{MAX_MENU_ITEMS} productos cargados.</small>
           </section>
         ) : (
           <section className="android-safe-card android-safe-plan-card">
@@ -2696,7 +2753,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('menu', 'Paso 4', 'Mini carta', founderActive ? `${filledMenuItems.length}/5 productos` : founderRequested ? 'Pendiente' : 'Bloqueada', ShoppingBasket)}
+          {panelButton('menu', 'Paso 4', 'Mini carta', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} productos` : founderRequested ? 'Pendiente' : 'Bloqueada', ShoppingBasket)}
           {openPanel === 'menu' && (
             <div className="merchant-panel-body">
               {!founderActive ? (
@@ -2722,26 +2779,38 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                 <section className="menu-editor menu-editor-standalone" aria-label="Mini carta del local">
                 <div>
                   <span>Mini carta editable</span>
-                  <h3>Productos simples, precio opcional y disponibilidad.</h3>
-                  <p>Completas hasta 5 productos. Si no queres mostrar precio, dejalo vacio y aparece como consulta por WhatsApp.</p>
+                  <h3>Catalogo corto para vender por WhatsApp.</h3>
+                  <p>Completas hasta {MAX_MENU_ITEMS} productos por secciones. Si no queres mostrar precio, dejalo vacio y aparece como consulta por WhatsApp.</p>
                 </div>
-                {ensureMenuSlots(localDraft.menu).slice(0, 5).map((item, index) => (
-                  <div className="menu-editor-row" key={`menu-${index}`}>
-                    <label>
-                      <span>Producto {index + 1}</span>
-                      <input value={item.name} onChange={(event) => updateMenuItem(index, 'name', event.target.value)} placeholder={index === 0 ? 'Ej: Combo del dia' : 'Ej: Producto, servicio o extra...'} />
-                    </label>
-                    <label>
-                      <span>Precio</span>
-                      <input value={item.price || ''} onChange={(event) => updateMenuItem(index, 'price', event.target.value)} placeholder="Opcional" />
-                    </label>
-                    <div className="menu-row-actions">
-                      <label className="menu-available">
-                        <input type="checkbox" checked={item.available !== false} onChange={(event) => updateMenuItem(index, 'available', event.target.checked)} />
-                        <span>Disponible</span>
-                      </label>
-                      <button type="button" onClick={() => clearMenuItem(index)}>Limpiar</button>
+                {menuEditorSections.map((section) => (
+                  <div className="menu-editor-group" key={section.title}>
+                    <div className="menu-editor-group-head">
+                      <strong>{section.title}</strong>
+                      <small>{section.hint}</small>
                     </div>
+                    {section.items.map((item, localIndex) => {
+                      const index = section.start + localIndex
+
+                      return (
+                        <div className="menu-editor-row" key={`menu-${index}`}>
+                          <label>
+                            <span>{section.shortTitle} {localIndex + 1}</span>
+                            <input value={item.name} onChange={(event) => updateMenuItem(index, 'name', event.target.value)} placeholder={index === 0 ? 'Ej: Combo del dia' : 'Ej: Producto, servicio o extra...'} />
+                          </label>
+                          <label>
+                            <span>Precio</span>
+                            <input value={item.price || ''} onChange={(event) => updateMenuItem(index, 'price', event.target.value)} placeholder="Opcional" />
+                          </label>
+                          <div className="menu-row-actions">
+                            <label className="menu-available">
+                              <input type="checkbox" checked={item.available !== false} onChange={(event) => updateMenuItem(index, 'available', event.target.checked)} />
+                              <span>Disponible</span>
+                            </label>
+                            <button type="button" onClick={() => clearMenuItem(index)}>Limpiar</button>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 ))}
                 <div className="menu-save-actions">
@@ -2866,14 +2935,23 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                       {localDraft.instagram && <b>{localDraft.instagram}</b>}
                     </div>
                     {founderActive ? (
-                      <ul className="public-menu-list">
-                        {ensureMenuSlots(localDraft.menu).slice(0, 5).filter((item) => item.available !== false).map((item, index) => (
-                          <li key={`${item.name || 'producto'}-${index}`}>
-                            <span>{item.name || 'Producto'}</span>
-                            {item.price && <b>{item.price}</b>}
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="public-menu-list">
+                        {publicMenuSections.length ? publicMenuSections.map((section) => (
+                          <div className="public-menu-group" key={`preview-${section.title}`}>
+                            <strong>{section.shortTitle}</strong>
+                            <ul>
+                              {section.items.map((item) => (
+                                <li key={`${item.name || 'producto'}-${item.slotIndex}`}>
+                                  <span>{item.name || 'Producto'}</span>
+                                  {item.price && <b>{item.price}</b>}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )) : (
+                          <div className="public-menu-empty">Carga productos para mostrar el catalogo.</div>
+                        )}
+                      </div>
                     ) : (
                       <div className="public-menu-locked">
                         <ShieldCheck size={14} />
@@ -4749,7 +4827,7 @@ function BusinessCard({ business, onOpen, large = false }) {
   const openStatus = getOpenStatus(business)
   const publicAddress = hasBusinessPublicAddress(business)
   const founderActive = isFounderPlanActive(business)
-  const availableMenu = getBusinessMenu(business).filter((item) => item.available !== false)
+  const availableMenu = getBusinessMenu(business).filter((item) => item.available !== false && item.name?.trim())
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${business.address || business.section}, Cordoba, Argentina`)}`
   const whatsappUrl = makeWhatsAppUrl(
     business.whatsapp,
@@ -4839,11 +4917,25 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
   const [note, setNote] = useState('')
   const orderModes = business.hasDelivery ? ['Retiro', 'Envio', 'Consultar'] : ['Retiro', 'Consultar']
   const priceToNumber = (price) => Number(String(price || '').replace(/[^\d]/g, ''))
-  const availableMenu = founderActive ? getBusinessMenu(business).filter((item) => item.available !== false) : []
+  const availableMenu = founderActive
+    ? getBusinessMenu(business)
+      .slice(0, MAX_MENU_ITEMS)
+      .map((item, index) => ({
+        ...item,
+        menuIndex: index,
+      }))
+      .filter((item) => item.available !== false && item.name?.trim())
+    : []
+  const detailMenuSections = menuCatalogSections
+    .map((section, sectionIndex) => ({
+      ...section,
+      items: availableMenu.filter((item) => Math.floor(item.menuIndex / MENU_SECTION_SIZE) === sectionIndex),
+    }))
+    .filter((section) => section.items.length)
   const cartItems = availableMenu
     .map((item) => ({
       ...item,
-      quantity: cart[item.name] || 0,
+      quantity: cart[item.menuIndex] || 0,
       numericPrice: priceToNumber(item.price),
     }))
     .filter((item) => item.quantity > 0)
@@ -4856,10 +4948,10 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
       .join('\n')}\n\nTotal: ${formattedTotal}\nEntrega: ${orderMode}\nNota: ${note || 'Sin nota'}\n${publicAddress ? `Direccion del local: ${business.address}` : `Zona: ${business.section}. Coordinar entrega o consulta por mensaje.`}`,
   )
   const whatsappUrl = makeWhatsAppUrl(business.whatsapp, decodeURIComponent(orderText))
-  const updateQuantity = (itemName, change) => {
+  const updateQuantity = (itemIndex, change) => {
     setCart((current) => ({
       ...current,
-      [itemName]: Math.max(0, (current[itemName] || 0) + change),
+      [itemIndex]: Math.max(0, (current[itemIndex] || 0) + change),
     }))
   }
 
@@ -4967,31 +5059,39 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
                 <button type="button">Info</button>
               </div>
               <div className="order-catalog">
-                {availableMenu.map((item, index) => {
-                  const quantity = cart[item.name] || 0
-
-                  return (
-                    <div className={`product-row ${quantity > 0 ? 'is-selected' : ''}`} key={`${item.name}-${index}`}>
-                      <div {...imageSurfaceProps(business.image, 'product-thumb', business)}>
-                        <span>{index + 1}</span>
-                      </div>
-                      <div className="product-copy">
-                        <strong>{item.name}</strong>
-                        <small>{index === 0 ? 'Mas pedido hoy' : business.category}</small>
-                        {item.price ? <b>{item.price}</b> : <em>Consultar precio</em>}
-                      </div>
-                      <div className="qty-control">
-                        <button type="button" onClick={() => updateQuantity(item.name, -1)} aria-label={`Quitar ${item.name}`}>
-                          -
-                        </button>
-                        <strong>{quantity}</strong>
-                        <button type="button" onClick={() => updateQuantity(item.name, 1)} aria-label={`Agregar ${item.name}`}>
-                          +
-                        </button>
-                      </div>
+                {detailMenuSections.map((section) => (
+                  <div className="order-catalog-section" key={`detail-${section.title}`}>
+                    <div className="order-catalog-title">
+                      <strong>{section.title}</strong>
+                      <span>{section.hint}</span>
                     </div>
-                  )
-                })}
+                    {section.items.map((item) => {
+                      const quantity = cart[item.menuIndex] || 0
+
+                      return (
+                        <div className={`product-row ${quantity > 0 ? 'is-selected' : ''}`} key={`${item.name}-${item.menuIndex}`}>
+                          <div {...imageSurfaceProps(business.image, 'product-thumb', business)}>
+                            <span>{item.menuIndex + 1}</span>
+                          </div>
+                          <div className="product-copy">
+                            <strong>{item.name}</strong>
+                            <small>{item.menuIndex === 0 ? 'Mas pedido hoy' : section.shortTitle}</small>
+                            {item.price ? <b>{item.price}</b> : <em>Consultar precio</em>}
+                          </div>
+                          <div className="qty-control">
+                            <button type="button" onClick={() => updateQuantity(item.menuIndex, -1)} aria-label={`Quitar ${item.name}`}>
+                              -
+                            </button>
+                            <strong>{quantity}</strong>
+                            <button type="button" onClick={() => updateQuantity(item.menuIndex, 1)} aria-label={`Agregar ${item.name}`}>
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
               </div>
               <div className={`order-options ${business.hasDelivery ? '' : 'compact'}`}>
                 {orderModes.map((mode) => (

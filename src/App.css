@@ -11306,3 +11306,183 @@ html.android-compat .profile-register-panel::after {
   display: none !important;
 }
 
+html.android-compat .android-safe-screen {
+  min-height: 100vh;
+  padding: 0 0 24px;
+  color: #172112;
+  background: #fffbee !important;
+  isolation: isolate;
+}
+
+html.android-compat .night-mode .android-safe-screen,
+html.android-compat .android-safe-screen.night-mode {
+  color: #fffbea;
+  background: #10150f !important;
+}
+
+html.android-compat .android-safe-header {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  min-height: 78px;
+  padding: 10px 18px;
+  background: #fffbee !important;
+  border-bottom: 1px solid rgba(16, 21, 15, 0.08);
+}
+
+html.android-compat .night-mode .android-safe-header {
+  background: #10150f !important;
+  border-color: rgba(255, 251, 234, 0.12);
+}
+
+html.android-compat .android-safe-header strong {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 1000;
+}
+
+html.android-compat .android-safe-header button,
+html.android-compat .android-safe-header .theme-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  color: #172112;
+  background: #f1ead8 !important;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none !important;
+}
+
+html.android-compat .night-mode .android-safe-header button,
+html.android-compat .night-mode .android-safe-header .theme-button {
+  color: #fffbea;
+  background: #263020 !important;
+}
+
+html.android-compat .android-safe-card,
+html.android-compat .android-safe-actions,
+html.android-compat .android-safe-notice {
+  position: relative;
+  z-index: 1;
+  margin: 14px 18px 0;
+  padding: 18px;
+  background: #fffdf7 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 22px;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  contain: layout paint;
+}
+
+html.android-compat .night-mode .android-safe-card,
+html.android-compat .night-mode .android-safe-actions,
+html.android-compat .night-mode .android-safe-notice {
+  background: #182014 !important;
+  border-color: rgba(255, 251, 234, 0.12);
+}
+
+html.android-compat .android-safe-intro {
+  background: #f3ffd6 !important;
+}
+
+html.android-compat .night-mode .android-safe-intro {
+  background: #182014 !important;
+}
+
+html.android-compat .android-safe-card span {
+  display: inline-flex;
+  width: fit-content;
+  padding: 7px 10px;
+  color: #172112;
+  font-size: 11px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background: #a7e92a;
+  border-radius: 999px;
+}
+
+html.android-compat .android-safe-card h1,
+html.android-compat .android-safe-card h2 {
+  margin: 14px 0 8px;
+  color: inherit;
+  font-size: 30px;
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+html.android-compat .android-safe-card h2 {
+  font-size: 24px;
+}
+
+html.android-compat .android-safe-card p,
+html.android-compat .android-safe-actions small,
+html.android-compat .android-safe-notice span {
+  color: #665f53;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.38;
+}
+
+html.android-compat .night-mode .android-safe-card p,
+html.android-compat .night-mode .android-safe-actions small,
+html.android-compat .night-mode .android-safe-notice span {
+  color: rgba(255, 251, 234, 0.78);
+}
+
+html.android-compat .android-safe-actions {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: #f7f0df !important;
+}
+
+html.android-compat .android-safe-actions button {
+  display: block;
+  width: 100%;
+  min-height: 76px;
+  padding: 15px 16px;
+  color: #172112;
+  text-align: left;
+  background: #fffdf7 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 18px;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html.android-compat .night-mode .android-safe-actions,
+html.android-compat .night-mode .android-safe-actions button {
+  color: #fffbea;
+  background: #182014 !important;
+  border-color: rgba(255, 251, 234, 0.12);
+}
+
+html.android-compat .android-safe-actions strong {
+  display: block;
+  margin-bottom: 5px;
+  color: inherit;
+  font-size: 19px;
+  font-weight: 1000;
+  line-height: 1.08;
+}
+
+html.android-compat .android-safe-actions button:first-child {
+  background: #a7e92a !important;
+}
+
+html.android-compat .android-safe-notice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #e9ffc2 !important;
+}
+
+html.android-compat .android-safe-notice svg {
+  flex: 0 0 auto;
+  color: #5d9600;
+}

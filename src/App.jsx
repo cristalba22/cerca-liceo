@@ -71,6 +71,8 @@ const isUploadedImage = (image) => typeof image === 'string' && (
   image.startsWith('http')
 )
 
+const isAndroidCompatMode = () => document.documentElement.classList.contains('android-compat')
+
 const formatOpenDays = (days = []) => {
   if (days.length === 7) return 'Todos los dias'
   if (days.join(',') === 'Lun,Mar,Mie,Jue,Vie') return 'Lun a Vie'
@@ -3024,6 +3026,105 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
   const isLogged = Boolean(account)
   const isMerchant = account?.type === 'merchant'
   const isAdmin = account?.role === 'admin' || !cercaApi.isSupabaseEnabled()
+
+  if (isAndroidCompatMode()) {
+    return (
+      <div className="android-safe-screen">
+        <header className="android-safe-header">
+          <button type="button" onClick={onBack} aria-label="Volver">
+            <ArrowLeft size={22} />
+          </button>
+          <strong>Mi usuario</strong>
+          <ThemeToggle onToggleTheme={onToggleTheme} />
+        </header>
+
+        {authNotice && (
+          <section className="android-safe-notice">
+            <Check size={16} />
+            <span>{authNotice}</span>
+          </section>
+        )}
+
+        {!isLogged && (
+          <>
+            <section className="android-safe-card android-safe-intro">
+              <span>Acceso</span>
+              <h1>Entrar es opcional.</h1>
+              <p>Para mirar ofertas y locales no hace falta registrarse. La cuenta sirve para guardar favoritos o administrar un comercio.</p>
+            </section>
+
+            <section className="android-safe-actions" aria-label="Opciones de cuenta">
+              <button type="button" onClick={onLogin}>
+                <strong>Iniciar sesion</strong>
+                <small>Vecino o comercio.</small>
+              </button>
+              <button type="button" onClick={() => onRegister('neighbor')}>
+                <strong>Crear cuenta vecino</strong>
+                <small>Para favoritos y avisos.</small>
+              </button>
+              <button type="button" onClick={() => onRegister('merchant')}>
+                <strong>Crear cuenta comercio</strong>
+                <small>Ficha gratis para aparecer en la guia.</small>
+              </button>
+            </section>
+          </>
+        )}
+
+        {isLogged && (
+          <>
+            <section className="android-safe-card android-safe-intro">
+              <span>{isMerchant ? 'Cuenta comercio' : 'Cuenta vecino'}</span>
+              <h1>{account.name}</h1>
+              <p>{isMerchant ? 'Administra tu ficha, publicaciones y datos del comercio.' : 'Tu cuenta esta lista para guardar favoritos y recibir avisos.'}</p>
+            </section>
+
+            <section className="android-safe-actions" aria-label="Acciones de cuenta">
+              {isMerchant && (
+                <>
+                  <button type="button" onClick={onMerchantPanel}>
+                    <strong>Panel comercio</strong>
+                    <small>Cargar local, horarios, foto y datos.</small>
+                  </button>
+                  <button type="button" onClick={onPublish}>
+                    <strong>Publicar promo</strong>
+                    <small>Usa tu publicacion semanal gratis.</small>
+                  </button>
+                </>
+              )}
+              {!isMerchant && (
+                <button type="button">
+                  <strong>Favoritos y avisos</strong>
+                  <small>Proximamente para vecinos registrados.</small>
+                </button>
+              )}
+              {isAdmin && (
+                <button type="button" onClick={onAdmin}>
+                  <strong>Administracion</strong>
+                  <small>Revisar locales, promos y solicitudes.</small>
+                </button>
+              )}
+              <button type="button" onClick={onResetSession}>
+                <strong>Cerrar sesion</strong>
+                <small>Volver a navegar como visitante.</small>
+              </button>
+            </section>
+          </>
+        )}
+
+        <section className="android-safe-card">
+          <span>Comercios</span>
+          <h2>Arrancas gratis.</h2>
+          <p>La ficha del local o emprendimiento puede aparecer con foto, zona, horario y contacto. Los extras se activan solo si el comercio los pide.</p>
+        </section>
+
+        <section className="android-safe-card">
+          <span>Contacto</span>
+          <h2>Cerca Liceo</h2>
+          <p>Soporte: 3517662142. Mail: crisalbavideografo@gmail.com.</p>
+        </section>
+      </div>
+    )
+  }
 
   return (
     <div className="utility-screen profile-screen">

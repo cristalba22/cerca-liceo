@@ -1629,6 +1629,33 @@ select:focus-visible {
     linear-gradient(145deg, #ffc5dc, #e75f93);
 }
 
+.image-generic::before {
+  display: grid;
+  place-items: center;
+  color: #172112;
+  font-size: 12px;
+  font-weight: 1000;
+  text-align: center;
+  background:
+    linear-gradient(135deg, rgba(167, 233, 42, 0.9), rgba(112, 223, 210, 0.92)),
+    #e8f6bd;
+  background-image: none;
+}
+
+.image-generic::after {
+  position: absolute;
+  top: 58px;
+  left: 28px;
+  z-index: 1;
+  width: 64px;
+  color: #172112;
+  font-size: 12px;
+  font-weight: 1000;
+  line-height: 1;
+  text-align: center;
+  content: 'FOTO DE TU PROMO';
+}
+
 .custom-image {
   background-size: cover;
   background-position: center;

@@ -280,7 +280,7 @@ const buildLocalDraft = (local, account) => ({
 })
 
 const imageSurfaceProps = (image, baseClass, options = {}) => ({
-  className: `${baseClass} ${isUploadedImage(image) ? 'custom-image' : `image-${image || 'milanesa'}`}`,
+  className: `${baseClass} ${isUploadedImage(image) ? 'custom-image' : `image-${image || 'generic'}`}`,
   style: isUploadedImage(image)
     ? {
         backgroundImage: `url(${image})`,
@@ -1384,10 +1384,10 @@ function NeighborhoodLiveMap({ businesses = [], onOpen, onDirectory }) {
 
 function PublishScreen({ account, local, template, offers = [], onBack, onMerchantPanel, onPublishOffer, onToggleTheme }) {
   const firstOfferTemplate = {
-    title: local?.category === 'Comida' ? 'Promo del dia' : 'Oferta del barrio',
-    description: 'Contale al vecino que incluye, hasta cuando vale y como pedirlo por WhatsApp.',
-    price: 'Consultar',
-    image: local?.image || 'milanesa',
+    title: '',
+    description: '',
+    price: '',
+    image: 'generic',
     business: local?.name || account?.businessName || 'Mi local',
     category: local?.category || account?.category || 'Comida',
     section: local?.section || account?.section || 'Liceo Procrear',
@@ -1396,14 +1396,19 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
     hours: local?.hours || 'Horario a confirmar',
     tone: local?.tone || 'orange',
   }
-  const suggestedOffer = offers.find((offer) => offer.category === local?.category) || offers[0] || firstOfferTemplate
+  const suggestedOffer = template || firstOfferTemplate
+  const helperOffer = {
+    title: local?.category === 'Comida' ? 'Promo del dia' : 'Oferta del barrio',
+    description: 'Contale al vecino que incluye, hasta cuando vale y como pedirlo por WhatsApp.',
+    price: 'Consultar',
+  }
   const [offerDraft, setOfferDraft] = useState({
-    title: template?.title || suggestedOffer.title,
-    description: template?.description || suggestedOffer.description,
-    price: template?.price || suggestedOffer.price,
-    image: template?.image || local?.image || suggestedOffer.image,
+    title: template?.title || '',
+    description: template?.description || '',
+    price: template?.price || '',
+    image: template?.image || 'generic',
     expiresInDays: 4,
-    hasPrice: (template?.price || suggestedOffer.price) !== 'Consultar',
+    hasPrice: template ? template.price !== 'Consultar' : true,
     ordersEnabled: isFounderPlanActive(local),
     hasDelivery: String(local?.delivery || '').toLowerCase().includes('delivery'),
     orderHours: local?.hours || '20:00 a 00:30',
@@ -1412,8 +1417,8 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
   })
   const previewOffer = {
     ...suggestedOffer,
-    title: offerDraft.title || suggestedOffer.title,
-    description: offerDraft.description || suggestedOffer.description,
+    title: offerDraft.title || helperOffer.title,
+    description: offerDraft.description || helperOffer.description,
     price: offerDraft.hasPrice ? offerDraft.price || 'Consultar' : 'Consultar',
     expires: `${offerDraft.expiresInDays} dias`,
     business: local?.name || suggestedOffer.business,
@@ -1422,7 +1427,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
     address: local?.address || suggestedOffer.address,
     reference: local?.reference || suggestedOffer.reference,
     hours: local?.hours || suggestedOffer.hours,
-    image: offerDraft.image || local?.image || suggestedOffer.image,
+    image: offerDraft.image || 'generic',
   }
   const hasMerchantAccount = account?.type === 'merchant'
   const canPublish = hasMerchantAccount && local
@@ -1454,10 +1459,10 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
   const applySuggestion = () => {
     setOfferDraft((current) => ({
       ...current,
-      title: suggestedOffer.title,
-      description: suggestedOffer.description,
-      price: suggestedOffer.price,
-      hasPrice: suggestedOffer.price !== 'Consultar',
+      title: helperOffer.title,
+      description: helperOffer.description,
+      price: '',
+      hasPrice: false,
     }))
   }
 
@@ -1536,7 +1541,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
         </div>
         <div className="suggestion-row wide">
           <button type="button" onClick={applySuggestion}>Usar texto sugerido</button>
-          <button type="button" onClick={() => updateOfferDraft('title', `${previewOffer.title} de hoy`)}>Duplicar y adaptar</button>
+          <button type="button" onClick={() => updateOfferDraft('title', template ? `${previewOffer.title} de hoy` : helperOffer.title)}>Titulo rapido</button>
         </div>
         <label className="publish-field wide">
           <span>Titulo</span>

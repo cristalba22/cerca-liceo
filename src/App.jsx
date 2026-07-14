@@ -1475,29 +1475,6 @@ function App() {
               </>
             )}
 
-            <section className="neighbor-trust-panel">
-              <span>Proyecto del barrio</span>
-              <h2>Una guia simple para no perder tiempo.</h2>
-              <p>Cerca Liceo junta ofertas vigentes, locales abiertos, emprendimientos sin local y contacto directo. Para vecinos siempre es gratis: buscas, miras cerca y escribis por WhatsApp.</p>
-              <div>
-                <article>
-                  <Check size={15} />
-                  <strong>Promos vivas</strong>
-                  <small>Se bajan solas cuando vencen.</small>
-                </article>
-                <article>
-                  <MapPin size={15} />
-                  <strong>Local o emprendedor</strong>
-                  <small>Con direccion o contacto directo.</small>
-                </article>
-                <article>
-                  <MessageCircle size={15} />
-                  <strong>Soporte real</strong>
-                  <small>Cristian Alba - 351 766 2142.</small>
-                </article>
-              </div>
-            </section>
-
             <ContactFooter onPrivacy={() => setScreen('privacy')} />
 
             <nav className="bottom-nav" aria-label="Navegacion inferior">

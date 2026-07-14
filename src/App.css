@@ -1852,7 +1852,8 @@ select:focus-visible {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   width: min(100%, 430px);
-  min-height: 78px;
+  height: 78px;
+  max-height: 78px;
   padding: 9px 12px 10px;
   background: rgba(255, 251, 238, 0.94);
   border-top: 1px solid rgba(16, 21, 15, 0.09);
@@ -1864,11 +1865,21 @@ select:focus-visible {
   display: grid;
   gap: 4px;
   place-items: center;
+  min-width: 0;
   color: #6b665b;
-  font-size: 9px;
+  font-size: 9px !important;
+  line-height: 1.05;
   font-weight: 850;
   background: transparent;
   border: 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+.bottom-nav button svg {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
 }
 
 .bottom-nav button.active {
@@ -10275,6 +10286,23 @@ button:active,
   flex: 0 0 auto;
 }
 
+@media (max-width: 520px) {
+  .welcome-phone,
+  .welcome-orbit,
+  .welcome-main-cta {
+    animation: none;
+  }
+
+  .welcome-phone {
+    transform: translateX(-50%) rotate(-3deg);
+  }
+
+  .welcome-main-cta {
+    transform: none;
+    touch-action: manipulation;
+  }
+}
+
 .welcome-explainer {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -11072,6 +11100,32 @@ button:active,
 
   .directory-zone-map {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .app-header,
+  .detail-header,
+  .bottom-nav,
+  .action-toast {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .app-header,
+  .detail-header,
+  .bottom-nav {
+    background: #fffbee !important;
+  }
+
+  .night-mode .app-header,
+  .night-mode .detail-header,
+  .night-mode .bottom-nav {
+    background: #10150f !important;
+  }
+
+  .action-toast {
+    background: #fffdf7 !important;
   }
 }
 

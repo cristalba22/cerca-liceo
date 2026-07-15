@@ -222,7 +222,11 @@ const isOfferExpired = (offer = {}) => {
   return days !== null && days <= 0
 }
 
-const isOfferPaused = (offer = {}) => offer.open === false || offer.paused
+const isOfferPaused = (offer = {}) => (
+  offer.paused === true
+  || offer.isActive === false
+  || offer.active === false
+)
 
 const isOfferActiveNow = (offer = {}) => !isOfferExpired(offer) && !isOfferPaused(offer)
 
@@ -283,6 +287,13 @@ const getOpenStatus = (business = {}) => {
   const day = weekDays[(now.getDay() + 6) % 7]
   const [openHour, openMinute] = openTime.split(':').map(Number)
   const [closeHour, closeMinute] = closeTime.split(':').map(Number)
+  if (!Number.isFinite(openHour) || !Number.isFinite(closeHour)) {
+    return {
+      open: safeBusiness.open !== false,
+      label: safeBusiness.open === false ? 'Cerrado ahora' : 'Horario a confirmar',
+      detail: safeBusiness.hours || 'Horario a confirmar',
+    }
+  }
   const minutesNow = now.getHours() * 60 + now.getMinutes()
   const opensAt = openHour * 60 + (openMinute || 0)
   let closesAt = closeHour * 60 + (closeMinute || 0)
@@ -882,20 +893,21 @@ function App() {
   }
 
   const pauseOffer = async (offer) => {
-    const nextActive = !offer.open
+    const currentActive = !isOfferPaused(offer)
+    const nextActive = !currentActive
     const { offer: savedOffer, error } = await cercaApi.updateOfferStatus({ offerId: offer.id, isActive: nextActive, offer })
     if (error) {
       setAuthNotice(error.message || 'No se pudo actualizar la publicacion.')
       return
     }
     setFeedOffers((current) => current.map((item) => (
-      item.id === offer.id ? { ...item, ...(savedOffer || {}), open: nextActive, paused: !nextActive } : item
+      item.id === offer.id ? { ...item, ...(savedOffer || {}), isActive: nextActive, paused: !nextActive } : item
     )))
     setMerchantOffers((current) => current.map((item) => (
-      item.id === offer.id ? { ...item, ...(savedOffer || {}), open: nextActive, paused: !nextActive } : item
+      item.id === offer.id ? { ...item, ...(savedOffer || {}), isActive: nextActive, paused: !nextActive } : item
     )))
     setAdminOffers((current) => current.map((item) => (
-      item.id === offer.id ? { ...item, ...(savedOffer || {}), open: nextActive, paused: !nextActive } : item
+      item.id === offer.id ? { ...item, ...(savedOffer || {}), isActive: nextActive, paused: !nextActive } : item
     )))
     setAuthNotice(nextActive ? 'Publicacion activada.' : 'Publicacion pausada.')
   }
@@ -994,7 +1006,6 @@ function App() {
   const filteredOffers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     return publicFeedOffers.filter((offer) => {
-      if (offer.open === false) return false
       const byCategory = selectedCategory === 'Todas' || offer.category === selectedCategory
       const bySection = selectedSection === 'Todos' || offer.section === selectedSection
       const byQuery =
@@ -1005,7 +1016,7 @@ function App() {
     })
   }, [publicFeedOffers, query, selectedCategory, selectedSection])
 
-  const visibleFeedOffers = publicFeedOffers.filter((offer) => offer.open !== false)
+  const visibleFeedOffers = publicFeedOffers
   const heroOffers = visibleFeedOffers
   const heroOffer = heroOffers[featuredBusinessIndex % Math.max(heroOffers.length, 1)]
   const liveMapBusinesses = useMemo(() => mergeUniqueById([
@@ -2538,10 +2549,10 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           {localOffers.map((offer) => (
             <article key={offer.id}>
               <strong>{offer.title}</strong>
-              <small>{offer.price || 'Sin precio'} - {offer.open === false ? 'Pausada' : 'Activa'}</small>
+              <small>{offer.price || 'Sin precio'} - {isOfferPaused(offer) ? 'Pausada' : 'Activa'}</small>
               <div>
                 <button type="button" onClick={() => onRepostOffer(offer)}>Republicar</button>
-                <button type="button" onClick={() => onPauseOffer(offer)}>{offer.open === false ? 'Activar' : 'Pausar'}</button>
+                <button type="button" onClick={() => onPauseOffer(offer)}>{isOfferPaused(offer) ? 'Activar' : 'Pausar'}</button>
                 <button type="button" onClick={() => onDeleteOffer(offer)}>Eliminar</button>
               </div>
             </article>
@@ -2950,11 +2961,11 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                 </div>
                 <label>
                   <span>Abre</span>
-                  <input value={localDraft.openTime} onChange={(event) => updateLocalDraft('openTime', event.target.value)} placeholder="09:00" />
+                  <input type="time" value={localDraft.openTime} onChange={(event) => updateLocalDraft('openTime', event.target.value)} />
                 </label>
                 <label>
                   <span>Cierra</span>
-                  <input value={localDraft.closeTime} onChange={(event) => updateLocalDraft('closeTime', event.target.value)} placeholder="21:00" />
+                  <input type="time" value={localDraft.closeTime} onChange={(event) => updateLocalDraft('closeTime', event.target.value)} />
                 </label>
                 <div className="schedule-preview wide">
                   <Clock3 size={15} />
@@ -3317,7 +3328,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
 
 function ManagedPost({ offer, status, action, secondaryAction, onAction, onSecondaryAction, onPause, onDelete }) {
   return (
-    <article className={`managed-card offer-${offer.tone || 'orange'} ${offer.open === false ? 'is-paused' : ''}`}>
+    <article className={`managed-card offer-${offer.tone || 'orange'} ${isOfferPaused(offer) ? 'is-paused' : ''}`}>
       <div {...imageSurfaceProps(offer.image, 'managed-image')}></div>
       <div>
         <span>{status}</span>
@@ -3326,7 +3337,7 @@ function ManagedPost({ offer, status, action, secondaryAction, onAction, onSecon
         <div className="managed-actions">
           <button type="button" onClick={onAction}>{action}</button>
           <button type="button" onClick={onSecondaryAction}>{secondaryAction}</button>
-          <button type="button" onClick={onPause}>{offer.open === false ? 'Activar' : 'Pausar'}</button>
+          <button type="button" onClick={onPause}>{isOfferPaused(offer) ? 'Activar' : 'Pausar'}</button>
           <button className="danger" type="button" onClick={onDelete}>Eliminar</button>
         </div>
       </div>
@@ -3733,7 +3744,7 @@ function AdminScreen({
                     <span>{offer.title}</span>
                     <small>{offer.price} - {offer.expires}</small>
                     <button type="button" onClick={() => onOpenOffer(offer)}>Ver</button>
-                    <button type="button" onClick={() => onPauseOffer(offer)}>{offer.open === false ? 'Activar' : 'Pausar'}</button>
+                    <button type="button" onClick={() => onPauseOffer(offer)}>{isOfferPaused(offer) ? 'Activar' : 'Pausar'}</button>
                     <button className="danger" type="button" onClick={() => onDeleteOffer(offer)}>Eliminar</button>
                   </div>
                 ))}
@@ -3772,7 +3783,7 @@ function AdminScreen({
         )}
         {adminOffers.slice(0, 40).map((offer) => (
           <article className="admin-row promo" key={offer.id || offer.title}>
-            <span className={`admin-dot ${offer.open === false ? 'warn' : 'ok'}`}></span>
+            <span className={`admin-dot ${isOfferPaused(offer) ? 'warn' : 'ok'}`}></span>
             <div>
               <strong>{offer.title}</strong>
               <small>{offer.business} - {isOfferExpired(offer) ? 'Vencida' : offer.expires}</small>
@@ -3783,7 +3794,7 @@ function AdminScreen({
               {isOfferExpired(offer) ? (
                 <button type="button" onClick={() => onRepostOffer(offer)}>Republicar</button>
               ) : (
-                <button type="button" onClick={() => onPauseOffer(offer)}>{offer.open === false ? 'Activar' : 'Pausar'}</button>
+                <button type="button" onClick={() => onPauseOffer(offer)}>{isOfferPaused(offer) ? 'Activar' : 'Pausar'}</button>
               )}
               <button className="danger" type="button" onClick={() => onDeleteOffer(offer)}>Eliminar</button>
             </div>

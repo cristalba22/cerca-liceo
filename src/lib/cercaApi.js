@@ -122,6 +122,48 @@ const normalizeBusiness = (business = {}) => {
   }
 }
 
+const publicBusinessColumns = `
+  id,
+  owner_id,
+  name,
+  business_type,
+  has_public_address,
+  category,
+  section,
+  address,
+  reference,
+  hours,
+  open_days,
+  open_time,
+  close_time,
+  whatsapp,
+  instagram,
+  description,
+  payment_methods,
+  delivery_label,
+  delivery_zone,
+  has_delivery,
+  order_hours,
+  image_key,
+  image_zoom,
+  image_position,
+  tone,
+  plan,
+  plan_status,
+  paid_until,
+  is_public,
+  is_open,
+  verified,
+  rating,
+  followers_count,
+  distance_label,
+  search_text,
+  created_at,
+  updated_at
+`
+
+const publicBusinessSelectWithProducts = `${publicBusinessColumns}, products(*)`
+
 const mergeById = (items) => {
   const seen = new Set()
   return items.filter((item) => {
@@ -320,6 +362,8 @@ const mapOfferRow = (row) => ({
   whatsapp: row.businesses?.whatsapp || row.whatsapp || '',
   instagram: row.businesses?.instagram || '',
   open: row.businesses?.is_open ?? true,
+  isActive: row.is_active !== false,
+  paused: row.is_active === false,
   distance: row.distance_label || row.businesses?.distance_label || 'cerca',
   saves: row.saves_count || 0,
   highlight: row.highlight || 'Promo activa',
@@ -359,7 +403,7 @@ const getExpiresLabel = (expiresAt) => {
 
 const isOfferAlive = (offer) => {
   if (/eliminada/i.test(offer.highlight || '')) return false
-  if (offer.paused || offer.open === false) return false
+  if (offer.paused || offer.isActive === false || offer.active === false) return false
   if (!offer.expiresAt) return true
   return new Date(offer.expiresAt).getTime() > Date.now()
 }
@@ -692,7 +736,27 @@ export const cercaApi = {
       starts_at,
       expires_at,
       is_active,
-      created_at
+      created_at,
+      businesses (
+        id,
+        name,
+        business_type,
+        has_public_address,
+        category,
+        section,
+        address,
+        reference,
+        hours,
+        open_days,
+        open_time,
+        close_time,
+        whatsapp,
+        instagram,
+        tone,
+        image_key,
+        is_open,
+        distance_label
+      )
     `
 
     let request = supabase
@@ -885,6 +949,33 @@ export const cercaApi = {
       }
     }
 
+    const { data: rpcRows, error: rpcError } = await supabase.rpc('admin_list_businesses')
+    if (!rpcError && Array.isArray(rpcRows)) {
+      const businessIds = rpcRows.map((business) => business.id).filter(Boolean)
+      let products = []
+      if (businessIds.length) {
+        const { data: productRows } = await supabase
+          .from('products')
+          .select('*')
+          .in('business_id', businessIds)
+          .order('position', { ascending: true })
+        products = productRows || []
+      }
+      const productsByBusiness = products.reduce((acc, product) => {
+        const list = acc.get(product.business_id) || []
+        list.push(product)
+        acc.set(product.business_id, list)
+        return acc
+      }, new Map())
+      return {
+        businesses: rpcRows.map((business) => mapBusinessRow({
+          ...business,
+          products: productsByBusiness.get(business.id) || [],
+        })),
+        error: null,
+      }
+    }
+
     const { data, error } = await supabase
       .from('businesses')
       .select('*, products(*)')
@@ -934,10 +1025,24 @@ export const cercaApi = {
       .from('businesses')
       .update(payload)
       .eq('id', businessId)
-      .select('*, products(*)')
+      .select('id')
       .single()
 
-    return { business: data ? mapBusinessRow(data) : null, error }
+    if (error || !data?.id) return { business: null, error }
+
+    const { data: rpcRows, error: rpcError } = await supabase.rpc('admin_list_businesses')
+    if (!rpcError && Array.isArray(rpcRows)) {
+      const row = rpcRows.find((business) => business.id === businessId)
+      if (row) return { business: mapBusinessRow(row), error: null }
+    }
+
+    const { data: refreshed, error: refreshError } = await supabase
+      .from('businesses')
+      .select('*, products(*)')
+      .eq('id', businessId)
+      .single()
+
+    return { business: refreshed ? mapBusinessRow(refreshed) : null, error: refreshError }
   },
 
   async deleteBusinessAdmin({ businessId }) {
@@ -972,7 +1077,7 @@ export const cercaApi = {
 
     const { data, error } = await supabase
       .from('businesses')
-      .select('*, products(*)')
+      .select(publicBusinessSelectWithProducts)
       .eq('owner_id', auth.user.id)
       .maybeSingle()
 
@@ -1033,7 +1138,6 @@ export const cercaApi = {
         ? (draft.planStatus === 'active' ? 'active' : 'manual_pending')
         : 'free',
       paid_until: draft.paidUntil || null,
-      admin_notes: draft.adminNotes || null,
       is_public: draft.isPublic ?? true,
       is_open: draft.open !== false,
       updated_at: new Date().toISOString(),
@@ -1042,7 +1146,7 @@ export const cercaApi = {
     let { data, error } = await supabase
       .from('businesses')
       .upsert(payload, { onConflict: 'owner_id' })
-      .select('*, products(*)')
+      .select(publicBusinessSelectWithProducts)
       .single()
 
     if (error && /business_type|has_public_address/i.test(error.message || '')) {
@@ -1050,7 +1154,7 @@ export const cercaApi = {
       const retry = await supabase
         .from('businesses')
         .upsert(compatiblePayload, { onConflict: 'owner_id' })
-        .select('*, products(*)')
+        .select(publicBusinessSelectWithProducts)
         .single()
       data = retry.data
       error = retry.error
@@ -1058,11 +1162,13 @@ export const cercaApi = {
 
     if (error || !data) return { business: null, error }
 
-    const planIsActive = isOrdersPlanActive(draft)
+    const planIsActive = isOrdersPlanActive(mapBusinessRow(data))
+    const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
     const menu = (planIsActive ? (draft.menu || []) : [])
       .slice(0, 15)
       .filter((item) => item.name?.trim())
       .map((item, index) => ({
+        ...(isUuid(item.id) ? { id: item.id } : {}),
         business_id: data.id,
         name: item.name.trim(),
         price: parseArgentinePrice(item.price),
@@ -1070,21 +1176,49 @@ export const cercaApi = {
         position: index,
       }))
 
-    const { error: deleteProductsError } = await supabase
-      .from('products')
-      .delete()
-      .eq('business_id', data.id)
+    if (planIsActive) {
+      const { data: currentProducts, error: currentProductsError } = await supabase
+        .from('products')
+        .select('id')
+        .eq('business_id', data.id)
 
-    if (deleteProductsError) return { business: null, error: deleteProductsError }
+      if (currentProductsError) return { business: null, error: currentProductsError }
 
-    if (menu.length) {
-      const { error: productsError } = await supabase.from('products').insert(menu)
-      if (productsError) return { business: null, error: productsError }
+      if (menu.length) {
+        const existingProducts = menu.filter((item) => item.id)
+        const newProducts = menu.filter((item) => !item.id)
+
+        if (existingProducts.length) {
+          const { error: upsertProductsError } = await supabase
+            .from('products')
+            .upsert(existingProducts, { onConflict: 'id' })
+          if (upsertProductsError) return { business: null, error: upsertProductsError }
+        }
+
+        if (newProducts.length) {
+          const { error: insertProductsError } = await supabase.from('products').insert(newProducts)
+          if (insertProductsError) return { business: null, error: insertProductsError }
+        }
+      }
+
+      const keptIds = menu.map((item) => item.id).filter(Boolean)
+      const removedIds = (currentProducts || [])
+        .map((item) => item.id)
+        .filter((id) => !keptIds.includes(id))
+
+      if (removedIds.length) {
+        const { error: deleteProductsError } = await supabase
+          .from('products')
+          .delete()
+          .eq('business_id', data.id)
+          .in('id', removedIds)
+        if (deleteProductsError) return { business: null, error: deleteProductsError }
+      }
     }
 
     const { data: refreshed, error: refreshError } = await supabase
       .from('businesses')
-      .select('*, products(*)')
+      .select(publicBusinessSelectWithProducts)
       .eq('id', data.id)
       .single()
 
@@ -1259,7 +1393,7 @@ export const cercaApi = {
     if (!hasSupabaseConfig) {
       const savedOffers = readLocalOffers()
       const nextOffers = savedOffers.map((offer) => (
-        offer.id === offerId ? { ...offer, open: isActive, paused: !isActive } : offer
+        offer.id === offerId ? { ...offer, isActive, paused: !isActive } : offer
       ))
       writeLocalOffers(nextOffers)
       return { offer: nextOffers.find((offer) => offer.id === offerId) || null, error: null }

@@ -4370,6 +4370,8 @@ select:focus-visible {
 .night-mode .dashboard-status-card,
 .night-mode .dashboard-checklist button,
 .night-mode .dashboard-metrics article,
+.night-mode .merchant-focus-card,
+.night-mode .merchant-next-steps,
 .night-mode .dashboard-tip,
 .night-mode .managed-list-head,
 .night-mode .merchant-empty-posts,
@@ -4424,6 +4426,8 @@ select:focus-visible {
 .night-mode .admin-command-center strong,
 .night-mode .admin-next h2,
 .night-mode .dashboard-status-card strong,
+.night-mode .merchant-focus-card strong,
+.night-mode .merchant-next-steps strong,
 .night-mode .dashboard-checklist strong,
 .night-mode .dashboard-metrics strong,
 .night-mode .dashboard-tip strong,
@@ -4446,6 +4450,8 @@ select:focus-visible {
 .night-mode .admin-guidance p,
 .night-mode .admin-next p,
 .night-mode .dashboard-status-card p,
+.night-mode .merchant-focus-card p,
+.night-mode .merchant-next-steps p,
 .night-mode .dashboard-checklist small,
 .night-mode .dashboard-metrics span,
 .night-mode .dashboard-tip p,
@@ -4461,6 +4467,8 @@ select:focus-visible {
 }
 
 .night-mode .merchant-alert-strip article,
+.night-mode .merchant-focus-actions button,
+.night-mode .merchant-next-actions button,
 .night-mode .publication-history-tabs span,
 .night-mode .menu-row-tags span,
 .night-mode .launch-checklist article {
@@ -5384,6 +5392,67 @@ select:focus-visible {
   font-size: 11px;
   font-weight: 800;
   opacity: 0.72;
+}
+
+.merchant-focus-card {
+  display: grid;
+  gap: 14px;
+  margin: 0 20px 14px;
+  padding: 16px;
+  color: #172112;
+  background: linear-gradient(145deg, #f6ffd9, #fffdf7 62%, #e6fbcb);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 10px 20px rgba(31, 30, 22, 0.07);
+}
+
+.merchant-focus-card span {
+  display: inline-flex;
+  width: fit-content;
+  padding: 7px 10px;
+  color: #172112;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background: #a7e92a;
+  border-radius: 999px;
+}
+
+.merchant-focus-card strong {
+  display: block;
+  margin-top: 10px;
+  color: #10150f;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.merchant-focus-card p {
+  margin: 8px 0 0;
+  color: #665f53;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.merchant-focus-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.merchant-focus-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 8px;
+  color: #172112;
+  font-size: 11px;
+  font-weight: 1000;
+  background: #fffdf7;
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 15px;
 }
 
 .dashboard-metrics {
@@ -7203,18 +7272,24 @@ select:focus-visible {
   margin-top: 8px;
 }
 
-.admin-row-actions button {
+.admin-row-actions button,
+.admin-row-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 34px;
   padding: 0 10px;
   color: #172112;
   font-size: 10px;
   font-weight: 1000;
+  text-decoration: none;
   background: #e8f6bd;
   border: 0;
   border-radius: 999px;
 }
 
-.admin-row-actions button:first-of-type {
+.admin-row-actions button:first-of-type,
+.admin-row-actions a {
   background: #a7e92a;
 }
 
@@ -8719,7 +8794,8 @@ select:focus-visible {
 .session-bar button:hover,
 .profile-actions button:hover,
 .merchant-entry-card button:hover,
-.admin-row-actions button:hover {
+.admin-row-actions button:hover,
+.admin-row-actions a:hover {
   transform: translateY(-1px);
 }
 

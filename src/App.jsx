@@ -883,7 +883,7 @@ function App() {
 
   const pauseOffer = async (offer) => {
     const nextActive = !offer.open
-    const { offer: savedOffer, error } = await cercaApi.updateOfferStatus({ offerId: offer.id, isActive: nextActive })
+    const { offer: savedOffer, error } = await cercaApi.updateOfferStatus({ offerId: offer.id, isActive: nextActive, offer })
     if (error) {
       setAuthNotice(error.message || 'No se pudo actualizar la publicacion.')
       return
@@ -2654,6 +2654,34 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         </section>
       )}
 
+      <section className="merchant-focus-card" aria-label="Proximo paso recomendado">
+        <div>
+          <span>Proximo paso</span>
+          <strong>{pendingTasks.length ? `Completa ${pendingTasks[0].title.toLowerCase()}` : activeLocalOffers.length ? 'Mantene tus promos al dia' : 'Publica tu primera promo'}</strong>
+          <p>
+            {pendingTasks.length
+              ? 'Con esos datos ya podes aparecer gratis en la guia.'
+              : activeLocalOffers.length
+                ? 'Si cambian precios o stock, pausala o republicala para que el vecino vea info actual.'
+                : 'Tenes 1 publicacion semanal gratis. Dura pocos dias y se baja sola.'}
+          </p>
+        </div>
+        <div className="merchant-focus-actions">
+          <button type="button" onClick={() => setOpenPanel(pendingTasks[0]?.id || 'preview')}>
+            <Check size={16} />
+            Ficha
+          </button>
+          <button type="button" onClick={handlePublishFromPanel}>
+            <Flame size={16} />
+            Promo
+          </button>
+          <button type="button" onClick={() => setOpenPanel(founderActive ? 'menu' : 'plan')}>
+            <ShoppingBasket size={16} />
+            {founderActive ? 'Catalogo' : 'Fundador'}
+          </button>
+        </div>
+      </section>
+
       <section className="merchant-quick-controls" aria-label="Controles rapidos del comercio">
         <button
           className={localDraft.open === false ? 'is-off' : 'is-on'}
@@ -3588,7 +3616,7 @@ function AdminScreen({
         <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, horario claro y promos vigentes. El catalogo solo cuenta si tienen fundador activo.</p>
       </section>
 
-      {adminView !== 'promos' && (
+      {!offerViews.includes(adminView) && (
       <section className="admin-list">
         <div className="feed-head compact">
           <div>
@@ -3608,6 +3636,11 @@ function AdminScreen({
           const id = business.id || business.name
           const businessOffers = offersByBusiness[business.id] || offersByBusiness[business.name] || []
           const editDraft = editDrafts[id] || {}
+          const businessMetrics = adminMetrics?.byBusiness?.[business.id] || {}
+          const adminContactUrl = makeWhatsAppUrl(
+            business.whatsapp,
+            `Hola ${business.name}, soy Cristian de Cerca Liceo. Te escribo por tu ficha del barrio.`
+          )
           return (
           <article className={`admin-row ${business.isPublic === false ? 'is-hidden' : ''}`} key={id}>
             <div className="admin-row-main">
@@ -3630,9 +3663,14 @@ function AdminScreen({
               {business.paidUntil && <span>Vence {new Date(`${business.paidUntil}T00:00:00`).toLocaleDateString('es-AR')}</span>}
               <span>{business.open ? 'Abierto segun ficha' : 'Marcado cerrado'}</span>
               <span>{businessOffers.length} promos</span>
+              <span>{businessMetrics.businessViews || 0} vistas ficha</span>
+              <span>{businessMetrics.whatsappClicks || 0} WhatsApp</span>
             </div>
             <div className="admin-row-actions">
               <button type="button" onClick={() => onOpenBusiness(business)}>Ver</button>
+              {business.whatsapp && (
+                <a href={adminContactUrl} target="_blank" rel="noreferrer">WhatsApp</a>
+              )}
               <button type="button" onClick={() => onToggleVerified(business)}>{business.verified ? 'Quitar check' : 'Verificar'}</button>
               <button type="button" onClick={() => onTogglePublic(business)}>{business.isPublic === false ? 'Mostrar' : 'Ocultar'}</button>
               <button type="button" onClick={() => onActivateOrders(business)}>{getPlanActionLabel(business)}</button>

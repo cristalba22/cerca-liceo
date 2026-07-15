@@ -193,6 +193,30 @@ const summarizeAdminEvents = (events = []) => {
   return summary
 }
 
+const summarizeAdminBusinessEvents = (events = []) => {
+  const byBusiness = {}
+  events.forEach((event) => {
+    const businessId = event.business_id || event.businessId
+    if (!businessId) return
+    const metadata = event.metadata || {}
+    if (metadata.exclude === true || metadata.exclude === 'true' || metadata.excludeAdmin === true || metadata.exclude_admin === true) return
+    const type = event.event_type || event.type
+    if (!byBusiness[businessId]) {
+      byBusiness[businessId] = {
+        businessViews: 0,
+        offerViews: 0,
+        whatsappClicks: 0,
+        favoriteClicks: 0,
+      }
+    }
+    if (type === 'business_view') byBusiness[businessId].businessViews += 1
+    if (type === 'offer_view') byBusiness[businessId].offerViews += 1
+    if (type === 'whatsapp_click') byBusiness[businessId].whatsappClicks += 1
+    if (type === 'favorite_click') byBusiness[businessId].favoriteClicks += 1
+  })
+  return byBusiness
+}
+
 const readLocalOffers = () => readStorage(LOCAL_OFFERS_KEY) || []
 
 const writeLocalOffers = (offers) => {
@@ -299,6 +323,30 @@ const mapOfferRow = (row) => ({
   distance: row.distance_label || row.businesses?.distance_label || 'cerca',
   saves: row.saves_count || 0,
   highlight: row.highlight || 'Promo activa',
+})
+
+const mapOfferRowWithBusiness = (row, business = {}) => mapOfferRow({
+  ...row,
+  businesses: {
+    id: business.id || business.businessId,
+    name: business.name || business.business,
+    business_type: business.businessType || business.business_type,
+    has_public_address: business.hasPublicAddress ?? business.has_public_address,
+    category: business.category,
+    section: business.section,
+    address: business.address,
+    reference: business.reference,
+    hours: business.hours,
+    open_days: business.openDays || business.open_days,
+    open_time: business.openTime || business.open_time,
+    close_time: business.closeTime || business.close_time,
+    tone: business.tone,
+    image_key: business.image || business.image_key,
+    whatsapp: business.whatsapp,
+    instagram: business.instagram,
+    is_open: business.open ?? business.is_open,
+    distance_label: business.distance || business.distance_label,
+  },
 })
 
 const isDeletedOffer = (offer = {}) => /eliminada/i.test(String(offer.highlight || ''))
@@ -1143,11 +1191,11 @@ export const cercaApi = {
     const { data, error } = await supabase
       .from('offers')
       .insert(payload)
-      .select('*, businesses(*)')
+      .select('*')
       .single()
 
     return {
-      offer: data ? mapOfferRow(data) : null,
+      offer: data ? mapOfferRowWithBusiness(data, business) : null,
       error,
       warning: imageError ? 'La promo se publico. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
     }
@@ -1193,17 +1241,17 @@ export const cercaApi = {
       .from('offers')
       .update(payload)
       .eq('id', offerId)
-      .select('*, businesses(*)')
+      .select('*')
       .single()
 
     return {
-      offer: data ? mapOfferRow(data) : null,
+      offer: data ? mapOfferRowWithBusiness(data, business) : null,
       error,
       warning: imageError ? 'La promo se actualizo. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
     }
   },
 
-  async updateOfferStatus({ offerId, isActive }) {
+  async updateOfferStatus({ offerId, isActive, offer }) {
     if (!offerId) {
       return { offer: null, error: new Error('No se encontro la publicacion.') }
     }
@@ -1221,10 +1269,10 @@ export const cercaApi = {
       .from('offers')
       .update({ is_active: isActive })
       .eq('id', offerId)
-      .select('*, businesses(*)')
+      .select('*')
       .single()
 
-    return { offer: data ? mapOfferRow(data) : null, error }
+    return { offer: data ? mapOfferRowWithBusiness(data, offer) : null, error }
   },
 
   async deleteOffer({ offerId }) {
@@ -1288,10 +1336,10 @@ export const cercaApi = {
     const { data, error } = await supabase
       .from('offers')
       .insert(payload)
-      .select('*, businesses(*)')
+      .select('*')
       .single()
 
-    return { offer: data ? mapOfferRow(data) : null, error }
+    return { offer: data ? mapOfferRowWithBusiness(data, offer) : null, error }
   },
 
   async trackEvent({ type, businessId, offerId, metadata = {} }) {
@@ -1352,19 +1400,26 @@ export const cercaApi = {
 
   async getAdminMetrics() {
     const localMetrics = summarizeAdminEvents(readLocalEvents())
+    const localByBusiness = summarizeAdminBusinessEvents(readLocalEvents())
 
     if (!hasSupabaseConfig) {
-      return { metrics: localMetrics, error: null }
+      return { metrics: { ...localMetrics, byBusiness: localByBusiness }, error: null }
     }
 
     const since = new Date(Date.now() - 30 * 86400000).toISOString()
     const { data, error } = await supabase
       .from('app_events')
-      .select('event_type, metadata')
+      .select('event_type, business_id, metadata')
       .gte('created_at', since)
       .limit(5000)
 
-    if (error) return { metrics: localMetrics, error }
-    return { metrics: summarizeAdminEvents(data || []), error: null }
+    if (error) return { metrics: { ...localMetrics, byBusiness: localByBusiness }, error }
+    return {
+      metrics: {
+        ...summarizeAdminEvents(data || []),
+        byBusiness: summarizeAdminBusinessEvents(data || []),
+      },
+      error: null,
+    }
   },
 }

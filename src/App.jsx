@@ -2611,6 +2611,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                 <button className={activeMenuItem.available !== false ? 'active' : ''} type="button" onClick={() => updateMenuItem(activeMenuIndexSafe, 'available', activeMenuItem.available === false)}>
                   {activeMenuItem.available === false ? 'Oculto' : 'Disponible'}
                 </button>
+                <button className="android-safe-save-item" type="button" onClick={saveLocal}>Guardar item</button>
                 <button type="button" onClick={() => clearMenuItem(activeMenuIndexSafe)}>Limpiar</button>
               </div>
             </div>
@@ -3150,6 +3151,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                         <span>{activeMenuItem.price ? 'Con precio' : 'Consultar'}</span>
                         {activeMenuItem.available === false && <span>Oculto</span>}
                       </div>
+                      <button className="menu-save-item" type="button" onClick={saveLocal}>Guardar item</button>
                       <button type="button" onClick={() => clearMenuItem(activeMenuIndexSafe)} aria-label={`Limpiar ${activeMenuSection.shortTitle} ${activeMenuLocalIndex + 1}`}>Limpiar</button>
                     </div>
                   </div>

@@ -6808,6 +6808,11 @@ select:focus-visible {
   border-radius: 999px;
 }
 
+.menu-row-actions .menu-save-item {
+  color: #fffbea;
+  background: #10150f;
+}
+
 .menu-save-actions {
   position: sticky;
   bottom: 74px;
@@ -12814,7 +12819,7 @@ html.android-compat .night-mode .android-safe-menu-group-head span {
 html.android-compat .android-safe-row-actions {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
 }
 
@@ -12826,6 +12831,11 @@ html.android-compat .android-safe-row-actions button {
 
 html.android-compat .android-safe-row-actions button.active {
   background: #a7e92a !important;
+}
+
+html.android-compat .android-safe-row-actions .android-safe-save-item {
+  color: #fffbea;
+  background: #10150f !important;
 }
 
 html.android-compat .android-safe-menu-form > small {

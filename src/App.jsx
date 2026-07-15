@@ -488,6 +488,8 @@ function App() {
   const [feedOffers, setFeedOffers] = useState(realDataMode ? [] : offers)
   const [merchantOffers, setMerchantOffers] = useState([])
   const [feedBusinesses, setFeedBusinesses] = useState(realDataMode ? [] : businesses)
+  const [offersLoading, setOffersLoading] = useState(realDataMode)
+  const [businessesLoading, setBusinessesLoading] = useState(realDataMode)
   const [adminBusinesses, setAdminBusinesses] = useState([])
   const [adminOffers, setAdminOffers] = useState([])
   const [adminMetrics, setAdminMetrics] = useState({
@@ -598,6 +600,7 @@ function App() {
     let ignore = false
 
     const loadOffers = async () => {
+      setOffersLoading(true)
       const { offers: nextOffers, error } = await cercaApi.listOffers({
         section: selectedSection,
         category: selectedCategory,
@@ -606,6 +609,7 @@ function App() {
       if (!ignore && !error) {
         setFeedOffers(nextOffers)
       }
+      if (!ignore) setOffersLoading(false)
     }
 
     loadOffers()
@@ -619,10 +623,12 @@ function App() {
     let ignore = false
 
     const loadBusinesses = async () => {
+      setBusinessesLoading(true)
       const { businesses: nextBusinesses, error } = await cercaApi.listBusinesses()
       if (!ignore && !error) {
         setFeedBusinesses(nextBusinesses)
       }
+      if (!ignore) setBusinessesLoading(false)
     }
 
     loadBusinesses()
@@ -1335,6 +1341,12 @@ function App() {
                   setScreen('detail')
                 }}
               />
+            ) : offersLoading ? (
+              <section className="empty-state home-empty-real is-loading">
+                <Sparkles size={22} />
+                <strong>Cargando ofertas del barrio</strong>
+                <span>Estamos buscando las promos vigentes de los comercios.</span>
+              </section>
             ) : (
               <section className="empty-state home-empty-real">
                 <Sparkles size={22} />
@@ -1346,6 +1358,7 @@ function App() {
 
             <NeighborhoodLiveMap
               businesses={liveMapBusinesses}
+              loading={businessesLoading}
               onOpen={(business) => {
                 setSelectedBusiness(business)
                 setScreen('business-detail')
@@ -1371,6 +1384,12 @@ function App() {
                       setScreen('business-detail')
                     }}
                   />
+                ) : businessesLoading ? (
+                  <div className="empty-state is-loading">
+                    <Store size={22} />
+                    <strong>Cargando locales del barrio</strong>
+                    <span>En unos segundos aparecen los comercios publicados.</span>
+                  </div>
                 ) : (
                   <div className="empty-state">
                     <Store size={22} />
@@ -1596,7 +1615,7 @@ function ScrollCue({ label = 'Desliza para ver mas' }) {
   )
 }
 
-function NeighborhoodLiveMap({ businesses = [], onOpen, onDirectory }) {
+function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirectory }) {
   const visibleBusinesses = businesses.filter((business) => business.isPublic !== false).slice(0, 8)
   const openBusinesses = visibleBusinesses.filter((business) => getOpenStatus(business).open)
   const pinPositions = [
@@ -1652,6 +1671,11 @@ function NeighborhoodLiveMap({ businesses = [], onOpen, onDirectory }) {
               </button>
             )
           })
+        ) : loading ? (
+          <div className="live-map-empty">
+            <Store size={20} />
+            <strong>Cargando locales cercanos</strong>
+          </div>
         ) : (
           <div className="live-map-empty">
             <Store size={20} />

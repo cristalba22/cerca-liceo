@@ -6,6 +6,8 @@ const LOCAL_BUSINESS_KEY = 'cerca-liceo-business'
 const LOCAL_BUSINESSES_KEY = 'cerca-liceo-businesses'
 const LOCAL_OFFERS_KEY = 'cerca-liceo-offers'
 const LOCAL_EVENTS_KEY = 'cerca-liceo-events'
+const PUBLIC_BUSINESSES_CACHE_KEY = 'cerca-liceo-public-businesses-cache'
+const PUBLIC_OFFERS_CACHE_KEY = 'cerca-liceo-public-offers-cache'
 const PHOTO_BUCKET = 'business-photos'
 
 const isDataImage = (value) => typeof value === 'string' && value.startsWith('data:image/')
@@ -626,9 +628,28 @@ export const cercaApi = {
       }
     }
 
+    const publicOfferColumns = `
+      id,
+      business_id,
+      title,
+      description,
+      category,
+      section,
+      price,
+      price_label,
+      image_key,
+      tone,
+      highlight,
+      saves_count,
+      starts_at,
+      expires_at,
+      is_active,
+      created_at
+    `
+
     let request = supabase
       .from('offers')
-      .select('*, businesses(*)')
+      .select(publicOfferColumns)
       .eq('is_active', true)
       .lte('starts_at', new Date().toISOString())
       .gt('expires_at', new Date().toISOString())
@@ -640,7 +661,14 @@ export const cercaApi = {
     if (query.trim()) request = request.ilike('search_text', `%${query.trim()}%`)
 
     const { data, error } = await request
-    return { offers: data?.map(mapOfferRow) || [], error }
+    if (error) {
+      const cachedOffers = readStorage(PUBLIC_OFFERS_CACHE_KEY) || []
+      return { offers: cachedOffers, error: cachedOffers.length ? null : error }
+    }
+
+    const offers = data?.map(mapOfferRow) || []
+    writeStorage(PUBLIC_OFFERS_CACHE_KEY, offers)
+    return { offers, error: null }
   },
 
   async listMyOffers({ includeExpired = true } = {}) {
@@ -741,11 +769,9 @@ export const cercaApi = {
       distance_label,
       plan,
       plan_status,
-      paid_until,
       is_public,
       search_text,
-      updated_at,
-      products(id,business_id,name,price,is_available,position)
+      updated_at
     `
 
     let request = supabase
@@ -762,7 +788,39 @@ export const cercaApi = {
     if (query.trim()) request = request.ilike('search_text', `%${query.trim()}%`)
 
     const { data, error } = await request
-    return { businesses: data?.map(mapBusinessRow) || [], error }
+    if (error) {
+      const cachedBusinesses = readStorage(PUBLIC_BUSINESSES_CACHE_KEY) || []
+      return { businesses: cachedBusinesses.map(normalizeBusiness), error: cachedBusinesses.length ? null : error }
+    }
+
+    const rows = data || []
+    let products = []
+    const businessIds = rows.map((business) => business.id).filter(Boolean)
+    if (businessIds.length) {
+      const { data: productRows } = await supabase
+        .from('products')
+        .select('id,business_id,name,price,is_available,position')
+        .in('business_id', businessIds)
+        .eq('is_available', true)
+        .order('position', { ascending: true })
+
+      products = productRows || []
+    }
+
+    const productsByBusiness = products.reduce((acc, product) => {
+      const list = acc.get(product.business_id) || []
+      list.push(product)
+      acc.set(product.business_id, list)
+      return acc
+    }, new Map())
+
+    const businesses = rows.map((business) => mapBusinessRow({
+      ...business,
+      products: productsByBusiness.get(business.id) || [],
+    }))
+
+    writeStorage(PUBLIC_BUSINESSES_CACHE_KEY, businesses)
+    return { businesses, error: null }
   },
 
   async listAdminBusinesses() {

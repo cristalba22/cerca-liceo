@@ -2070,11 +2070,19 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   const [openPanel, setOpenPanel] = useState(initialPanel)
   const [saveStatus, setSaveStatus] = useState('')
   const [localDraft, setLocalDraft] = useState(() => buildLocalDraft(local, account))
+  const [activeMenuIndex, setActiveMenuIndex] = useState(() => {
+    const menu = ensureMenuSlots(local?.menu || [])
+    const firstFilled = menu.findIndex((item) => item.name?.trim())
+    return firstFilled >= 0 ? firstFilled : 0
+  })
 
   useEffect(() => {
     if (!local?.id) return
     setLocalDraft(buildLocalDraft(local, account))
     setOpenPanel(isFounderPlanActive(local) && !getBusinessMenu(local).some((item) => item.name?.trim()) ? 'menu' : 'preview')
+    const menu = ensureMenuSlots(local.menu || [])
+    const firstFilled = menu.findIndex((item) => item.name?.trim())
+    setActiveMenuIndex(firstFilled >= 0 ? firstFilled : 0)
   }, [local, account])
 
   const updateLocalDraft = (field, value) => {
@@ -2265,33 +2273,37 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     '3517662142',
     `Hola Cristian, quiero activar el plan fundador Liceo para ${localDraft.name || account?.businessName || 'mi comercio'}. Me interesa catalogo, 4 publicaciones extra al mes y pedidos por WhatsApp.`
   )
-  const filledMenuItems = ensureMenuSlots(localDraft.menu).filter((item) => item.name.trim())
-  const menuEditorSections = buildMenuSections(localDraft.menu)
-  const compactMenuEditorSections = menuEditorSections.map((section) => {
-    const visibleIndexes = []
-    section.items.forEach((item, localIndex) => {
-      if (item.name.trim() || item.price?.trim() || item.available === false) {
-        visibleIndexes.push(localIndex)
-      }
-    })
-
-    const nextEmptyIndex = section.items.findIndex((item) => !item.name.trim() && !item.price?.trim() && item.available !== false)
-    if (nextEmptyIndex !== -1 && !visibleIndexes.includes(nextEmptyIndex)) {
-      visibleIndexes.push(nextEmptyIndex)
-    }
-
-    return {
-      ...section,
-      filledCount: section.items.filter((item) => item.name.trim()).length,
-      visibleItems: visibleIndexes
-        .sort((a, b) => a - b)
-        .map((localIndex) => ({
-          ...section.items[localIndex],
-          index: section.start + localIndex,
-          localIndex,
-        })),
-    }
-  })
+  const menuSlots = ensureMenuSlots(localDraft.menu)
+  const filledMenuItems = menuSlots
+    .map((item, index) => ({
+      ...item,
+      index,
+      localIndex: index % MENU_SECTION_SIZE,
+      section: menuCatalogSections[Math.floor(index / MENU_SECTION_SIZE)] || menuCatalogSections[0],
+    }))
+    .filter((item) => item.name.trim())
+  const activeMenuIndexSafe = Math.max(0, Math.min(activeMenuIndex, MAX_MENU_ITEMS - 1))
+  const activeMenuItem = menuSlots[activeMenuIndexSafe] || createMenuSlot(activeMenuIndexSafe)
+  const activeMenuSection = menuCatalogSections[Math.floor(activeMenuIndexSafe / MENU_SECTION_SIZE)] || menuCatalogSections[0]
+  const activeMenuLocalIndex = activeMenuIndexSafe % MENU_SECTION_SIZE
+  const pickEmptyMenuIndex = (sectionIndex = null) => {
+    const sectionStart = typeof sectionIndex === 'number' ? sectionIndex * MENU_SECTION_SIZE : 0
+    const sectionEnd = typeof sectionIndex === 'number' ? sectionStart + MENU_SECTION_SIZE : MAX_MENU_ITEMS
+    const inSection = menuSlots.findIndex((item, index) => (
+      index >= sectionStart &&
+      index < sectionEnd &&
+      !item.name.trim() &&
+      !item.price?.trim() &&
+      item.available !== false
+    ))
+    if (inSection >= 0) return inSection
+    const anywhere = menuSlots.findIndex((item) => !item.name.trim() && !item.price?.trim() && item.available !== false)
+    return anywhere >= 0 ? anywhere : activeMenuIndexSafe
+  }
+  const startNewMenuItem = (sectionIndex = 0) => {
+    setActiveMenuIndex(pickEmptyMenuIndex(sectionIndex))
+    setSaveStatus('')
+  }
   const publicMenuSections = buildFilledMenuSections(localDraft.menu)
   const localOffers = offers.filter((offer) => (
     offer.businessId === local?.id ||
@@ -2563,35 +2575,45 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
               <span>items cargados</span>
               <button type="button" onClick={saveLocal}>Guardar</button>
             </div>
-            <p className="android-safe-help">Carga nombre y precio opcional. Si no tiene precio, aparece como consulta por WhatsApp.</p>
-            {compactMenuEditorSections.map((section) => (
-              <div className="android-safe-menu-group" key={`safe-${section.title}`}>
-                <div className="android-safe-menu-group-head">
-                  <strong>{section.shortTitle}</strong>
-                  <span>{section.filledCount}/5 cargados</span>
-                </div>
-                {section.visibleItems.map((item) => {
-                  return (
-                    <div className="android-safe-menu-row" key={`safe-menu-${item.index}`}>
-                      <label className="android-safe-menu-name">
-                        <span>{section.shortTitle} {item.localIndex + 1}</span>
-                        <input value={item.name} onChange={(event) => updateMenuItem(item.index, 'name', event.target.value)} placeholder={item.index === 0 ? 'Ej: Combo del dia' : 'Ej: Producto o servicio'} />
-                      </label>
-                      <label className="android-safe-menu-price">
-                        <span>Precio opcional</span>
-                        <input value={item.price || ''} onChange={(event) => updateMenuItem(item.index, 'price', event.target.value)} placeholder="Ej: $4.500" />
-                      </label>
-                      <div className="android-safe-row-actions">
-                        <button className={item.available !== false ? 'active' : ''} type="button" onClick={() => updateMenuItem(item.index, 'available', item.available === false)}>
-                          {item.available === false ? 'Oculto' : 'Disponible'}
-                        </button>
-                        <button type="button" onClick={() => clearMenuItem(item.index)}>Limpiar</button>
-                      </div>
-                    </div>
-                  )
-                })}
+            <p className="android-safe-help">Agrega un producto o servicio por vez. Si no tiene precio, queda como consulta por WhatsApp.</p>
+            <div className="android-safe-menu-list">
+              {filledMenuItems.length ? filledMenuItems.map((item) => (
+                <button
+                  className={item.index === activeMenuIndexSafe ? 'active' : ''}
+                  type="button"
+                  key={`safe-pill-${item.index}`}
+                  onClick={() => setActiveMenuIndex(item.index)}
+                >
+                  <strong>{item.name}</strong>
+                  <span>{item.price || 'Consultar'} · {item.section.shortTitle}</span>
+                </button>
+              )) : (
+                <div className="android-safe-menu-empty">Todavia no cargaste productos.</div>
+              )}
+            </div>
+            <div className="android-safe-add-row">
+              {menuCatalogSections.map((section, sectionIndex) => (
+                <button type="button" key={`safe-add-${section.title}`} onClick={() => startNewMenuItem(sectionIndex)}>
+                  + {section.shortTitle}
+                </button>
+              ))}
+            </div>
+            <div className="android-safe-menu-row is-single">
+              <label className="android-safe-menu-name">
+                <span>{activeMenuSection.shortTitle} {activeMenuLocalIndex + 1}</span>
+                <input value={activeMenuItem.name} onChange={(event) => updateMenuItem(activeMenuIndexSafe, 'name', event.target.value)} placeholder={activeMenuIndexSafe === 0 ? 'Ej: Combo del dia' : 'Ej: Producto o servicio'} />
+              </label>
+              <label className="android-safe-menu-price">
+                <span>Precio opcional</span>
+                <input value={activeMenuItem.price || ''} onChange={(event) => updateMenuItem(activeMenuIndexSafe, 'price', event.target.value)} placeholder="Ej: $4.500" />
+              </label>
+              <div className="android-safe-row-actions">
+                <button className={activeMenuItem.available !== false ? 'active' : ''} type="button" onClick={() => updateMenuItem(activeMenuIndexSafe, 'available', activeMenuItem.available === false)}>
+                  {activeMenuItem.available === false ? 'Oculto' : 'Disponible'}
+                </button>
+                <button type="button" onClick={() => clearMenuItem(activeMenuIndexSafe)}>Limpiar</button>
               </div>
-            ))}
+            </div>
           </section>
         ) : (
           <section className="android-safe-card android-safe-plan-card">
@@ -3071,47 +3093,67 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   <div>
                     <span>Catalogo editable</span>
                     <h3>Carga rapida del catalogo.</h3>
-                    <p>Nombre, precio opcional y disponibilidad. El primer item queda destacado para el vecino.</p>
+                    <p>Agrega de a un producto o servicio. Los cargados quedan en una lista corta para editar rapido.</p>
                   </div>
                   <div className="menu-editor-meter">
                     <strong>{filledMenuItems.length}/{MAX_MENU_ITEMS}</strong>
                     <small>items cargados</small>
                   </div>
                 </div>
-                {compactMenuEditorSections.map((section) => (
-                  <div className="menu-editor-group" key={section.title}>
-                    <div className="menu-editor-group-head">
-                      <strong>{section.title}</strong>
-                      <small>{section.filledCount}/5 cargados · {section.hint}</small>
+                <div className="menu-quick-actions">
+                  {menuCatalogSections.map((section, sectionIndex) => (
+                    <button type="button" key={section.title} onClick={() => startNewMenuItem(sectionIndex)}>
+                      <span>Agregar</span>
+                      <strong>{section.shortTitle}</strong>
+                    </button>
+                  ))}
+                </div>
+                <div className="menu-compact-list" aria-label="Productos cargados">
+                  {filledMenuItems.length ? filledMenuItems.map((item) => (
+                    <button
+                      className={item.index === activeMenuIndexSafe ? 'active' : ''}
+                      type="button"
+                      key={`menu-pill-${item.index}`}
+                      onClick={() => setActiveMenuIndex(item.index)}
+                    >
+                      <strong>{item.name}</strong>
+                      <small>{item.price || 'Consultar'} · {item.section.shortTitle}{item.available === false ? ' · Oculto' : ''}</small>
+                    </button>
+                  )) : (
+                    <div className="menu-empty-state">
+                      <strong>Tu catalogo todavia esta vacio.</strong>
+                      <span>Toca “Agregar destacados” para cargar el primer producto, servicio o promo fija.</span>
                     </div>
-                    {section.visibleItems.map((item) => {
-                      return (
-                        <div className="menu-editor-row" key={`menu-${item.index}`}>
-                          <label className="menu-name-field">
-                            <span>{section.shortTitle} {item.localIndex + 1}</span>
-                            <input value={item.name} onChange={(event) => updateMenuItem(item.index, 'name', event.target.value)} placeholder={item.index === 0 ? 'Ej: Combo del dia' : 'Ej: Producto, servicio o extra...'} />
-                          </label>
-                          <label className="menu-price-field">
-                            <span>Precio</span>
-                            <input value={item.price || ''} onChange={(event) => updateMenuItem(item.index, 'price', event.target.value)} placeholder="Opcional" />
-                          </label>
-                          <div className="menu-row-actions">
-                            <label className="menu-available">
-                              <input type="checkbox" checked={item.available !== false} onChange={(event) => updateMenuItem(item.index, 'available', event.target.checked)} />
-                              <span>Disponible</span>
-                            </label>
-                            <div className="menu-row-tags">
-                              {item.index === 0 && <span>Destacado</span>}
-                              <span>{item.price ? 'Con precio' : 'Consultar'}</span>
-                              {item.available === false && <span>Oculto</span>}
-                            </div>
-                            <button type="button" onClick={() => clearMenuItem(item.index)} aria-label={`Limpiar ${section.shortTitle} ${item.localIndex + 1}`}>Limpiar</button>
-                          </div>
-                        </div>
-                      )
-                    })}
+                  )}
+                </div>
+                <div className="menu-editor-group menu-editor-focus">
+                  <div className="menu-editor-group-head">
+                    <strong>{activeMenuItem.name?.trim() ? 'Editando item' : 'Nuevo item'}</strong>
+                    <small>{activeMenuSection.title} · lugar {activeMenuLocalIndex + 1}/5</small>
                   </div>
-                ))}
+                  <div className="menu-editor-row">
+                    <label className="menu-name-field">
+                      <span>Nombre</span>
+                      <input value={activeMenuItem.name} onChange={(event) => updateMenuItem(activeMenuIndexSafe, 'name', event.target.value)} placeholder={activeMenuIndexSafe === 0 ? 'Ej: Combo del dia' : 'Ej: Producto, servicio o extra...'} />
+                    </label>
+                    <label className="menu-price-field">
+                      <span>Precio</span>
+                      <input value={activeMenuItem.price || ''} onChange={(event) => updateMenuItem(activeMenuIndexSafe, 'price', event.target.value)} placeholder="Opcional" />
+                    </label>
+                    <div className="menu-row-actions">
+                      <label className="menu-available">
+                        <input type="checkbox" checked={activeMenuItem.available !== false} onChange={(event) => updateMenuItem(activeMenuIndexSafe, 'available', event.target.checked)} />
+                        <span>Disponible</span>
+                      </label>
+                      <div className="menu-row-tags">
+                        {activeMenuIndexSafe === 0 && <span>Destacado</span>}
+                        <span>{activeMenuItem.price ? 'Con precio' : 'Consultar'}</span>
+                        {activeMenuItem.available === false && <span>Oculto</span>}
+                      </div>
+                      <button type="button" onClick={() => clearMenuItem(activeMenuIndexSafe)} aria-label={`Limpiar ${activeMenuSection.shortTitle} ${activeMenuLocalIndex + 1}`}>Limpiar</button>
+                    </div>
+                  </div>
+                </div>
                 <div className="menu-save-actions">
                   <span>{filledMenuItems.length ? `${filledMenuItems.length} items listos para la ficha.` : 'Todavia no cargaste productos o servicios.'}</span>
                   <button type="button" onClick={saveLocal}>Guardar catalogo</button>

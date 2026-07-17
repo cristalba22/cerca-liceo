@@ -1,4 +1,6 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import {
   ArrowLeft,
   BadgeCheck,
@@ -76,6 +78,7 @@ const realDataMode = cercaApi.isSupabaseEnabled()
 const liceoMapQuery = 'Barrio Liceo Procrear Cordoba Argentina'
 const liceoMapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(liceoMapQuery)}&output=embed`
 const liceoMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(liceoMapQuery)}`
+const liceoMapCenter = { lat: -31.3583, lng: -64.1212 }
 
 const parseMapCoordinates = (value = '') => {
   const text = String(value).trim()
@@ -109,17 +112,6 @@ const parseMapCoordinates = (value = '') => {
   return null
 }
 
-const getLocationSearchQuery = (business = {}) => {
-  if (hasBusinessPin(business)) {
-    return `${business.locationLat ?? business.location_lat},${business.locationLng ?? business.location_lng}`
-  }
-  return `${business.address || business.reference || business.section || liceoMapQuery}, Cordoba, Argentina`
-}
-
-const getLocationEmbedUrl = (business = {}) => (
-  `https://www.google.com/maps?q=${encodeURIComponent(getLocationSearchQuery(business))}&output=embed`
-)
-
 const hasBusinessPin = (business = {}) => {
   const latValue = business.locationLat ?? business.location_lat
   const lngValue = business.locationLng ?? business.location_lng
@@ -143,6 +135,95 @@ const getBusinessMapUrl = (business = {}) => {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`
   }
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${business.address || business.section || 'Barrio Liceo'}, Cordoba, Argentina`)}`
+}
+
+function RealLocationPicker({ location = {}, onPick, mapUrl }) {
+  const mapNodeRef = useRef(null)
+  const mapRef = useRef(null)
+  const markerRef = useRef(null)
+  const onPickRef = useRef(onPick)
+  const selectedLat = hasBusinessPin(location) ? Number(location.locationLat ?? location.location_lat) : null
+  const selectedLng = hasBusinessPin(location) ? Number(location.locationLng ?? location.location_lng) : null
+  const initialMapStateRef = useRef({
+    center: selectedLat !== null && selectedLng !== null
+      ? { lat: selectedLat, lng: selectedLng }
+      : liceoMapCenter,
+    zoom: selectedLat !== null && selectedLng !== null ? 17 : 15,
+  })
+
+  useEffect(() => {
+    onPickRef.current = onPick
+  }, [onPick])
+
+  useEffect(() => {
+    if (!mapNodeRef.current || mapRef.current) return undefined
+    const initialCenter = initialMapStateRef.current.center
+    const map = L.map(mapNodeRef.current, {
+      attributionControl: false,
+      zoomControl: true,
+      scrollWheelZoom: false,
+      tap: true,
+    }).setView([initialCenter.lat, initialCenter.lng], initialMapStateRef.current.zoom)
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      crossOrigin: true,
+    }).addTo(map)
+
+    map.on('click', (event) => {
+      const lat = Number(event.latlng.lat.toFixed(6))
+      const lng = Number(event.latlng.lng.toFixed(6))
+      onPickRef.current?.({ lat, lng })
+    })
+
+    mapRef.current = map
+    window.setTimeout(() => map.invalidateSize(), 160)
+
+    return () => {
+      map.remove()
+      mapRef.current = null
+      markerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (selectedLat === null || selectedLng === null) {
+      if (markerRef.current) {
+        markerRef.current.remove()
+        markerRef.current = null
+      }
+      return
+    }
+
+    const latLng = [selectedLat, selectedLng]
+    if (!markerRef.current) {
+      markerRef.current = L.marker(latLng, {
+        icon: L.divIcon({
+          className: 'cerca-leaflet-pin',
+          html: '<span></span>',
+          iconSize: [34, 42],
+          iconAnchor: [17, 40],
+        }),
+      }).addTo(map)
+    } else {
+      markerRef.current.setLatLng(latLng)
+    }
+    map.setView(latLng, Math.max(map.getZoom(), 17), { animate: true })
+  }, [selectedLat, selectedLng])
+
+  return (
+    <div className="real-map-picker">
+      <div ref={mapNodeRef} className="real-map-canvas" aria-label="Mapa real para tocar la ubicacion del local" />
+      <div className="map-link-row">
+        <a className="map-link-button" href={mapUrl} target="_blank" rel="noreferrer">
+          Abrir Google Maps
+        </a>
+        <span>{selectedLat !== null && selectedLng !== null ? `${selectedLat}, ${selectedLng}` : 'Toca el mapa para poner el pin real del local.'}</span>
+      </div>
+    </div>
+  )
 }
 
 const isUploadedImage = (image) => typeof image === 'string' && (
@@ -2203,6 +2284,20 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     setSaveStatus('')
   }
 
+  const updateMapCoordinates = ({ lat, lng }) => {
+    setLocalDraft((current) => ({
+      ...current,
+      locationMode: 'pin',
+      hasPublicAddress: current.businessType !== 'entrepreneur',
+      locationLat: lat,
+      locationLng: lng,
+      locationPrecision: 'exact',
+      locationNote: `${lat}, ${lng}`,
+      address: current.address || `${current.section || 'Liceo Procrear'} - ubicacion marcada`,
+    }))
+    setSaveStatus('')
+  }
+
   const handleLocalPhoto = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -2320,7 +2415,6 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   const scheduleLabel = formatSchedule(localDraft)
   const locationMode = localDraft.businessType === 'entrepreneur' ? 'none' : (localDraft.locationMode || 'address')
   const hasPinLocation = locationMode === 'pin' && hasBusinessPin(localDraft)
-  const localMapEmbedUrl = getLocationEmbedUrl(localDraft)
   const localMapUrl = getBusinessMapUrl(localDraft)
   const hasPublicLocation = hasBusinessPublicAddress(localDraft) || hasPinLocation || localDraft.businessType === 'entrepreneur'
   const publicLocationLabel = localDraft.businessType === 'entrepreneur'
@@ -2631,17 +2725,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
               </div>
               {locationMode === 'pin' && (
                 <div className="tap-map-editor real-pin-editor android-safe-map-picker">
-                  <div className="real-pin-map">
-                    <iframe title="Mapa real para marcar local" src={localMapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
-                  </div>
-                  <div className="map-link-row">
-                    <a className="map-link-button" href={localMapUrl} target="_blank" rel="noreferrer">
-                      Abrir Google Maps
-                    </a>
-                    <span>{hasPinLocation ? `${localDraft.locationLat}, ${localDraft.locationLng}` : 'Busca tu punto y copia coordenadas o link.'}</span>
-                  </div>
+                  <RealLocationPicker location={localDraft} mapUrl={localMapUrl} onPick={updateMapCoordinates} />
                   <label className="map-coordinates-field">
-                    <span>Link o coordenadas de Google Maps</span>
+                    <span>Opcional: pegar link o coordenadas</span>
                     <input
                       value={localDraft.locationNote || ''}
                       onChange={(event) => updateMapLink(event.target.value)}
@@ -3167,17 +3253,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   </div>
                   {locationMode === 'pin' && (
                     <div className="tap-map-editor real-pin-editor">
-                      <div className="real-pin-map">
-                        <iframe title="Mapa real para marcar local" src={localMapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
-                      </div>
-                      <div className="map-link-row">
-                        <a className="map-link-button" href={localMapUrl} target="_blank" rel="noreferrer">
-                          Abrir Google Maps
-                        </a>
-                        <span>{hasPinLocation ? `${localDraft.locationLat}, ${localDraft.locationLng}` : 'Busca tu local y copia el punto.'}</span>
-                      </div>
+                      <RealLocationPicker location={localDraft} mapUrl={localMapUrl} onPick={updateMapCoordinates} />
                       <label className="map-coordinates-field">
-                        <span>Link o coordenadas de Google Maps</span>
+                        <span>Opcional: pegar link o coordenadas</span>
                         <input
                           value={localDraft.locationNote || ''}
                           onChange={(event) => updateMapLink(event.target.value)}
@@ -4838,7 +4916,6 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
   const isMerchant = accountType === 'merchant'
   const registerLocationMode = form.businessType === 'entrepreneur' ? 'none' : (form.locationMode || 'address')
   const registerHasPinLocation = registerLocationMode === 'pin' && hasBusinessPin(form)
-  const registerMapEmbedUrl = getLocationEmbedUrl({ ...form, section: form.section || 'Liceo Procrear' })
   const registerMapUrl = getBusinessMapUrl({ ...form, section: form.section || 'Liceo Procrear' })
   const updateForm = (field, value) => {
     const cleanValue = field === 'whatsapp'
@@ -4871,6 +4948,17 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
       locationLng: coords?.lng ?? current.locationLng,
       locationPrecision: coords ? 'exact' : current.locationPrecision,
       locationNote: value,
+      address: current.address || `${current.section || 'Liceo Procrear'} - ubicacion marcada`,
+    }))
+  }
+  const updateRegisterMapCoordinates = ({ lat, lng }) => {
+    setForm((current) => ({
+      ...current,
+      locationMode: 'pin',
+      locationLat: lat,
+      locationLng: lng,
+      locationPrecision: 'exact',
+      locationNote: `${lat}, ${lng}`,
       address: current.address || `${current.section || 'Liceo Procrear'} - ubicacion marcada`,
     }))
   }
@@ -5093,17 +5181,9 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
                   </div>
                   {registerLocationMode === 'pin' && (
                     <div className="tap-map-editor real-pin-editor android-safe-map-picker">
-                      <div className="real-pin-map">
-                        <iframe title="Mapa real para marcar local" src={registerMapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
-                      </div>
-                      <div className="map-link-row">
-                        <a className="map-link-button" href={registerMapUrl} target="_blank" rel="noreferrer">
-                          Abrir Google Maps
-                        </a>
-                        <span>{registerHasPinLocation ? `${form.locationLat}, ${form.locationLng}` : 'Busca tu punto y copia coordenadas o link.'}</span>
-                      </div>
+                      <RealLocationPicker location={form} mapUrl={registerMapUrl} onPick={updateRegisterMapCoordinates} />
                       <label className="map-coordinates-field">
-                        <span>Link o coordenadas de Google Maps</span>
+                        <span>Opcional: pegar link o coordenadas</span>
                         <input
                           value={form.locationNote || ''}
                           onChange={(event) => updateRegisterMapLink(event.target.value)}
@@ -5375,17 +5455,9 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
                 </div>
                 {registerLocationMode === 'pin' && (
                   <div className="tap-map-editor real-pin-editor">
-                    <div className="real-pin-map">
-                      <iframe title="Mapa real para marcar local" src={registerMapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
-                    </div>
-                    <div className="map-link-row">
-                      <a className="map-link-button" href={registerMapUrl} target="_blank" rel="noreferrer">
-                        Abrir Google Maps
-                      </a>
-                      <span>{registerHasPinLocation ? `${form.locationLat}, ${form.locationLng}` : 'Busca tu punto y copia coordenadas o link.'}</span>
-                    </div>
+                    <RealLocationPicker location={form} mapUrl={registerMapUrl} onPick={updateRegisterMapCoordinates} />
                     <label className="map-coordinates-field">
-                      <span>Link o coordenadas de Google Maps</span>
+                      <span>Opcional: pegar link o coordenadas</span>
                       <input
                         value={form.locationNote || ''}
                         onChange={(event) => updateRegisterMapLink(event.target.value)}

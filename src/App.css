@@ -4527,6 +4527,7 @@ select:focus-visible {
 
 .night-mode .merchant-alert-strip article,
 .night-mode .merchant-focus-actions button,
+.night-mode .merchant-quick-controls button,
 .night-mode .merchant-next-actions button,
 .night-mode .publication-history-tabs span,
 .night-mode .menu-row-tags span,
@@ -4534,6 +4535,29 @@ select:focus-visible {
   color: #fffbea;
   background: #303426;
   border-color: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .merchant-quick-controls button.is-on,
+.night-mode .merchant-focus-actions button.primary,
+.night-mode .merchant-next-actions button.primary {
+  color: #172112;
+  background: linear-gradient(135deg, #9bf01f, #78dfcc);
+  border-color: rgba(167, 233, 42, 0.38);
+}
+
+.night-mode .merchant-quick-controls button.is-off {
+  color: #fffbea;
+  background: #10150f;
+  border-color: rgba(255, 251, 234, 0.12);
+}
+
+.night-mode .merchant-quick-controls button:disabled,
+.night-mode .merchant-focus-actions button:disabled,
+.night-mode .merchant-next-actions button:disabled {
+  color: rgba(255, 251, 234, 0.56);
+  background: rgba(255, 251, 234, 0.08);
+  border-color: rgba(255, 251, 234, 0.08);
+  opacity: 1;
 }
 
 .night-mode .admin-tabs button,
@@ -12760,7 +12784,18 @@ html.android-compat .android-safe-actions strong {
 }
 
 html.android-compat .android-safe-actions:not(.android-account-options) button:first-child {
+  color: #172112;
   background: #a7e92a !important;
+}
+
+html.android-compat .night-mode .android-safe-actions:not(.android-account-options) button:first-child {
+  color: #172112 !important;
+  background: #9bf01f !important;
+  border-color: rgba(167, 233, 42, 0.45);
+}
+
+html.android-compat .night-mode .android-safe-actions:not(.android-account-options) button:first-child small {
+  color: rgba(23, 33, 18, 0.72) !important;
 }
 
 html.android-compat .android-safe-plan-card {
@@ -13285,6 +13320,23 @@ html.android-compat .android-safe-dashboard-actions {
 
 html.android-compat .android-safe-dashboard-actions button:nth-child(2) {
   background: #fffdf7 !important;
+}
+
+html.android-compat .night-mode .android-safe-dashboard-actions button:nth-child(2) {
+  color: #fffbea !important;
+  background: #10150f !important;
+  border-color: rgba(255, 251, 234, 0.14);
+}
+
+html.android-compat .night-mode .android-safe-dashboard-actions button:nth-child(2) small {
+  color: rgba(255, 251, 234, 0.72) !important;
+}
+
+html.android-compat .night-mode .android-safe-dashboard-actions button:disabled {
+  color: rgba(255, 251, 234, 0.56) !important;
+  background: rgba(255, 251, 234, 0.08) !important;
+  border-color: rgba(255, 251, 234, 0.08);
+  opacity: 1;
 }
 
 html.android-compat .android-safe-field-title {

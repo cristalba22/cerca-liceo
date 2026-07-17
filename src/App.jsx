@@ -76,42 +76,65 @@ const realDataMode = cercaApi.isSupabaseEnabled()
 const liceoMapQuery = 'Barrio Liceo Procrear Cordoba Argentina'
 const liceoMapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(liceoMapQuery)}&output=embed`
 const liceoMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(liceoMapQuery)}`
-const liceoMapBounds = {
-  north: -31.3415,
-  south: -31.3735,
-  west: -64.1350,
-  east: -64.1040,
-}
 
-const clampMapPercent = (value) => Math.max(8, Math.min(92, Number(value) || 50))
-
-const mapPointToCoords = ({ x = 50, y = 50 } = {}) => {
-  const safeX = clampMapPercent(x)
-  const safeY = clampMapPercent(y)
-  const lat = liceoMapBounds.north + ((liceoMapBounds.south - liceoMapBounds.north) * safeY / 100)
-  const lng = liceoMapBounds.west + ((liceoMapBounds.east - liceoMapBounds.west) * safeX / 100)
-  return {
-    lat: Number(lat.toFixed(6)),
-    lng: Number(lng.toFixed(6)),
-    x: safeX,
-    y: safeY,
+const parseMapCoordinates = (value = '') => {
+  const text = String(value).trim()
+  if (!text) return null
+  const normalized = text
+    .replace(/%2C/gi, ',')
+    .replace(/\s+/g, ' ')
+  const numberPattern = '-?\\d+(?:[.,]\\d+)?'
+  const patterns = [
+    new RegExp(`@(${numberPattern}),\\s*(${numberPattern})`),
+    new RegExp(`!3d(${numberPattern})!4d(${numberPattern})`),
+    new RegExp(`(?:q|query)=(${numberPattern})\\s*[,;]\\s*(${numberPattern})`, 'i'),
+    new RegExp(`(${numberPattern})\\s*[,;]\\s*(${numberPattern})`),
+  ]
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern)
+    if (!match) continue
+    const lat = Number(String(match[1]).replace(',', '.'))
+    const lng = Number(String(match[2]).replace(',', '.'))
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    ) {
+      return { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) }
+    }
   }
+  return null
 }
 
-const coordsToMapPoint = ({ lat, lng } = {}) => {
-  if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return { x: 50, y: 50 }
-  const x = ((Number(lng) - liceoMapBounds.west) / (liceoMapBounds.east - liceoMapBounds.west)) * 100
-  const y = ((Number(lat) - liceoMapBounds.north) / (liceoMapBounds.south - liceoMapBounds.north)) * 100
-  return {
-    x: clampMapPercent(x),
-    y: clampMapPercent(y),
+const getLocationSearchQuery = (business = {}) => {
+  if (hasBusinessPin(business)) {
+    return `${business.locationLat ?? business.location_lat},${business.locationLng ?? business.location_lng}`
   }
+  return `${business.address || business.reference || business.section || liceoMapQuery}, Cordoba, Argentina`
 }
 
-const hasBusinessPin = (business = {}) => (
-  Number.isFinite(Number(business.locationLat ?? business.location_lat)) &&
-  Number.isFinite(Number(business.locationLng ?? business.location_lng))
+const getLocationEmbedUrl = (business = {}) => (
+  `https://www.google.com/maps?q=${encodeURIComponent(getLocationSearchQuery(business))}&output=embed`
 )
+
+const hasBusinessPin = (business = {}) => {
+  const latValue = business.locationLat ?? business.location_lat
+  const lngValue = business.locationLng ?? business.location_lng
+  if (String(latValue ?? '').trim() === '' || String(lngValue ?? '').trim() === '') return false
+  const lat = Number(latValue)
+  const lng = Number(lngValue)
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  )
+}
 
 const getBusinessMapUrl = (business = {}) => {
   const lat = business.locationLat ?? business.location_lat
@@ -2165,19 +2188,17 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     setSaveStatus('')
   }
 
-  const updateMapPin = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    const x = ((event.clientX - rect.left) / rect.width) * 100
-    const y = ((event.clientY - rect.top) / rect.height) * 100
-    const coords = mapPointToCoords({ x, y })
+  const updateMapLink = (value) => {
+    const coords = parseMapCoordinates(value)
     setLocalDraft((current) => ({
       ...current,
       locationMode: 'pin',
       hasPublicAddress: current.businessType !== 'entrepreneur',
-      locationLat: coords.lat,
-      locationLng: coords.lng,
-      locationPrecision: 'approximate',
-      address: current.address || `${current.section} - pin aproximado`,
+      locationLat: coords?.lat ?? current.locationLat,
+      locationLng: coords?.lng ?? current.locationLng,
+      locationPrecision: coords ? 'exact' : current.locationPrecision,
+      locationNote: value,
+      address: current.address || `${current.section || 'Liceo Procrear'} - ubicacion marcada`,
     }))
     setSaveStatus('')
   }
@@ -2297,9 +2318,10 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   ].filter(Boolean).length
   const completion = Math.round((completedFields / 9) * 100)
   const scheduleLabel = formatSchedule(localDraft)
-  const mapPoint = coordsToMapPoint({ lat: localDraft.locationLat, lng: localDraft.locationLng })
   const locationMode = localDraft.businessType === 'entrepreneur' ? 'none' : (localDraft.locationMode || 'address')
   const hasPinLocation = locationMode === 'pin' && hasBusinessPin(localDraft)
+  const localMapEmbedUrl = getLocationEmbedUrl(localDraft)
+  const localMapUrl = getBusinessMapUrl(localDraft)
   const hasPublicLocation = hasBusinessPublicAddress(localDraft) || hasPinLocation || localDraft.businessType === 'entrepreneur'
   const publicLocationLabel = localDraft.businessType === 'entrepreneur'
     ? 'Sin direccion publica'
@@ -2608,22 +2630,27 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                 </button>
               </div>
               {locationMode === 'pin' && (
-                <div className="tap-map-editor android-safe-map-picker">
-                  <button type="button" className="tap-map-canvas" onClick={updateMapPin} aria-label="Tocar mapa para ubicar el local">
-                    <span className="map-label map-label-procrear">Liceo Procrear</span>
-                    <span className="map-label map-label-one">1ra</span>
-                    <span className="map-label map-label-two">2da</span>
-                    <span className="map-label map-label-three">3ra</span>
-                    <i className="map-street street-one"></i>
-                    <i className="map-street street-two"></i>
-                    <i className="map-street street-three"></i>
-                    <b className="tap-map-pin" style={{ left: `${mapPoint.x}%`, top: `${mapPoint.y}%` }}>
-                      <MapPin size={26} />
-                    </b>
-                  </button>
+                <div className="tap-map-editor real-pin-editor android-safe-map-picker">
+                  <div className="real-pin-map">
+                    <iframe title="Mapa real para marcar local" src={localMapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+                  </div>
+                  <div className="map-link-row">
+                    <a className="map-link-button" href={localMapUrl} target="_blank" rel="noreferrer">
+                      Abrir Google Maps
+                    </a>
+                    <span>{hasPinLocation ? `${localDraft.locationLat}, ${localDraft.locationLng}` : 'Busca tu punto y copia coordenadas o link.'}</span>
+                  </div>
+                  <label className="map-coordinates-field">
+                    <span>Link o coordenadas de Google Maps</span>
+                    <input
+                      value={localDraft.locationNote || ''}
+                      onChange={(event) => updateMapLink(event.target.value)}
+                      placeholder="-31.36782, -64.129397 o link de Maps"
+                    />
+                  </label>
                   <div className="tap-map-help">
-                    <strong>{hasPinLocation ? 'Pin marcado' : 'Toca el mapa'}</strong>
-                    <span>{hasPinLocation ? 'Despues guarda la ficha.' : 'Sirve cuando no hay calle o numero claro.'}</span>
+                    <strong>{hasPinLocation ? 'Ubicacion real guardada' : 'Todavia falta el punto real'}</strong>
+                    <span>{hasPinLocation ? 'Despues guarda la ficha.' : 'Si no lo tenes ahora, podes completarlo despues.'}</span>
                   </div>
                 </div>
               )}
@@ -3139,22 +3166,27 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                     </button>
                   </div>
                   {locationMode === 'pin' && (
-                    <div className="tap-map-editor">
-                      <button type="button" className="tap-map-canvas" onClick={updateMapPin} aria-label="Tocar mapa para ubicar el local">
-                        <span className="map-label map-label-procrear">Liceo Procrear</span>
-                        <span className="map-label map-label-one">1ra</span>
-                        <span className="map-label map-label-two">2da</span>
-                        <span className="map-label map-label-three">3ra</span>
-                        <i className="map-street street-one"></i>
-                        <i className="map-street street-two"></i>
-                        <i className="map-street street-three"></i>
-                        <b className="tap-map-pin" style={{ left: `${mapPoint.x}%`, top: `${mapPoint.y}%` }}>
-                          <MapPin size={28} />
-                        </b>
-                      </button>
+                    <div className="tap-map-editor real-pin-editor">
+                      <div className="real-pin-map">
+                        <iframe title="Mapa real para marcar local" src={localMapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+                      </div>
+                      <div className="map-link-row">
+                        <a className="map-link-button" href={localMapUrl} target="_blank" rel="noreferrer">
+                          Abrir Google Maps
+                        </a>
+                        <span>{hasPinLocation ? `${localDraft.locationLat}, ${localDraft.locationLng}` : 'Busca tu local y copia el punto.'}</span>
+                      </div>
+                      <label className="map-coordinates-field">
+                        <span>Link o coordenadas de Google Maps</span>
+                        <input
+                          value={localDraft.locationNote || ''}
+                          onChange={(event) => updateMapLink(event.target.value)}
+                          placeholder="-31.36782, -64.129397 o link de Maps"
+                        />
+                      </label>
                       <div className="tap-map-help">
-                        <strong>{hasPinLocation ? 'Pin guardado en el borrador' : 'Toca el mapa para poner el pin'}</strong>
-                        <span>{hasPinLocation ? `${localDraft.locationLat}, ${localDraft.locationLng}` : 'Despues agrega una referencia como manzana, plaza o esquina cercana.'}</span>
+                        <strong>{hasPinLocation ? 'Ubicacion real guardada' : 'Todavia falta el punto real'}</strong>
+                        <span>{hasPinLocation ? 'El vecino podra abrir Maps y llegar al punto marcado.' : 'Si no sabes copiar el link, deja una referencia y lo completas despues.'}</span>
                       </div>
                     </div>
                   )}
@@ -4805,8 +4837,9 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
   })
   const isMerchant = accountType === 'merchant'
   const registerLocationMode = form.businessType === 'entrepreneur' ? 'none' : (form.locationMode || 'address')
-  const registerMapPoint = coordsToMapPoint({ lat: form.locationLat, lng: form.locationLng })
   const registerHasPinLocation = registerLocationMode === 'pin' && hasBusinessPin(form)
+  const registerMapEmbedUrl = getLocationEmbedUrl({ ...form, section: form.section || 'Liceo Procrear' })
+  const registerMapUrl = getBusinessMapUrl({ ...form, section: form.section || 'Liceo Procrear' })
   const updateForm = (field, value) => {
     const cleanValue = field === 'whatsapp'
       ? value.replace(/\D/g, '').slice(0, 15)
@@ -4829,19 +4862,16 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
       locationLng: locationMode === 'pin' ? current.locationLng : '',
     }))
   }
-  const updateRegisterMapPin = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    const x = ((event.clientX - rect.left) / rect.width) * 100
-    const y = ((event.clientY - rect.top) / rect.height) * 100
-    const coords = mapPointToCoords({ x, y })
+  const updateRegisterMapLink = (value) => {
+    const coords = parseMapCoordinates(value)
     setForm((current) => ({
       ...current,
       locationMode: 'pin',
-      locationLat: coords.lat,
-      locationLng: coords.lng,
-      locationPrecision: 'approximate',
-      address: current.address || `${current.section || 'Liceo Procrear'} - pin aproximado`,
-      locationNote: current.locationNote || current.reference,
+      locationLat: coords?.lat ?? current.locationLat,
+      locationLng: coords?.lng ?? current.locationLng,
+      locationPrecision: coords ? 'exact' : current.locationPrecision,
+      locationNote: value,
+      address: current.address || `${current.section || 'Liceo Procrear'} - ubicacion marcada`,
     }))
   }
   const validateRegisterForm = () => {
@@ -5062,22 +5092,27 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
                     </button>
                   </div>
                   {registerLocationMode === 'pin' && (
-                    <div className="tap-map-editor android-safe-map-picker">
-                      <button type="button" className="tap-map-canvas" onClick={updateRegisterMapPin} aria-label="Tocar mapa para marcar ubicacion aproximada">
-                        <span className="map-label map-label-procrear">Liceo Procrear</span>
-                        <span className="map-label map-label-one">1ra</span>
-                        <span className="map-label map-label-two">2da</span>
-                        <span className="map-label map-label-three">3ra</span>
-                        <i className="map-street street-one"></i>
-                        <i className="map-street street-two"></i>
-                        <i className="map-street street-three"></i>
-                        <b className="tap-map-pin" style={{ left: `${registerMapPoint.x}%`, top: `${registerMapPoint.y}%` }}>
-                          <MapPin size={26} />
-                        </b>
-                      </button>
+                    <div className="tap-map-editor real-pin-editor android-safe-map-picker">
+                      <div className="real-pin-map">
+                        <iframe title="Mapa real para marcar local" src={registerMapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+                      </div>
+                      <div className="map-link-row">
+                        <a className="map-link-button" href={registerMapUrl} target="_blank" rel="noreferrer">
+                          Abrir Google Maps
+                        </a>
+                        <span>{registerHasPinLocation ? `${form.locationLat}, ${form.locationLng}` : 'Busca tu punto y copia coordenadas o link.'}</span>
+                      </div>
+                      <label className="map-coordinates-field">
+                        <span>Link o coordenadas de Google Maps</span>
+                        <input
+                          value={form.locationNote || ''}
+                          onChange={(event) => updateRegisterMapLink(event.target.value)}
+                          placeholder="-31.36782, -64.129397 o link de Maps"
+                        />
+                      </label>
                       <div className="tap-map-help">
-                        <strong>{registerHasPinLocation ? 'Pin marcado' : 'Toca el mapa'}</strong>
-                        <span>{registerHasPinLocation ? 'Se guarda como ubicacion aproximada.' : 'Ideal para manzanas sin calle o numero.'}</span>
+                        <strong>{registerHasPinLocation ? 'Ubicacion real marcada' : 'Todavia falta el punto real'}</strong>
+                        <span>{registerHasPinLocation ? 'Se guarda para que el vecino abra Maps.' : 'Si no lo tenes ahora, podes cargarlo despues.'}</span>
                       </div>
                     </div>
                   )}
@@ -5339,22 +5374,27 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
                   </button>
                 </div>
                 {registerLocationMode === 'pin' && (
-                  <div className="tap-map-editor">
-                    <button type="button" className="tap-map-canvas" onClick={updateRegisterMapPin} aria-label="Tocar mapa para marcar ubicacion aproximada">
-                      <span className="map-label map-label-procrear">Liceo Procrear</span>
-                      <span className="map-label map-label-one">1ra</span>
-                      <span className="map-label map-label-two">2da</span>
-                      <span className="map-label map-label-three">3ra</span>
-                      <i className="map-street street-one"></i>
-                      <i className="map-street street-two"></i>
-                      <i className="map-street street-three"></i>
-                      <b className="tap-map-pin" style={{ left: `${registerMapPoint.x}%`, top: `${registerMapPoint.y}%` }}>
-                        <MapPin size={26} />
-                      </b>
-                    </button>
+                  <div className="tap-map-editor real-pin-editor">
+                    <div className="real-pin-map">
+                      <iframe title="Mapa real para marcar local" src={registerMapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                    <div className="map-link-row">
+                      <a className="map-link-button" href={registerMapUrl} target="_blank" rel="noreferrer">
+                        Abrir Google Maps
+                      </a>
+                      <span>{registerHasPinLocation ? `${form.locationLat}, ${form.locationLng}` : 'Busca tu punto y copia coordenadas o link.'}</span>
+                    </div>
+                    <label className="map-coordinates-field">
+                      <span>Link o coordenadas de Google Maps</span>
+                      <input
+                        value={form.locationNote || ''}
+                        onChange={(event) => updateRegisterMapLink(event.target.value)}
+                        placeholder="-31.36782, -64.129397 o link de Maps"
+                      />
+                    </label>
                     <div className="tap-map-help">
-                      <strong>{registerHasPinLocation ? 'Pin marcado' : 'Toca el mapa'}</strong>
-                      <span>{registerHasPinLocation ? 'Se guarda como ubicacion aproximada.' : 'Ideal para Liceo Procrear si no hay calle o numero claro.'}</span>
+                      <strong>{registerHasPinLocation ? 'Ubicacion real marcada' : 'Todavia falta el punto real'}</strong>
+                      <span>{registerHasPinLocation ? 'Se guarda para que el vecino abra Maps.' : 'Si no lo tenes ahora, podes cargarlo despues.'}</span>
                     </div>
                   </div>
                 )}

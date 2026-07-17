@@ -4420,19 +4420,17 @@ select:focus-visible {
   background: #9bf01a;
 }
 
-.night-mode .tap-map-canvas {
-  background:
-    linear-gradient(90deg, rgba(130, 219, 204, 0.18) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(130, 219, 204, 0.18) 1px, transparent 1px),
-    #182016;
-  background-size: 30px 30px, 30px 30px, auto;
+.night-mode .real-pin-map,
+.night-mode .map-link-row,
+.night-mode .map-coordinates-field input {
+  color: #fffbea;
+  background: #24281f;
   border-color: rgba(255, 251, 234, 0.1);
 }
 
-.night-mode .tap-map-pin {
-  color: #ff806f;
-  background: #fffbea;
-  border-color: #ff806f;
+.night-mode .map-link-row span,
+.night-mode .map-coordinates-field span {
+  color: #d5dcc3;
 }
 
 .night-mode .founder-plan-cta {
@@ -6398,116 +6396,80 @@ select:focus-visible {
   gap: 10px;
 }
 
-.tap-map-canvas {
+.real-pin-editor {
+  gap: 12px;
+}
+
+.real-pin-map {
   position: relative;
-  display: block;
-  width: 100%;
   min-height: 220px;
   overflow: hidden;
-  padding: 0;
-  cursor: crosshair;
-  background:
-    linear-gradient(90deg, rgba(45, 160, 175, 0.12) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(45, 160, 175, 0.12) 1px, transparent 1px),
-    linear-gradient(135deg, #fff8e8, #eaffbf);
-  background-size: 30px 30px, 30px 30px, auto;
+  background: #f6eedc;
   border: 1px solid rgba(16, 21, 15, 0.1);
   border-radius: 20px;
 }
 
-.tap-map-canvas::before,
-.tap-map-canvas::after {
-  content: "";
-  position: absolute;
-  left: -10%;
-  width: 125%;
-  height: 16px;
-  background: rgba(255, 255, 255, 0.78);
+.real-pin-map iframe {
+  display: block;
+  width: 100%;
+  height: 220px;
+  border: 0;
+}
+
+.map-link-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  background: #f6eedc;
+  border: 1px solid rgba(16, 21, 15, 0.06);
+  border-radius: 16px;
+}
+
+.map-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  color: #10150f;
+  font-size: 12px;
+  font-weight: 1000;
+  text-decoration: none;
+  background: #9bf01a;
   border-radius: 999px;
 }
 
-.tap-map-canvas::before {
-  top: 40%;
-  transform: rotate(-18deg);
+.map-link-row span {
+  flex: 1 1 150px;
+  color: #665f53;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.25;
 }
 
-.tap-map-canvas::after {
-  top: 62%;
-  transform: rotate(12deg);
+.map-coordinates-field {
+  display: grid;
+  gap: 7px;
 }
 
-.map-label {
-  position: absolute;
-  z-index: 1;
-  color: #6d7460;
-  font-size: 11px;
+.map-coordinates-field span {
+  color: #665f53;
+  font-size: 10px;
   font-weight: 1000;
   text-transform: uppercase;
 }
 
-.map-label-procrear {
-  left: 11%;
-  bottom: 18%;
-}
-
-.map-label-one {
-  right: 18%;
-  top: 22%;
-}
-
-.map-label-two {
-  left: 16%;
-  top: 34%;
-}
-
-.map-label-three {
-  right: 18%;
-  bottom: 24%;
-}
-
-.map-street {
-  position: absolute;
-  z-index: 1;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 999px;
-}
-
-.street-one {
-  left: 26%;
-  top: 30%;
-  width: 54%;
-  transform: rotate(36deg);
-}
-
-.street-two {
-  left: 10%;
-  top: 58%;
-  width: 72%;
-  transform: rotate(-8deg);
-}
-
-.street-three {
-  left: 43%;
-  bottom: 18%;
-  width: 46%;
-  transform: rotate(22deg);
-}
-
-.tap-map-pin {
-  position: absolute;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin: -35px 0 0 -22px;
-  color: #ff4e3d;
+.map-coordinates-field input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  color: #172112;
+  font-size: 13px;
+  font-weight: 900;
   background: #fffbea;
-  border: 3px solid #ff4e3d;
-  border-radius: 999px;
-  box-shadow: 0 10px 18px rgba(16, 21, 15, 0.16);
-  pointer-events: none;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 16px;
 }
 
 .tap-map-help,
@@ -13195,8 +13157,10 @@ html.android-compat .android-safe-map-picker {
   border: 0;
 }
 
-html.android-compat .android-safe-map-picker .tap-map-canvas {
+html.android-compat .android-safe-map-picker .real-pin-map,
+html.android-compat .android-safe-map-picker .real-pin-map iframe {
   min-height: 190px;
+  height: 190px;
   box-shadow: none;
 }
 

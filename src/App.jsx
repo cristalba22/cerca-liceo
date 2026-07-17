@@ -79,6 +79,26 @@ const liceoMapQuery = 'Barrio Liceo Procrear Cordoba Argentina'
 const liceoMapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(liceoMapQuery)}&output=embed`
 const liceoMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(liceoMapQuery)}`
 const liceoMapCenter = { lat: -31.3583, lng: -64.1212 }
+const liceoMapBounds = {
+  north: -31.3518,
+  south: -31.3658,
+  west: -64.1328,
+  east: -64.1088,
+}
+
+const clampPercent = (value, min = 8, max = 92) => Math.max(min, Math.min(max, value))
+
+const getMapPointFromCoordinates = (business = {}, bounds = liceoMapBounds) => {
+  if (!hasBusinessPin(business)) return null
+  const lat = Number(business.locationLat ?? business.location_lat)
+  const lng = Number(business.locationLng ?? business.location_lng)
+  const x = ((lng - bounds.west) / (bounds.east - bounds.west)) * 100
+  const y = ((bounds.north - lat) / (bounds.north - bounds.south)) * 100
+  return {
+    x: clampPercent(x),
+    y: clampPercent(y),
+  }
+}
 
 const parseMapCoordinates = (value = '') => {
   const text = String(value).trim()
@@ -1786,7 +1806,30 @@ function ScrollCue({ label = 'Desliza para ver mas' }) {
 }
 
 function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirectory }) {
-  const visibleBusinesses = businesses.filter((business) => business.isPublic !== false).slice(0, 8)
+  const visibleBusinesses = businesses
+    .filter((business) => business.isPublic !== false)
+    .sort((a, b) => Number(hasBusinessPin(b)) - Number(hasBusinessPin(a)))
+    .slice(0, 8)
+  const pinnedBusinesses = visibleBusinesses.filter((business) => hasBusinessPin(business))
+  const pinnedCoordinates = pinnedBusinesses.map((business) => ({
+    lat: Number(business.locationLat ?? business.location_lat),
+    lng: Number(business.locationLng ?? business.location_lng),
+  }))
+  const liveBounds = pinnedCoordinates.length > 1
+    ? (() => {
+        const lats = pinnedCoordinates.map((point) => point.lat)
+        const lngs = pinnedCoordinates.map((point) => point.lng)
+        const latPadding = Math.max((Math.max(...lats) - Math.min(...lats)) * 0.22, 0.0016)
+        const lngPadding = Math.max((Math.max(...lngs) - Math.min(...lngs)) * 0.22, 0.0024)
+        return {
+          north: Math.max(...lats) + latPadding,
+          south: Math.min(...lats) - latPadding,
+          west: Math.min(...lngs) - lngPadding,
+          east: Math.max(...lngs) + lngPadding,
+        }
+      })()
+    : liceoMapBounds
+  const pendingPinBusinesses = visibleBusinesses.filter((business) => !hasBusinessPin(business))
   const openBusinesses = visibleBusinesses.filter((business) => getOpenStatus(business).open)
   const pinPositions = [
     { x: 34, y: 45 },
@@ -1804,8 +1847,10 @@ function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirec
       <div className="live-map-head">
         <div>
           <span>Locales cerca</span>
-          <strong>Mapa vivo del barrio</strong>
-          <small>{openBusinesses.length} abiertos ahora - {visibleBusinesses.length} en el radar</small>
+          <strong>Mapa de comercios</strong>
+          <small>
+            {openBusinesses.length} abiertos ahora - {pinnedBusinesses.length} con pin real
+          </small>
         </div>
         <a href={liceoMapUrl} target="_blank" rel="noreferrer">
           Abrir Maps
@@ -1814,6 +1859,10 @@ function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirec
       </div>
 
       <div className="live-map-canvas">
+        <span className="live-map-badge">
+          <MapPin size={12} />
+          Pines cargados por comercios
+        </span>
         <span className="map-zone zone-procrear">Liceo Procrear</span>
         <span className="map-zone zone-1">1ra seccion</span>
         <span className="map-zone zone-2">2da seccion</span>
@@ -1822,10 +1871,12 @@ function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirec
         <i className="map-road road-two"></i>
         <i className="map-road road-three"></i>
 
-        {visibleBusinesses.length ? (
-          visibleBusinesses.map((business, index) => {
+        {pinnedBusinesses.length ? (
+          pinnedBusinesses.map((business, index) => {
             const status = getOpenStatus(business)
-            const position = pinPositions[index % pinPositions.length]
+            const position = pinnedBusinesses.length === 1
+              ? { x: 50, y: 48 }
+              : (getMapPointFromCoordinates(business, liveBounds) || pinPositions[index % pinPositions.length])
 
             return (
               <button
@@ -1849,7 +1900,8 @@ function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirec
         ) : (
           <div className="live-map-empty">
             <Store size={20} />
-            <strong>Todavia no hay locales cargados</strong>
+            <strong>Todavia no hay locales con pin real</strong>
+            <small>Los locales aparecen aca cuando marcan su punto.</small>
           </div>
         )}
       </div>
@@ -1857,13 +1909,20 @@ function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirec
       <div className="live-map-list">
         {visibleBusinesses.slice(0, 5).map((business, index) => {
           const status = getOpenStatus(business)
+          const mapUrl = getBusinessMapUrl(business)
+          const hasPin = hasBusinessPin(business)
 
           return (
-            <button type="button" key={business.id || `${business.name}-chip-${index}`} onClick={() => onOpen(business)}>
-              <i className={status.open ? 'is-open' : 'is-closed'}></i>
-              <span>{business.name}</span>
-              <small>{business.section}</small>
-            </button>
+            <article className="live-map-local" key={business.id || `${business.name}-chip-${index}`}>
+              <button type="button" onClick={() => onOpen(business)}>
+                <i className={status.open ? 'is-open' : 'is-closed'}></i>
+                <span>{business.name}</span>
+                <small>{hasPin ? `${business.section} - pin real` : `${business.section} - sin pin exacto`}</small>
+              </button>
+              <a href={mapUrl} target="_blank" rel="noreferrer" aria-label={`Abrir ubicacion de ${business.name} en Maps`}>
+                Maps
+              </a>
+            </article>
           )
         })}
         <button className="see-all" type="button" onClick={onDirectory}>
@@ -1871,7 +1930,12 @@ function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirec
           <ChevronRight size={14} />
         </button>
       </div>
-      <ScrollCue label="Toca un pin o desliza locales" />
+      {pendingPinBusinesses.length > 0 && (
+        <p className="live-map-note">
+          {pendingPinBusinesses.length} local{pendingPinBusinesses.length === 1 ? '' : 'es'} todavia sin pin exacto. Igual aparecen en la guia.
+        </p>
+      )}
+      <ScrollCue label="Toca un pin, Maps o desliza locales" />
     </section>
   )
 }

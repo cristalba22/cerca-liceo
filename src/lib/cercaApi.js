@@ -86,6 +86,11 @@ const normalizeBusiness = (business = {}) => {
     section: safeBusiness.section || 'Liceo Procrear',
     address: safeBusiness.address || '',
     reference: safeBusiness.reference || 'Referencia a completar',
+    locationMode: safeBusiness.locationMode || safeBusiness.location_mode || (safeBusiness.businessType === 'entrepreneur' || safeBusiness.business_type === 'entrepreneur' ? 'none' : safeBusiness.location_lat && safeBusiness.location_lng ? 'pin' : 'address'),
+    locationLat: safeBusiness.locationLat ?? safeBusiness.location_lat ?? '',
+    locationLng: safeBusiness.locationLng ?? safeBusiness.location_lng ?? '',
+    locationPrecision: safeBusiness.locationPrecision || safeBusiness.location_precision || 'approximate',
+    locationNote: safeBusiness.locationNote || safeBusiness.location_note || '',
     hours: safeBusiness.hours || 'Horario a completar',
     openDays: safeBusiness.openDays || safeBusiness.open_days || ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
     openTime: safeBusiness.openTime || safeBusiness.open_time || '',
@@ -132,6 +137,11 @@ const publicBusinessColumns = `
   section,
   address,
   reference,
+  location_mode,
+  location_lat,
+  location_lng,
+  location_precision,
+  location_note,
   hours,
   open_days,
   open_time,
@@ -163,6 +173,13 @@ const publicBusinessColumns = `
 `
 
 const publicBusinessSelectWithProducts = `${publicBusinessColumns}, products(*)`
+
+const withoutLocationColumns = (columns = '') => columns.replace(
+  /\s*location_mode,\s*location_lat,\s*location_lng,\s*location_precision,\s*location_note,/g,
+  ''
+)
+
+const compatiblePublicBusinessSelectWithProducts = `${withoutLocationColumns(publicBusinessColumns)}, products(*)`
 
 const mergeById = (items) => {
   const seen = new Set()
@@ -302,6 +319,11 @@ const mapBusinessRow = (row) => ({
   section: row.section,
   address: cleanText(row.address),
   reference: cleanText(row.reference),
+  locationMode: row.location_mode || (row.business_type === 'entrepreneur' ? 'none' : row.location_lat && row.location_lng ? 'pin' : 'address'),
+  locationLat: row.location_lat ?? '',
+  locationLng: row.location_lng ?? '',
+  locationPrecision: row.location_precision || 'approximate',
+  locationNote: cleanText(row.location_note),
   hours: cleanText(row.hours),
   openDays: row.open_days || [],
   openTime: row.open_time || '',
@@ -352,6 +374,11 @@ const mapOfferRow = (row) => ({
   createdAt: row.created_at || '',
   address: cleanText(row.businesses?.address || row.address),
   reference: cleanText(row.businesses?.reference || row.reference),
+  locationMode: row.businesses?.location_mode || '',
+  locationLat: row.businesses?.location_lat ?? '',
+  locationLng: row.businesses?.location_lng ?? '',
+  locationPrecision: row.businesses?.location_precision || 'approximate',
+  locationNote: cleanText(row.businesses?.location_note),
   hours: cleanText(row.businesses?.hours || row.hours),
   openDays: row.businesses?.open_days || [],
   openTime: row.businesses?.open_time || '',
@@ -380,6 +407,11 @@ const mapOfferRowWithBusiness = (row, business = {}) => mapOfferRow({
     section: business.section,
     address: business.address,
     reference: business.reference,
+    location_mode: business.locationMode || business.location_mode,
+    location_lat: business.locationLat ?? business.location_lat,
+    location_lng: business.locationLng ?? business.location_lng,
+    location_precision: business.locationPrecision || business.location_precision,
+    location_note: business.locationNote || business.location_note,
     hours: business.hours,
     open_days: business.openDays || business.open_days,
     open_time: business.openTime || business.open_time,
@@ -746,6 +778,11 @@ export const cercaApi = {
         section,
         address,
         reference,
+        location_mode,
+        location_lat,
+        location_lng,
+        location_precision,
+        location_note,
         hours,
         open_days,
         open_time,
@@ -772,7 +809,25 @@ export const cercaApi = {
     if (category !== 'Todas') request = request.eq('category', category)
     if (query.trim()) request = request.ilike('search_text', `%${query.trim()}%`)
 
-    const { data, error } = await request
+    let { data, error } = await request
+    if (error && /location_/i.test(error.message || '')) {
+      let retryRequest = supabase
+        .from('offers')
+        .select(withoutLocationColumns(publicOfferColumns))
+        .eq('is_active', true)
+        .lte('starts_at', new Date().toISOString())
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (section !== 'Todos') retryRequest = retryRequest.eq('section', section)
+      if (category !== 'Todas') retryRequest = retryRequest.eq('category', category)
+      if (query.trim()) retryRequest = retryRequest.ilike('search_text', `%${query.trim()}%`)
+
+      const retry = await retryRequest
+      data = retry.data
+      error = retry.error
+    }
     if (error) {
       const cachedOffers = readStorage(PUBLIC_OFFERS_CACHE_KEY) || []
       return { offers: cachedOffers, error: cachedOffers.length ? null : error }
@@ -860,6 +915,11 @@ export const cercaApi = {
       section,
       address,
       reference,
+      location_mode,
+      location_lat,
+      location_lng,
+      location_precision,
+      location_note,
       hours,
       open_days,
       open_time,
@@ -899,7 +959,25 @@ export const cercaApi = {
     if (openOnly) request = request.eq('is_open', true)
     if (query.trim()) request = request.ilike('search_text', `%${query.trim()}%`)
 
-    const { data, error } = await request
+    let { data, error } = await request
+    if (error && /location_/i.test(error.message || '')) {
+      let retryRequest = supabase
+        .from('businesses')
+        .select(withoutLocationColumns(publicBusinessColumns))
+        .eq('is_public', true)
+        .order('verified', { ascending: false })
+        .order('updated_at', { ascending: false })
+        .limit(80)
+
+      if (section !== 'Todos') retryRequest = retryRequest.eq('section', section)
+      if (category !== 'Todas') retryRequest = retryRequest.eq('category', category)
+      if (openOnly) retryRequest = retryRequest.eq('is_open', true)
+      if (query.trim()) retryRequest = retryRequest.ilike('search_text', `%${query.trim()}%`)
+
+      const retry = await retryRequest
+      data = retry.data
+      error = retry.error
+    }
     if (error) {
       const cachedBusinesses = readStorage(PUBLIC_BUSINESSES_CACHE_KEY) || []
       return { businesses: cachedBusinesses.map(normalizeBusiness), error: cachedBusinesses.length ? null : error }
@@ -1119,6 +1197,11 @@ export const cercaApi = {
       section: draft.section,
       address: draft.address,
       reference: draft.reference,
+      location_mode: draft.businessType === 'entrepreneur' ? 'none' : draft.locationMode || 'address',
+      location_lat: draft.locationMode === 'pin' ? draft.locationLat || null : null,
+      location_lng: draft.locationMode === 'pin' ? draft.locationLng || null : null,
+      location_precision: draft.locationMode === 'pin' ? draft.locationPrecision || 'approximate' : null,
+      location_note: draft.locationNote || draft.reference || null,
       hours: draft.hours,
       open_days: draft.openDays,
       open_time: draft.openTime,
@@ -1149,12 +1232,21 @@ export const cercaApi = {
       .select(publicBusinessSelectWithProducts)
       .single()
 
-    if (error && /business_type|has_public_address/i.test(error.message || '')) {
-      const { business_type: _businessType, has_public_address: _hasPublicAddress, ...compatiblePayload } = payload
+    if (error && /business_type|has_public_address|location_/i.test(error.message || '')) {
+      const {
+        business_type: _businessType,
+        has_public_address: _hasPublicAddress,
+        location_mode: _locationMode,
+        location_lat: _locationLat,
+        location_lng: _locationLng,
+        location_precision: _locationPrecision,
+        location_note: _locationNote,
+        ...compatiblePayload
+      } = payload
       const retry = await supabase
         .from('businesses')
         .upsert(compatiblePayload, { onConflict: 'owner_id' })
-        .select(publicBusinessSelectWithProducts)
+        .select(compatiblePublicBusinessSelectWithProducts)
         .single()
       data = retry.data
       error = retry.error

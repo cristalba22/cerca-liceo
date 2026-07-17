@@ -1,9 +1,38 @@
--- Permisos publicos minimos para que visitantes puedan ver home, guia, promos y mini carta.
--- RLS sigue activo: estas grants solo permiten que las policies decidan que filas se ven.
--- Importante: no usar `grant select on table public.businesses`, porque expondria admin_notes.
+-- Cerca Liceo - ubicacion por pin opcional para comercios.
+-- Ejecutar en Supabase SQL Editor. No borra datos existentes.
 
-grant usage on schema public to anon, authenticated;
+alter table public.businesses
+  add column if not exists location_mode text not null default 'address',
+  add column if not exists location_lat numeric(10, 6),
+  add column if not exists location_lng numeric(10, 6),
+  add column if not exists location_precision text not null default 'approximate',
+  add column if not exists location_note text;
 
+alter table public.businesses
+  drop constraint if exists businesses_location_mode_check;
+
+alter table public.businesses
+  add constraint businesses_location_mode_check
+  check (location_mode in ('address', 'pin', 'none'));
+
+alter table public.businesses
+  drop constraint if exists businesses_location_precision_check;
+
+alter table public.businesses
+  add constraint businesses_location_precision_check
+  check (location_precision in ('exact', 'approximate'));
+
+update public.businesses
+set location_mode = case
+  when business_type = 'entrepreneur' then 'none'
+  when has_public_address = false then 'none'
+  else coalesce(nullif(location_mode, ''), 'address')
+end
+where location_mode is null
+   or location_mode = ''
+   or (business_type = 'entrepreneur' and location_mode <> 'none');
+
+-- Mantener admin_notes privado, pero permitir leer el pin publico.
 revoke select on table public.businesses from anon, authenticated;
 
 grant select (
@@ -94,13 +123,3 @@ grant select (
   created_at,
   updated_at
 ) on public.businesses to authenticated;
-
-grant select on table public.offers to anon, authenticated;
-grant select on table public.products to anon, authenticated;
-
-do $$
-begin
-  if to_regclass('public.active_offers') is not null then
-    grant select on table public.active_offers to anon, authenticated;
-  end if;
-end $$;

@@ -50,6 +50,11 @@ create table if not exists public.businesses (
   section text not null,
   address text,
   reference text,
+  location_mode text not null default 'address' check (location_mode in ('address', 'pin', 'none')),
+  location_lat numeric(10, 6),
+  location_lng numeric(10, 6),
+  location_precision text not null default 'approximate' check (location_precision in ('exact', 'approximate')),
+  location_note text,
   hours text,
   open_days text[] not null default array['Lun','Mar','Mie','Jue','Vie','Sab'],
   open_time text,
@@ -87,6 +92,11 @@ create table if not exists public.businesses (
 alter table if exists public.businesses
   add column if not exists business_type text not null default 'local',
   add column if not exists has_public_address boolean not null default true,
+  add column if not exists location_mode text not null default 'address',
+  add column if not exists location_lat numeric(10, 6),
+  add column if not exists location_lng numeric(10, 6),
+  add column if not exists location_precision text not null default 'approximate',
+  add column if not exists location_note text,
   add column if not exists open_days text[] not null default array['Lun','Mar','Mie','Jue','Vie','Sab'],
   add column if not exists open_time text,
   add column if not exists close_time text,
@@ -95,6 +105,20 @@ alter table if exists public.businesses
   add column if not exists plan_status plan_status not null default 'free',
   add column if not exists paid_until date,
   add column if not exists admin_notes text;
+
+alter table if exists public.businesses
+  drop constraint if exists businesses_location_mode_check;
+
+alter table if exists public.businesses
+  add constraint businesses_location_mode_check
+  check (location_mode in ('address', 'pin', 'none'));
+
+alter table if exists public.businesses
+  drop constraint if exists businesses_location_precision_check;
+
+alter table if exists public.businesses
+  add constraint businesses_location_precision_check
+  check (location_precision in ('exact', 'approximate'));
 
 alter table if exists public.profiles
   add column if not exists role user_role not null default 'user';

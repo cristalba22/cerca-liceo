@@ -76,6 +76,51 @@ const realDataMode = cercaApi.isSupabaseEnabled()
 const liceoMapQuery = 'Barrio Liceo Procrear Cordoba Argentina'
 const liceoMapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(liceoMapQuery)}&output=embed`
 const liceoMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(liceoMapQuery)}`
+const liceoMapBounds = {
+  north: -31.3415,
+  south: -31.3735,
+  west: -64.1350,
+  east: -64.1040,
+}
+
+const clampMapPercent = (value) => Math.max(8, Math.min(92, Number(value) || 50))
+
+const mapPointToCoords = ({ x = 50, y = 50 } = {}) => {
+  const safeX = clampMapPercent(x)
+  const safeY = clampMapPercent(y)
+  const lat = liceoMapBounds.north + ((liceoMapBounds.south - liceoMapBounds.north) * safeY / 100)
+  const lng = liceoMapBounds.west + ((liceoMapBounds.east - liceoMapBounds.west) * safeX / 100)
+  return {
+    lat: Number(lat.toFixed(6)),
+    lng: Number(lng.toFixed(6)),
+    x: safeX,
+    y: safeY,
+  }
+}
+
+const coordsToMapPoint = ({ lat, lng } = {}) => {
+  if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return { x: 50, y: 50 }
+  const x = ((Number(lng) - liceoMapBounds.west) / (liceoMapBounds.east - liceoMapBounds.west)) * 100
+  const y = ((Number(lat) - liceoMapBounds.north) / (liceoMapBounds.south - liceoMapBounds.north)) * 100
+  return {
+    x: clampMapPercent(x),
+    y: clampMapPercent(y),
+  }
+}
+
+const hasBusinessPin = (business = {}) => (
+  Number.isFinite(Number(business.locationLat ?? business.location_lat)) &&
+  Number.isFinite(Number(business.locationLng ?? business.location_lng))
+)
+
+const getBusinessMapUrl = (business = {}) => {
+  const lat = business.locationLat ?? business.location_lat
+  const lng = business.locationLng ?? business.location_lng
+  if (hasBusinessPin(business)) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${business.address || business.section || 'Barrio Liceo'}, Cordoba, Argentina`)}`
+}
 
 const isUploadedImage = (image) => typeof image === 'string' && (
   image.startsWith('data:') ||
@@ -167,8 +212,13 @@ const hasBusinessPublicAddress = (business = {}) => {
   const safeBusiness = business || {}
   return (
     safeBusiness.hasPublicAddress !== false &&
-    Boolean(String(safeBusiness.address || '').trim()) &&
-    !String(safeBusiness.address || '').toLowerCase().includes('completar')
+    (
+      hasBusinessPin(safeBusiness) ||
+      (
+        Boolean(String(safeBusiness.address || '').trim()) &&
+        !String(safeBusiness.address || '').toLowerCase().includes('completar')
+      )
+    )
   )
 }
 
@@ -416,6 +466,11 @@ const buildLocalDraft = (local, account) => ({
   section: local?.section || account?.section || 'Liceo Procrear',
   address: local?.address || '',
   reference: local?.reference || '',
+  locationMode: local?.locationMode || (local?.businessType === 'entrepreneur' ? 'none' : hasBusinessPin(local) ? 'pin' : 'address'),
+  locationLat: local?.locationLat || '',
+  locationLng: local?.locationLng || '',
+  locationPrecision: local?.locationPrecision || 'approximate',
+  locationNote: local?.locationNote || '',
   hours: local?.hours || '',
   openDays: local?.openDays || [],
   openTime: local?.openTime || '',
@@ -2095,7 +2150,34 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       ...current,
       businessType,
       hasPublicAddress: businessType === 'local' ? current.hasPublicAddress !== false : false,
+      locationMode: businessType === 'entrepreneur' ? 'none' : current.locationMode === 'none' ? 'address' : current.locationMode,
       delivery: businessType === 'entrepreneur' && current.delivery === 'Retiro y delivery' ? 'Por encargo' : current.delivery,
+    }))
+    setSaveStatus('')
+  }
+
+  const updateLocationMode = (locationMode) => {
+    setLocalDraft((current) => ({
+      ...current,
+      locationMode,
+      hasPublicAddress: locationMode === 'none' ? false : current.businessType !== 'entrepreneur',
+    }))
+    setSaveStatus('')
+  }
+
+  const updateMapPin = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = ((event.clientX - rect.left) / rect.width) * 100
+    const y = ((event.clientY - rect.top) / rect.height) * 100
+    const coords = mapPointToCoords({ x, y })
+    setLocalDraft((current) => ({
+      ...current,
+      locationMode: 'pin',
+      hasPublicAddress: current.businessType !== 'entrepreneur',
+      locationLat: coords.lat,
+      locationLng: coords.lng,
+      locationPrecision: 'approximate',
+      address: current.address || `${current.section} - pin aproximado`,
     }))
     setSaveStatus('')
   }
@@ -2139,7 +2221,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   }
 
   const saveLocal = async () => {
-    const needsPublicAddress = localDraft.businessType !== 'entrepreneur' && localDraft.hasPublicAddress !== false
+    const needsPublicAddress = localDraft.businessType !== 'entrepreneur' && localDraft.hasPublicAddress !== false && localDraft.locationMode !== 'pin'
     const normalizedWhatsapp = normalizeArgentineWhatsapp(localDraft.whatsapp)
     const missing = [
       !localDraft.name.trim() && (localDraft.businessType === 'entrepreneur' ? 'nombre del emprendimiento' : 'nombre del local'),
@@ -2215,6 +2297,15 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   ].filter(Boolean).length
   const completion = Math.round((completedFields / 9) * 100)
   const scheduleLabel = formatSchedule(localDraft)
+  const mapPoint = coordsToMapPoint({ lat: localDraft.locationLat, lng: localDraft.locationLng })
+  const locationMode = localDraft.businessType === 'entrepreneur' ? 'none' : (localDraft.locationMode || 'address')
+  const hasPinLocation = locationMode === 'pin' && hasBusinessPin(localDraft)
+  const hasPublicLocation = hasBusinessPublicAddress(localDraft) || hasPinLocation || localDraft.businessType === 'entrepreneur'
+  const publicLocationLabel = localDraft.businessType === 'entrepreneur'
+    ? 'Sin direccion publica'
+    : hasPinLocation
+      ? `${localDraft.section} - pin aproximado`
+      : localDraft.address || 'Direccion pendiente'
   const founderActive = isFounderPlanActive(localDraft)
   const founderRequested = isFounderPlanRequested(localDraft)
   const requiredTasks = [
@@ -2226,9 +2317,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     },
     {
       id: 'location',
-      done: Boolean((hasBusinessPublicAddress(localDraft) || localDraft.businessType === 'entrepreneur') && localDraft.openDays.length && localDraft.openTime && localDraft.closeTime),
-      title: localDraft.businessType === 'entrepreneur' ? 'Zona y horario' : 'Direccion y horario',
-      meta: hasBusinessPublicAddress(localDraft) || localDraft.businessType === 'entrepreneur' ? scheduleLabel : 'Obligatorio para orientar al vecino',
+      done: Boolean(hasPublicLocation && localDraft.openDays.length && localDraft.openTime && localDraft.closeTime),
+      title: localDraft.businessType === 'entrepreneur' ? 'Zona y horario' : 'Ubicacion y horario',
+      meta: hasPublicLocation ? scheduleLabel : 'Obligatorio para orientar al vecino',
     },
   ]
   const qualityTasks = [
@@ -2502,6 +2593,42 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             <span>{localDraft.businessType === 'entrepreneur' ? 'Zona o referencia' : 'Direccion o referencia'}</span>
             <input value={localDraft.address} onChange={(event) => updateLocalDraft('address', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' ? 'Ej: Entrego por zona Liceo' : 'Ej: Calle, manzana o referencia'} />
           </label>
+
+          {localDraft.businessType !== 'entrepreneur' && (
+            <>
+              <div className="android-safe-mini-toggle location-safe-toggle" aria-label="Tipo de ubicacion">
+                <button className={locationMode === 'address' ? 'active' : ''} type="button" onClick={() => updateLocationMode('address')}>
+                  Direccion
+                </button>
+                <button className={locationMode === 'pin' ? 'active' : ''} type="button" onClick={() => updateLocationMode('pin')}>
+                  Pin mapa
+                </button>
+                <button className={locationMode === 'none' ? 'active' : ''} type="button" onClick={() => updateLocationMode('none')}>
+                  Sin local
+                </button>
+              </div>
+              {locationMode === 'pin' && (
+                <div className="tap-map-editor android-safe-map-picker">
+                  <button type="button" className="tap-map-canvas" onClick={updateMapPin} aria-label="Tocar mapa para ubicar el local">
+                    <span className="map-label map-label-procrear">Liceo Procrear</span>
+                    <span className="map-label map-label-one">1ra</span>
+                    <span className="map-label map-label-two">2da</span>
+                    <span className="map-label map-label-three">3ra</span>
+                    <i className="map-street street-one"></i>
+                    <i className="map-street street-two"></i>
+                    <i className="map-street street-three"></i>
+                    <b className="tap-map-pin" style={{ left: `${mapPoint.x}%`, top: `${mapPoint.y}%` }}>
+                      <MapPin size={26} />
+                    </b>
+                  </button>
+                  <div className="tap-map-help">
+                    <strong>{hasPinLocation ? 'Pin marcado' : 'Toca el mapa'}</strong>
+                    <span>{hasPinLocation ? 'Despues guarda la ficha.' : 'Sirve cuando no hay calle o numero claro.'}</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
           <div className="android-safe-days" aria-label="Dias que abre">
             {weekDays.map((day) => (
@@ -2984,19 +3111,64 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   {localDraft.businessType === 'entrepreneur' ? <MessageCircle size={24} /> : <MapPin size={24} />}
                   <strong>{localDraft.section}</strong>
                   <span>
-                    {localDraft.businessType === 'entrepreneur'
-                      ? 'Sin direccion publica'
-                      : localDraft.address || 'Direccion pendiente'}
+                    {publicLocationLabel}
                   </span>
                   <small>{scheduleLabel}</small>
                   <i></i>
                 </div>
                 <div className="local-map-copy">
                   <span>{localDraft.businessType === 'entrepreneur' ? 'Contacto directo' : 'Ubicacion publica'}</span>
-                  <h3>{localDraft.businessType === 'entrepreneur' ? 'Que te consulten sin exponer una direccion.' : 'Que el vecino sepa donde queda antes de escribir.'}</h3>
-                  <p>{localDraft.businessType === 'entrepreneur' ? 'Ideal para venta por encargo, servicios a domicilio, Instagram o WhatsApp. La direccion queda opcional.' : 'Carga direccion exacta o referencia. Despues se puede abrir directo en Google Maps.'}</p>
+                  <h3>{localDraft.businessType === 'entrepreneur' ? 'Que te consulten sin exponer una direccion.' : 'Direccion, pin o referencia de manzana.'}</h3>
+                  <p>{localDraft.businessType === 'entrepreneur' ? 'Ideal para venta por encargo, servicios a domicilio, Instagram o WhatsApp. La direccion queda opcional.' : 'Si no tenes calle o numero, marca el punto en el mapa y deja una referencia simple.'}</p>
                 </div>
               </section>
+              {localDraft.businessType !== 'entrepreneur' && (
+                <section className="location-picker-card">
+                  <div className="location-mode-tabs" aria-label="Tipo de ubicacion">
+                    <button className={locationMode === 'address' ? 'active' : ''} type="button" onClick={() => updateLocationMode('address')}>
+                      <Store size={15} />
+                      Direccion
+                    </button>
+                    <button className={locationMode === 'pin' ? 'active' : ''} type="button" onClick={() => updateLocationMode('pin')}>
+                      <MapPin size={15} />
+                      Marcar mapa
+                    </button>
+                    <button className={locationMode === 'none' ? 'active' : ''} type="button" onClick={() => updateLocationMode('none')}>
+                      <MessageCircle size={15} />
+                      Sin local
+                    </button>
+                  </div>
+                  {locationMode === 'pin' && (
+                    <div className="tap-map-editor">
+                      <button type="button" className="tap-map-canvas" onClick={updateMapPin} aria-label="Tocar mapa para ubicar el local">
+                        <span className="map-label map-label-procrear">Liceo Procrear</span>
+                        <span className="map-label map-label-one">1ra</span>
+                        <span className="map-label map-label-two">2da</span>
+                        <span className="map-label map-label-three">3ra</span>
+                        <i className="map-street street-one"></i>
+                        <i className="map-street street-two"></i>
+                        <i className="map-street street-three"></i>
+                        <b className="tap-map-pin" style={{ left: `${mapPoint.x}%`, top: `${mapPoint.y}%` }}>
+                          <MapPin size={28} />
+                        </b>
+                      </button>
+                      <div className="tap-map-help">
+                        <strong>{hasPinLocation ? 'Pin guardado en el borrador' : 'Toca el mapa para poner el pin'}</strong>
+                        <span>{hasPinLocation ? `${localDraft.locationLat}, ${localDraft.locationLng}` : 'Despues agrega una referencia como manzana, plaza o esquina cercana.'}</span>
+                      </div>
+                    </div>
+                  )}
+                  {locationMode === 'none' && (
+                    <div className="no-location-note">
+                      <MessageCircle size={18} />
+                      <div>
+                        <strong>Sin direccion publica</strong>
+                        <span>El vecino vera zona, WhatsApp e Instagram. Ideal para delivery, pedidos o servicios a domicilio.</span>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
               <div className="local-builder-fields compact">
                 <label>
                   <span>Seccion</span>
@@ -3007,7 +3179,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                     <option>Liceo 3ra</option>
                   </select>
                 </label>
-                {localDraft.businessType !== 'entrepreneur' && (
+                {localDraft.businessType !== 'entrepreneur' && locationMode !== 'pin' && locationMode !== 'none' && (
                   <label className="inline-toggle-field">
                     <span>Mostrar direccion publica</span>
                     <button
@@ -3020,16 +3192,20 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   </label>
                 )}
                 <label>
-                  <span>{localDraft.businessType === 'entrepreneur' || localDraft.hasPublicAddress === false ? 'Zona o referencia' : 'Direccion'}</span>
+                  <span>{localDraft.businessType === 'entrepreneur' || locationMode === 'none' || localDraft.hasPublicAddress === false ? 'Zona o referencia' : locationMode === 'pin' ? 'Texto del pin' : 'Direccion'}</span>
                   <input
                     value={localDraft.address}
                     onChange={(event) => updateLocalDraft('address', event.target.value)}
-                    placeholder={localDraft.businessType === 'entrepreneur' || localDraft.hasPublicAddress === false ? 'Ej: Liceo Procrear, entrego por zona' : 'Mza, calle o referencia'}
+                    placeholder={localDraft.businessType === 'entrepreneur' || locationMode === 'none' || localDraft.hasPublicAddress === false ? 'Ej: Liceo Procrear, entrego por zona' : locationMode === 'pin' ? 'Ej: Liceo Procrear - pin aproximado' : 'Mza, calle o referencia'}
                   />
                 </label>
                 <label className="wide">
                   <span>Referencia para llegar</span>
-                  <input value={localDraft.reference} onChange={(event) => updateLocalDraft('reference', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' ? 'Ej: coordino punto de entrega o envio por zona' : 'Ej: frente a la plaza, porton negro...'} />
+                  <input value={localDraft.reference} onChange={(event) => updateLocalDraft('reference', event.target.value)} placeholder={localDraft.businessType === 'entrepreneur' || locationMode === 'none' ? 'Ej: coordino punto de entrega o envio por zona' : 'Ej: manzana 12, frente a la plaza...'} />
+                </label>
+                <label className="wide">
+                  <span>Como lo vera el vecino</span>
+                  <input value={locationMode === 'pin' ? `${localDraft.section} - pin aproximado` : locationMode === 'none' || localDraft.businessType === 'entrepreneur' ? 'Coordinar por WhatsApp o Instagram' : localDraft.address || 'Direccion pendiente'} readOnly />
                 </label>
                 <div className="open-days-field wide">
                   <span>Dias que abre</span>
@@ -5259,9 +5435,12 @@ function DirectoryScreen({ businesses, onBack, onOpen, onToggleTheme }) {
 function BusinessCard({ business, onOpen, large = false }) {
   const openStatus = getOpenStatus(business)
   const publicAddress = hasBusinessPublicAddress(business)
+  const locationText = hasBusinessPin(business)
+    ? `${business.section} - pin aproximado`
+    : business.address
   const founderActive = isFounderPlanActive(business)
   const availableMenu = getBusinessMenu(business).filter((item) => item.available !== false && item.name?.trim())
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${business.address || business.section}, Cordoba, Argentina`)}`
+  const mapUrl = getBusinessMapUrl(business)
   const whatsappUrl = makeWhatsAppUrl(
     business.whatsapp,
     buildCercaWhatsAppMessage({
@@ -5293,7 +5472,7 @@ function BusinessCard({ business, onOpen, large = false }) {
         </div>
         <p>
           {publicAddress ? <MapPin size={13} /> : <MessageCircle size={13} />}
-          {publicAddress ? business.address : 'Coordina por WhatsApp o Instagram'}
+          {publicAddress ? locationText : 'Coordina por WhatsApp o Instagram'}
         </p>
         {large && (
           <div className="business-extra-line">
@@ -5343,9 +5522,14 @@ function BusinessCard({ business, onOpen, large = false }) {
 function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
   const publicAddress = hasBusinessPublicAddress(business)
   const founderActive = isFounderPlanActive(business)
-  const mapQuery = `${business.address || business.section}, Cordoba, Argentina`
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`
+  const mapQuery = hasBusinessPin(business)
+    ? `${business.locationLat},${business.locationLng}`
+    : `${business.address || business.section}, Cordoba, Argentina`
+  const mapUrl = getBusinessMapUrl(business)
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`
+  const locationText = hasBusinessPin(business)
+    ? `${business.section} - pin aproximado`
+    : business.address
   const instagramUrl = makeInstagramUrl(business.instagram)
   const openStatus = getOpenStatus(business)
   const [cart, setCart] = useState({})
@@ -5454,7 +5638,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
           </article>
         </section>
         <div className="detail-grid">
-          <InfoItem icon={publicAddress ? <MapPin size={18} /> : <MessageCircle size={18} />} label={publicAddress ? 'Direccion' : 'Contacto'} value={publicAddress ? business.address : 'Sin direccion publica'} />
+          <InfoItem icon={publicAddress ? <MapPin size={18} /> : <MessageCircle size={18} />} label={publicAddress ? 'Ubicacion' : 'Contacto'} value={publicAddress ? locationText : 'Sin direccion publica'} />
           <InfoItem icon={<Clock3 size={18} />} label="Horario" value={business.hours} />
           <InfoItem icon={<Store size={18} />} label="Rubro" value={business.category} />
         </div>
@@ -5572,7 +5756,7 @@ function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
           <section className="real-location-map">
             <div>
               <span>Ubicacion</span>
-              <strong>{business.address || business.section}</strong>
+              <strong>{locationText || business.section}</strong>
             </div>
             <iframe title={`Mapa de ${business.name}`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
             <a className="map-link-button" href={mapUrl} target="_blank" rel="noreferrer">
@@ -5693,7 +5877,10 @@ function WelcomeScreen({ onEnter }) {
 
 function DetailScreen({ offer, relatedOffers = [], onBack, onToggleTheme, onTrack }) {
   const publicAddress = hasBusinessPublicAddress(offer)
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${offer.address}, Cordoba, Argentina`)}`
+  const mapUrl = getBusinessMapUrl(offer)
+  const locationText = hasBusinessPin(offer)
+    ? `${offer.section} - pin aproximado`
+    : offer.address
   const whatsappUrl = getOfferWhatsappUrl(offer)
   const instagramUrl = makeInstagramUrl(offer.instagram)
   const openStatus = getOfferOpenStatus(offer)
@@ -5762,7 +5949,7 @@ function DetailScreen({ offer, relatedOffers = [], onBack, onToggleTheme, onTrac
         <p>{offer.description}</p>
 
         <div className="detail-grid">
-          <InfoItem icon={publicAddress ? <MapPin size={18} /> : <MessageCircle size={18} />} label={publicAddress ? 'Ubicacion' : 'Contacto'} value={publicAddress ? offer.address : 'Coordinar por WhatsApp'} />
+          <InfoItem icon={publicAddress ? <MapPin size={18} /> : <MessageCircle size={18} />} label={publicAddress ? 'Ubicacion' : 'Contacto'} value={publicAddress ? locationText : 'Coordinar por WhatsApp'} />
           <InfoItem icon={<Store size={18} />} label="Referencia" value={offer.reference} />
           <InfoItem icon={<Clock3 size={18} />} label="Horario" value={offer.hours} />
           <InfoItem icon={<Bell size={18} />} label="Vigencia" value={`Vence en ${offer.expires}`} />

@@ -384,7 +384,7 @@ select:focus-visible {
     #10150f;
 }
 
-.night-mode .map-zone,
+.night-mode .live-map-grid-label,
 .night-mode .live-map-local small,
 .night-mode .live-map-note,
 .night-mode .live-map-empty small {
@@ -2241,12 +2241,13 @@ select:focus-visible {
   height: 278px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 25% 68%, rgba(167, 233, 42, 0.32), transparent 16%),
-    radial-gradient(circle at 78% 30%, rgba(112, 223, 210, 0.34), transparent 18%),
-    linear-gradient(90deg, transparent 48%, rgba(44, 154, 177, 0.18) 49%, rgba(44, 154, 177, 0.18) 51%, transparent 52%),
-    linear-gradient(0deg, transparent 48%, rgba(44, 154, 177, 0.14) 49%, rgba(44, 154, 177, 0.14) 51%, transparent 52%),
+    radial-gradient(circle at 50% 48%, rgba(167, 233, 42, 0.26), transparent 18%),
+    radial-gradient(circle at 78% 30%, rgba(112, 223, 210, 0.26), transparent 18%),
+    radial-gradient(circle at 24% 72%, rgba(255, 178, 44, 0.2), transparent 16%),
+    linear-gradient(90deg, transparent 48%, rgba(44, 154, 177, 0.12) 49%, rgba(44, 154, 177, 0.12) 51%, transparent 52%),
+    linear-gradient(0deg, transparent 48%, rgba(44, 154, 177, 0.1) 49%, rgba(44, 154, 177, 0.1) 51%, transparent 52%),
     #f5eddc;
-  background-size: auto, auto, 34px 34px, 34px 34px, auto;
+  background-size: auto, auto, auto, 34px 34px, 34px 34px, auto;
   border-radius: 22px;
   box-shadow: inset 0 0 0 1px rgba(16, 21, 15, 0.06);
 }
@@ -2270,66 +2271,24 @@ select:focus-visible {
   border-radius: 999px;
 }
 
-.map-zone {
+.live-map-grid-label {
   position: absolute;
   z-index: 1;
-  color: rgba(16, 21, 15, 0.54);
+  color: rgba(16, 21, 15, 0.44);
   font-size: 10px;
   font-weight: 1000;
   text-transform: uppercase;
   letter-spacing: 0;
 }
 
-.zone-procrear {
-  left: 12%;
-  bottom: 14%;
+.live-map-grid-label.top {
+  right: 14px;
+  top: 15px;
 }
 
-.zone-1 {
-  left: 56%;
-  top: 15%;
-}
-
-.zone-2 {
-  left: 15%;
-  top: 27%;
-}
-
-.zone-3 {
-  right: 8%;
-  bottom: 25%;
-}
-
-.map-road {
-  position: absolute;
-  z-index: 0;
-  display: block;
-  height: 9px;
-  background: rgba(255, 251, 234, 0.72);
-  border: 1px solid rgba(16, 21, 15, 0.08);
-  border-radius: 999px;
-  transform-origin: center;
-}
-
-.road-one {
-  width: 108%;
-  left: -5%;
-  top: 50%;
-  transform: rotate(-8deg);
-}
-
-.road-two {
-  width: 72%;
-  left: 12%;
-  top: 31%;
-  transform: rotate(34deg);
-}
-
-.road-three {
-  width: 64%;
-  right: 4%;
-  bottom: 27%;
-  transform: rotate(24deg);
+.live-map-grid-label.bottom {
+  left: 14px;
+  bottom: 14px;
 }
 
 .live-map-pin {

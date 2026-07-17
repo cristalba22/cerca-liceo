@@ -1863,13 +1863,8 @@ function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirec
           <MapPin size={12} />
           Pines cargados por comercios
         </span>
-        <span className="map-zone zone-procrear">Liceo Procrear</span>
-        <span className="map-zone zone-1">1ra seccion</span>
-        <span className="map-zone zone-2">2da seccion</span>
-        <span className="map-zone zone-3">3ra seccion</span>
-        <i className="map-road road-one"></i>
-        <i className="map-road road-two"></i>
-        <i className="map-road road-three"></i>
+        <span className="live-map-grid-label top">Radar de locales cargados</span>
+        <span className="live-map-grid-label bottom">Toca un pin para ver la ficha</span>
 
         {pinnedBusinesses.length ? (
           pinnedBusinesses.map((business, index) => {

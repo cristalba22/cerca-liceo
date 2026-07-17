@@ -459,24 +459,24 @@ const mergeUniqueById = (items) => {
 }
 
 const buildLocalDraft = (local, account) => ({
-  name: local?.name || '',
+  name: local?.name || account?.businessName || '',
   businessType: local?.businessType || account?.businessType || 'local',
-  hasPublicAddress: local?.hasPublicAddress ?? true,
-  category: local?.category || 'Comida',
+  hasPublicAddress: local?.hasPublicAddress ?? (account?.businessType !== 'entrepreneur'),
+  category: local?.category || account?.category || 'Comida',
   section: local?.section || account?.section || 'Liceo Procrear',
-  address: local?.address || '',
-  reference: local?.reference || '',
-  locationMode: local?.locationMode || (local?.businessType === 'entrepreneur' ? 'none' : hasBusinessPin(local) ? 'pin' : 'address'),
-  locationLat: local?.locationLat || '',
-  locationLng: local?.locationLng || '',
-  locationPrecision: local?.locationPrecision || 'approximate',
-  locationNote: local?.locationNote || '',
+  address: local?.address || account?.address || '',
+  reference: local?.reference || account?.reference || '',
+  locationMode: local?.locationMode || account?.locationMode || (local?.businessType === 'entrepreneur' || account?.businessType === 'entrepreneur' ? 'none' : hasBusinessPin(local || account) ? 'pin' : 'address'),
+  locationLat: local?.locationLat || account?.locationLat || '',
+  locationLng: local?.locationLng || account?.locationLng || '',
+  locationPrecision: local?.locationPrecision || account?.locationPrecision || 'approximate',
+  locationNote: local?.locationNote || account?.locationNote || '',
   hours: local?.hours || '',
   openDays: local?.openDays || [],
   openTime: local?.openTime || '',
   closeTime: local?.closeTime || '',
-  whatsapp: local?.whatsapp || '',
-  instagram: local?.instagram || '',
+  whatsapp: local?.whatsapp || account?.whatsapp || '',
+  instagram: local?.instagram || account?.instagram || '',
   description: local?.description || '',
   paymentMethods: local?.paymentMethods || '',
   delivery: local?.delivery || account?.salesMode || 'Retiro y delivery',
@@ -4794,13 +4794,55 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
     category: '',
     salesMode: '',
     interests: '',
+    instagram: '',
+    address: '',
+    reference: '',
+    locationMode: 'address',
+    locationLat: '',
+    locationLng: '',
+    locationPrecision: 'approximate',
+    locationNote: '',
   })
   const isMerchant = accountType === 'merchant'
+  const registerLocationMode = form.businessType === 'entrepreneur' ? 'none' : (form.locationMode || 'address')
+  const registerMapPoint = coordsToMapPoint({ lat: form.locationLat, lng: form.locationLng })
+  const registerHasPinLocation = registerLocationMode === 'pin' && hasBusinessPin(form)
   const updateForm = (field, value) => {
     const cleanValue = field === 'whatsapp'
       ? value.replace(/\D/g, '').slice(0, 15)
       : value
     setForm((current) => ({ ...current, [field]: cleanValue }))
+  }
+  const updateRegisterBusinessType = (businessType) => {
+    setForm((current) => ({
+      ...current,
+      businessType,
+      locationMode: businessType === 'entrepreneur' ? 'none' : current.locationMode === 'none' ? 'address' : current.locationMode,
+    }))
+  }
+  const updateRegisterLocationMode = (locationMode) => {
+    setForm((current) => ({
+      ...current,
+      locationMode,
+      address: locationMode === 'none' ? '' : current.address,
+      locationLat: locationMode === 'pin' ? current.locationLat : '',
+      locationLng: locationMode === 'pin' ? current.locationLng : '',
+    }))
+  }
+  const updateRegisterMapPin = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = ((event.clientX - rect.left) / rect.width) * 100
+    const y = ((event.clientY - rect.top) / rect.height) * 100
+    const coords = mapPointToCoords({ x, y })
+    setForm((current) => ({
+      ...current,
+      locationMode: 'pin',
+      locationLat: coords.lat,
+      locationLng: coords.lng,
+      locationPrecision: 'approximate',
+      address: current.address || `${current.section || 'Liceo Procrear'} - pin aproximado`,
+      locationNote: current.locationNote || current.reference,
+    }))
   }
   const validateRegisterForm = () => {
     const fullName = form.name.trim().replace(/\s+/g, ' ')
@@ -4848,6 +4890,15 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
         businessName: form.businessName || '',
         businessType: form.businessType,
         category: form.category || 'Comida',
+        salesMode: form.salesMode,
+        instagram: form.instagram,
+        address: form.businessType === 'entrepreneur' || registerLocationMode === 'none' ? '' : form.address,
+        reference: form.reference,
+        locationMode: registerLocationMode,
+        locationLat: registerLocationMode === 'pin' ? form.locationLat : '',
+        locationLng: registerLocationMode === 'pin' ? form.locationLng : '',
+        locationPrecision: form.locationPrecision || 'approximate',
+        locationNote: form.locationNote || form.reference,
       })
       if (created === 'pending-confirmation') {
         setPendingEmail(true)
@@ -4984,19 +5035,60 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
                 <button
                   className={form.businessType !== 'entrepreneur' ? 'active' : ''}
                   type="button"
-                  onClick={() => updateForm('businessType', 'local')}
+                  onClick={() => updateRegisterBusinessType('local')}
                 >
                   Tengo local
                 </button>
                 <button
                   className={form.businessType === 'entrepreneur' ? 'active' : ''}
                   type="button"
-                  onClick={() => updateForm('businessType', 'entrepreneur')}
+                  onClick={() => updateRegisterBusinessType('entrepreneur')}
                 >
                   Emprendo sin local
                 </button>
               </section>
               <p>{form.businessType === 'entrepreneur' ? 'No hace falta publicar direccion. Despues cargas zona, WhatsApp e Instagram.' : 'Despues podes cargar direccion, horario y boton para llegar.'}</p>
+              {form.businessType !== 'entrepreneur' && (
+                <>
+                  <div className="android-safe-mini-toggle location-safe-toggle" aria-label="Ubicacion inicial">
+                    <button className={registerLocationMode === 'address' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('address')}>
+                      Direccion
+                    </button>
+                    <button className={registerLocationMode === 'pin' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('pin')}>
+                      Pin mapa
+                    </button>
+                    <button className={registerLocationMode === 'none' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('none')}>
+                      Despues
+                    </button>
+                  </div>
+                  {registerLocationMode === 'pin' && (
+                    <div className="tap-map-editor android-safe-map-picker">
+                      <button type="button" className="tap-map-canvas" onClick={updateRegisterMapPin} aria-label="Tocar mapa para marcar ubicacion aproximada">
+                        <span className="map-label map-label-procrear">Liceo Procrear</span>
+                        <span className="map-label map-label-one">1ra</span>
+                        <span className="map-label map-label-two">2da</span>
+                        <span className="map-label map-label-three">3ra</span>
+                        <i className="map-street street-one"></i>
+                        <i className="map-street street-two"></i>
+                        <i className="map-street street-three"></i>
+                        <b className="tap-map-pin" style={{ left: `${registerMapPoint.x}%`, top: `${registerMapPoint.y}%` }}>
+                          <MapPin size={26} />
+                        </b>
+                      </button>
+                      <div className="tap-map-help">
+                        <strong>{registerHasPinLocation ? 'Pin marcado' : 'Toca el mapa'}</strong>
+                        <span>{registerHasPinLocation ? 'Se guarda como ubicacion aproximada.' : 'Ideal para manzanas sin calle o numero.'}</span>
+                      </div>
+                    </div>
+                  )}
+                  {registerLocationMode !== 'none' && (
+                    <label>
+                      <span>{registerLocationMode === 'pin' ? 'Referencia para llegar' : 'Direccion o referencia'}</span>
+                      <input value={form.address} onChange={(event) => updateForm('address', event.target.value)} placeholder={registerLocationMode === 'pin' ? 'Ej: Frente a la plaza, manzana 12' : 'Ej: Calle, manzana o referencia'} />
+                    </label>
+                  )}
+                </>
+              )}
               <label>
                 <span>{form.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre comercial'}</span>
                 <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder={form.businessType === 'entrepreneur' ? 'Ej: Hecho en Casa' : 'Ej: Almacen del Barrio'} />
@@ -5218,20 +5310,63 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
                 <button
                   className={form.businessType !== 'entrepreneur' ? 'active' : ''}
                   type="button"
-                  onClick={() => updateForm('businessType', 'local')}
+                  onClick={() => updateRegisterBusinessType('local')}
                 >
                   Tengo local
                 </button>
                 <button
                   className={form.businessType === 'entrepreneur' ? 'active' : ''}
                   type="button"
-                  onClick={() => updateForm('businessType', 'entrepreneur')}
+                  onClick={() => updateRegisterBusinessType('entrepreneur')}
                 >
                   Sin local
                 </button>
               </div>
               <small>{form.businessType === 'entrepreneur' ? 'Contacto por WhatsApp o Instagram.' : 'Direccion y Maps visibles.'}</small>
             </div>
+            {form.businessType !== 'entrepreneur' && (
+              <div className="location-picker-card register-location-picker wide">
+                <strong>Ubicacion inicial</strong>
+                <div className="location-mode-tabs">
+                  <button className={registerLocationMode === 'address' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('address')}>
+                    Direccion
+                  </button>
+                  <button className={registerLocationMode === 'pin' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('pin')}>
+                    Pin mapa
+                  </button>
+                  <button className={registerLocationMode === 'none' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('none')}>
+                    Despues
+                  </button>
+                </div>
+                {registerLocationMode === 'pin' && (
+                  <div className="tap-map-editor">
+                    <button type="button" className="tap-map-canvas" onClick={updateRegisterMapPin} aria-label="Tocar mapa para marcar ubicacion aproximada">
+                      <span className="map-label map-label-procrear">Liceo Procrear</span>
+                      <span className="map-label map-label-one">1ra</span>
+                      <span className="map-label map-label-two">2da</span>
+                      <span className="map-label map-label-three">3ra</span>
+                      <i className="map-street street-one"></i>
+                      <i className="map-street street-two"></i>
+                      <i className="map-street street-three"></i>
+                      <b className="tap-map-pin" style={{ left: `${registerMapPoint.x}%`, top: `${registerMapPoint.y}%` }}>
+                        <MapPin size={26} />
+                      </b>
+                    </button>
+                    <div className="tap-map-help">
+                      <strong>{registerHasPinLocation ? 'Pin marcado' : 'Toca el mapa'}</strong>
+                      <span>{registerHasPinLocation ? 'Se guarda como ubicacion aproximada.' : 'Ideal para Liceo Procrear si no hay calle o numero claro.'}</span>
+                    </div>
+                  </div>
+                )}
+                {registerLocationMode !== 'none' && (
+                  <label>
+                    <span>{registerLocationMode === 'pin' ? 'Referencia para llegar' : 'Direccion o referencia'}</span>
+                    <input value={form.address} onChange={(event) => updateForm('address', event.target.value)} placeholder={registerLocationMode === 'pin' ? 'Ej: Frente a la plaza, manzana 12' : 'Ej: Calle, manzana o referencia'} />
+                  </label>
+                )}
+                {registerLocationMode === 'none' && <p className="no-location-note">Podes cargar la ubicacion despues desde el panel comercio.</p>}
+              </div>
+            )}
             <label>
               <span>Rubro principal</span>
               <select value={form.category} onChange={(event) => updateForm('category', event.target.value)}>

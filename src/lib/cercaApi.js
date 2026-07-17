@@ -425,6 +425,35 @@ const mapOfferRowWithBusiness = (row, business = {}) => mapOfferRow({
   },
 })
 
+const mapPublicOfferRpcRow = (row = {}) => mapOfferRow({
+  ...row,
+  businesses: {
+    id: row.business_id,
+    name: row.business_name,
+    business_type: row.business_type,
+    has_public_address: row.has_public_address,
+    category: row.category,
+    section: row.section,
+    address: row.address,
+    reference: row.reference,
+    location_mode: row.location_mode,
+    location_lat: row.location_lat,
+    location_lng: row.location_lng,
+    location_precision: row.location_precision,
+    location_note: row.location_note,
+    hours: row.hours,
+    open_days: row.open_days,
+    open_time: row.open_time,
+    close_time: row.close_time,
+    tone: row.business_tone,
+    image_key: row.business_image_key,
+    whatsapp: row.whatsapp,
+    instagram: row.instagram,
+    is_open: row.is_open,
+    distance_label: row.distance_label,
+  },
+})
+
 const isDeletedOffer = (offer = {}) => /eliminada/i.test(String(offer.highlight || ''))
 
 const getExpiresLabel = (expiresAt) => {
@@ -782,88 +811,19 @@ export const cercaApi = {
       }
     }
 
-    const publicOfferColumns = `
-      id,
-      business_id,
-      title,
-      description,
-      category,
-      section,
-      price,
-      price_label,
-      image_key,
-      tone,
-      highlight,
-      saves_count,
-      starts_at,
-      expires_at,
-      is_active,
-      created_at,
-      businesses (
-        id,
-        name,
-        business_type,
-        has_public_address,
-        category,
-        section,
-        address,
-        reference,
-        location_mode,
-        location_lat,
-        location_lng,
-        location_precision,
-        location_note,
-        hours,
-        open_days,
-        open_time,
-        close_time,
-        whatsapp,
-        instagram,
-        tone,
-        image_key,
-        is_open,
-        distance_label
-      )
-    `
+    const { data, error } = await supabase.rpc('public_list_offers', {
+      p_section: section,
+      p_category: category,
+      p_query: query.trim(),
+      p_limit: 50,
+    })
 
-    let request = supabase
-      .from('offers')
-      .select(publicOfferColumns)
-      .eq('is_active', true)
-      .lte('starts_at', new Date().toISOString())
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(50)
-
-    if (section !== 'Todos') request = request.eq('section', section)
-    if (category !== 'Todas') request = request.eq('category', category)
-    if (query.trim()) request = request.ilike('search_text', `%${query.trim()}%`)
-
-    let { data, error } = await request
-    if (error && /location_/i.test(error.message || '')) {
-      let retryRequest = supabase
-        .from('offers')
-        .select(withoutLocationColumns(publicOfferColumns))
-        .eq('is_active', true)
-        .lte('starts_at', new Date().toISOString())
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (section !== 'Todos') retryRequest = retryRequest.eq('section', section)
-      if (category !== 'Todas') retryRequest = retryRequest.eq('category', category)
-      if (query.trim()) retryRequest = retryRequest.ilike('search_text', `%${query.trim()}%`)
-
-      const retry = await retryRequest
-      data = retry.data
-      error = retry.error
-    }
     if (error) {
       const cachedOffers = readStorage(PUBLIC_OFFERS_CACHE_KEY) || []
       return { offers: cachedOffers, error: cachedOffers.length ? null : error }
     }
 
-    const offers = data?.map(mapOfferRow) || []
+    const offers = data?.map(mapPublicOfferRpcRow) || []
     writeStorage(PUBLIC_OFFERS_CACHE_KEY, offers)
     return { offers, error: null }
   },
@@ -1017,14 +977,14 @@ export const cercaApi = {
     let products = []
     const businessIds = rows.map((business) => business.id).filter(Boolean)
     if (businessIds.length) {
-      const { data: productRows } = await supabase
-        .from('products')
-        .select('id,business_id,name,price,is_available,position')
-        .in('business_id', businessIds)
-        .eq('is_available', true)
-        .order('position', { ascending: true })
+      const { data: productRows } = await supabase.rpc('public_list_products', {
+        p_business_ids: businessIds,
+      })
 
-      products = productRows || []
+      products = (productRows || []).map((product) => ({
+        ...product,
+        position: product.position ?? product.product_position ?? 0,
+      }))
     }
 
     const productsByBusiness = products.reduce((acc, product) => {

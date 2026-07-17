@@ -10,20 +10,26 @@ import {
   Clock3,
   Camera,
   Flame,
+  BookOpen,
+  Gift,
   Grid2X2,
   Hammer,
   Heart,
   Home,
+  HeartPulse,
   Eye,
+  Laptop,
   List,
   MapPin,
   MessageCircle,
   Moon,
   Navigation,
+  PawPrint,
   Search,
   Share2,
   ShieldCheck,
   ShoppingBasket,
+  Shirt,
   Sparkles,
   Store,
   Timer,
@@ -49,7 +55,17 @@ const categories = [
   { name: 'Panaderia', icon: Wheat, tone: 'amber' },
   { name: 'Belleza', icon: Sparkles, tone: 'pink' },
   { name: 'Servicios', icon: Hammer, tone: 'blue' },
+  { name: 'Indumentaria', icon: Shirt, tone: 'sky' },
+  { name: 'Lenceria', icon: Heart, tone: 'rose' },
+  { name: 'Salud', icon: HeartPulse, tone: 'mint' },
+  { name: 'Mascotas', icon: PawPrint, tone: 'violet' },
+  { name: 'Libreria', icon: BookOpen, tone: 'sand' },
+  { name: 'Regaleria', icon: Gift, tone: 'coral' },
+  { name: 'Tecnologia', icon: Laptop, tone: 'cyan' },
+  { name: 'Hogar', icon: Home, tone: 'olive' },
 ]
+
+const commerceCategories = categories.filter((category) => category.name !== 'Todas')
 
 const readStoredJson = (key) => {
   try {
@@ -2734,14 +2750,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             <label>
               <span>Rubro</span>
               <select value={localDraft.category} onChange={(event) => updateLocalDraft('category', event.target.value)}>
-                <option>Comida</option>
-                <option>Panaderia</option>
-                <option>Verduleria</option>
-                <option>Carniceria</option>
-                <option>Despensa</option>
-                <option>Ferreteria</option>
-                <option>Belleza</option>
-                <option>Servicios</option>
+                {commerceCategories.map((category) => (
+                  <option key={category.name}>{category.name}</option>
+                ))}
               </select>
             </label>
             <label>
@@ -3208,12 +3219,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                     updateLocalDraft('category', category)
                     updateLocalDraft('image', imageByCategory[category] || 'generic')
                   }}>
-                    <option>Comida</option>
-                    <option>Panaderia</option>
-                    <option>Verduleria</option>
-                    <option>Despensa</option>
-                    <option>Ferreteria</option>
-                    <option>Belleza</option>
+                    {commerceCategories.map((category) => (
+                      <option key={category.name}>{category.name}</option>
+                    ))}
                   </select>
                 </label>
                 <label>
@@ -4156,7 +4164,7 @@ function AdminScreen({
                 <label>
                   <span>Rubro</span>
                   <select value={editDraft.category || 'Comida'} onChange={(event) => updateEditDraft(business, 'category', event.target.value)}>
-                    {categories.filter((category) => category.name !== 'Todas').map((category) => (
+                    {commerceCategories.map((category) => (
                       <option key={category.name}>{category.name}</option>
                     ))}
                   </select>
@@ -5271,7 +5279,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
                 <span>Rubro principal</span>
                 <select value={form.category} onChange={(event) => updateForm('category', event.target.value)}>
                   <option value="">Elegir rubro</option>
-                  {categories.filter((category) => category.name !== 'Todas').map((category) => (
+                  {commerceCategories.map((category) => (
                     <option key={category.name} value={category.name}>{category.name}</option>
                   ))}
                 </select>
@@ -5542,13 +5550,9 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
               <span>Rubro principal</span>
               <select value={form.category} onChange={(event) => updateForm('category', event.target.value)}>
                 <option value="" disabled>Elegir rubro</option>
-                <option>Comida</option>
-                <option>Panaderia</option>
-                <option>Verduleria</option>
-                <option>Despensa</option>
-                <option>Belleza</option>
-                <option>Ferreteria</option>
-                <option>Servicios</option>
+                {commerceCategories.map((category) => (
+                  <option key={category.name} value={category.name}>{category.name}</option>
+                ))}
               </select>
             </label>
             <label>

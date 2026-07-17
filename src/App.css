@@ -1011,6 +1011,38 @@ select:focus-visible {
   --cat: #80c9ff;
 }
 
+.cat-sky {
+  --cat: #8fc8ff;
+}
+
+.cat-rose {
+  --cat: #ff7eb3;
+}
+
+.cat-mint {
+  --cat: #65e6b7;
+}
+
+.cat-violet {
+  --cat: #b69cff;
+}
+
+.cat-sand {
+  --cat: #f1d98d;
+}
+
+.cat-coral {
+  --cat: #ff9a72;
+}
+
+.cat-cyan {
+  --cat: #54d9e8;
+}
+
+.cat-olive {
+  --cat: #bfdc64;
+}
+
 .feed-head {
   display: flex;
   align-items: center;

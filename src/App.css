@@ -3067,6 +3067,29 @@ select:focus-visible {
     linear-gradient(145deg, #ffc5dc, #e75f93);
 }
 
+.business-photo.no-photo {
+  background:
+    radial-gradient(circle at 72% 18%, rgba(255, 255, 255, 0.75), transparent 24%),
+    linear-gradient(145deg, #f2efe8, #d8d2c3);
+}
+
+.business-photo.no-photo::before {
+  content: 'Sin foto';
+  display: grid;
+  place-items: center;
+  color: #6b665c;
+  font-size: 11px;
+  font-weight: 1000;
+  text-align: center;
+  text-transform: uppercase;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.2)),
+    repeating-linear-gradient(135deg, rgba(16, 21, 15, 0.06) 0 1px, transparent 1px 8px);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
 .business-info {
   min-width: 0;
 }
@@ -3555,6 +3578,22 @@ select:focus-visible {
     linear-gradient(145deg, #ffc5dc, #e75f93);
 }
 
+.product-thumb.no-photo {
+  display: grid;
+  place-items: center;
+  color: #6b665c;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background:
+    radial-gradient(circle at 72% 18%, rgba(255, 255, 255, 0.75), transparent 24%),
+    linear-gradient(145deg, #f2efe8, #d8d2c3);
+}
+
+.product-thumb.no-photo::before {
+  content: 'Sin foto';
+}
+
 .product-thumb span {
   position: absolute;
   right: 5px;
@@ -3955,6 +3994,23 @@ select:focus-visible {
     radial-gradient(circle at 45% 35%, #fff 0 16%, transparent 17%),
     radial-gradient(circle at 60% 55%, #ffe7ef 0 22%, transparent 23%),
     linear-gradient(145deg, #ffc5dc, #e75f93);
+}
+
+.detail-image.no-photo {
+  display: grid;
+  place-items: center;
+  color: #6b665c;
+  font-size: 13px;
+  font-weight: 1000;
+  text-align: center;
+  text-transform: uppercase;
+  background:
+    radial-gradient(circle at 72% 18%, rgba(255, 255, 255, 0.75), transparent 24%),
+    linear-gradient(145deg, #f2efe8, #d8d2c3);
+}
+
+.detail-image.no-photo::before {
+  content: 'Sin foto';
 }
 
 .detail-hero span {
@@ -13067,6 +13123,28 @@ button:active,
   border: 5px solid rgba(255, 251, 238, 0.62);
   border-radius: 24px;
   box-shadow: 0 18px 26px rgba(30, 23, 12, 0.16);
+}
+
+.photo-tile.no-photo {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.75), transparent 24%),
+    linear-gradient(145deg, #f2efe8, #d8d2c3);
+}
+
+.photo-tile.no-photo::before {
+  content: 'Sin foto';
+  display: grid;
+  place-items: center;
+  color: #6b665c;
+  font-size: 12px;
+  font-weight: 1000;
+  text-align: center;
+  text-transform: uppercase;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.2)),
+    repeating-linear-gradient(135deg, rgba(16, 21, 15, 0.06) 0 1px, transparent 1px 8px);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
 .photo-tile span {

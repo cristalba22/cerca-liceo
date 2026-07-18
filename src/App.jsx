@@ -773,16 +773,22 @@ const buildLocalDraft = (local, account) => {
   })
 }
 
-const imageSurfaceProps = (image, baseClass, options = {}) => ({
-  className: `${baseClass} ${isUploadedImage(image) ? 'custom-image' : `image-${image || 'generic'}`}`,
-  style: isUploadedImage(image)
-    ? {
-        backgroundImage: `url(${image})`,
-        backgroundPosition: options.imagePosition || 'center center',
-        backgroundSize: options.imageZoom ? `${options.imageZoom}%` : 'cover',
-      }
-    : undefined,
-})
+const noPhotoSurfaceClasses = new Set(['business-photo', 'detail-image', 'photo-tile', 'product-thumb'])
+
+const imageSurfaceProps = (image, baseClass, options = {}) => {
+  const hasUploadedPhoto = isUploadedImage(image)
+  const shouldShowNoPhoto = noPhotoSurfaceClasses.has(baseClass) && !hasUploadedPhoto
+  return {
+    className: `${baseClass} ${hasUploadedPhoto ? 'custom-image' : shouldShowNoPhoto ? 'no-photo' : `image-${image || 'generic'}`}`,
+    style: hasUploadedPhoto
+      ? {
+          backgroundImage: `url(${image})`,
+          backgroundPosition: options.imagePosition || 'center center',
+          backgroundSize: options.imageZoom ? `${options.imageZoom}%` : 'cover',
+        }
+      : undefined,
+  }
+}
 
 const readCompressedImage = (file) => new Promise((resolve, reject) => {
   if (!file) {
@@ -1631,9 +1637,8 @@ function App() {
                 <button className="theme-button" type="button" onClick={() => setDarkMode((value) => !value)} aria-label="Cambiar modo noche">
                   <Moon size={19} />
                 </button>
-                <button className="notify-button" type="button" aria-label="Notificaciones">
-                  <Bell size={21} />
-                  <span></span>
+                <button className="notify-button" type="button" onClick={() => setScreen('profile')} aria-label="Mi cuenta">
+                  <UserRound size={20} />
                 </button>
               </div>
             </header>

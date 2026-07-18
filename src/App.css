@@ -13492,6 +13492,110 @@ html.android-compat .android-safe-dashboard-actions {
   grid-template-columns: 1fr;
 }
 
+html.android-compat .android-safe-main-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+  background: #efe8d7 !important;
+}
+
+html.android-compat .android-safe-main-actions button {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  min-height: 82px;
+  gap: 9px;
+  padding: 12px 10px;
+  color: #172112;
+  background: #fffdf7 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 18px;
+}
+
+html.android-compat .android-safe-main-actions button svg {
+  width: 34px;
+  height: 34px;
+  padding: 8px;
+  color: #172112;
+  background: rgba(255, 253, 247, 0.72);
+  border-radius: 14px;
+}
+
+html.android-compat .android-safe-main-actions button span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+html.android-compat .android-safe-main-actions strong {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.02;
+}
+
+html.android-compat .android-safe-main-actions small {
+  max-width: 100%;
+  color: rgba(23, 33, 18, 0.72);
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+html.android-compat .android-safe-main-actions .safe-action-edit,
+html.android-compat .android-safe-main-actions .safe-action-edit.active {
+  background: #a7e92a !important;
+}
+
+html.android-compat .android-safe-main-actions .safe-action-promo {
+  background: #ff7a3d !important;
+}
+
+html.android-compat .android-safe-main-actions .safe-action-plan,
+html.android-compat .android-safe-main-actions .safe-action-plan.active {
+  background: #ffd84a !important;
+}
+
+html.android-compat .android-safe-main-actions .safe-action-menu,
+html.android-compat .android-safe-main-actions .safe-action-menu.active {
+  color: #fffbea;
+  background: #10150f !important;
+}
+
+html.android-compat .android-safe-main-actions .safe-action-menu small {
+  color: rgba(255, 251, 234, 0.74);
+}
+
+html.android-compat .android-safe-main-actions .safe-action-menu svg {
+  color: #a7e92a;
+  background: rgba(167, 233, 42, 0.14);
+}
+
+html.android-compat .night-mode .android-safe-main-actions {
+  background: #11170f !important;
+}
+
+html.android-compat .night-mode .android-safe-main-actions button {
+  border-color: rgba(255, 251, 234, 0.1);
+}
+
+html.android-compat .night-mode .android-safe-main-actions .safe-action-edit,
+html.android-compat .night-mode .android-safe-main-actions .safe-action-edit.active,
+html.android-compat .night-mode .android-safe-main-actions .safe-action-promo,
+html.android-compat .night-mode .android-safe-main-actions .safe-action-plan,
+html.android-compat .night-mode .android-safe-main-actions .safe-action-plan.active {
+  color: #172112 !important;
+}
+
+html.android-compat .android-safe-status-actions button:first-child {
+  color: #172112;
+  background: #a7e92a !important;
+}
+
+html.android-compat .android-safe-status-actions button:nth-child(2) {
+  color: #172112;
+  background: #fffdf7 !important;
+}
+
 html.android-compat .android-safe-step-nav {
   grid-template-columns: 1fr;
   gap: 8px;

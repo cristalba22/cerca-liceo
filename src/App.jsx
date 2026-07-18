@@ -2762,25 +2762,38 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <i style={{ '--progress': `${completion}%` }}></i>
         </section>
 
-        <section className="android-safe-actions android-safe-step-nav" aria-label="Acciones principales">
-          <button className={openPanel === 'basic' ? 'active' : ''} type="button" onClick={() => setOpenPanel(openPanel === 'basic' ? '' : 'basic')}>
+        <section className="android-safe-actions android-safe-main-actions" aria-label="Acciones principales">
+          <button className={`safe-action-edit ${openPanel === 'basic' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(openPanel === 'basic' ? '' : 'basic')}>
             <Store size={20} />
-            <strong>Editar ficha</strong>
-            <small>Nombre, WhatsApp, foto, zona y horario.</small>
+            <span>
+              <strong>Editar ficha</strong>
+              <small>Datos del local</small>
+            </span>
           </button>
-          <button className={openPanel === 'plan' ? 'active' : ''} type="button" onClick={() => setOpenPanel(openPanel === 'plan' ? '' : 'plan')}>
+          <button className="safe-action-promo" type="button" onClick={handlePublishFromPanel}>
+            <Flame size={20} />
+            <span>
+              <strong>Publicar promo</strong>
+              <small>1 gratis semanal</small>
+            </span>
+          </button>
+          <button className={`safe-action-plan ${openPanel === 'plan' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(openPanel === 'plan' ? '' : 'plan')}>
             <ShoppingBasket size={20} />
-            <strong>Plan</strong>
-            <small>Gratis o fundador, sin vueltas.</small>
+            <span>
+              <strong>Plan</strong>
+              <small>Gratis o fundador</small>
+            </span>
           </button>
-          <button className={openPanel === 'menu' ? 'active' : ''} type="button" onClick={() => setOpenPanel(openPanel === 'menu' ? '' : 'menu')}>
+          <button className={`safe-action-menu ${openPanel === 'menu' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(openPanel === 'menu' ? '' : 'menu')}>
             <List size={20} />
-            <strong>Catalogo</strong>
-            <small>{founderActive ? 'Cargar productos.' : 'Se activa con fundador.'}</small>
+            <span>
+              <strong>Catalogo</strong>
+              <small>{founderActive ? 'Productos' : 'Con fundador'}</small>
+            </span>
           </button>
         </section>
 
-        <section className="android-safe-actions android-safe-dashboard-actions">
+        <section className="android-safe-actions android-safe-dashboard-actions android-safe-status-actions">
           <button type="button" onClick={() => saveLocalWithOverrides(
             { open: localDraft.open === false },
             localDraft.open === false ? 'Local marcado como abierto.' : 'Local marcado como cerrado por ahora.',
@@ -2794,17 +2807,6 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           )}>
             <strong>{localDraft.isPublic === false ? 'Ficha pausada' : 'Ficha visible'}</strong>
             <small>{localDraft.isPublic === false ? 'Mostrar en guia.' : 'Pausar sin borrar.'}</small>
-          </button>
-        </section>
-
-        <section className="android-safe-actions android-safe-dashboard-actions">
-          <button type="button" onClick={() => setOpenPanel('basic')}>
-            <strong>{localIsPublic ? 'Editar ficha' : 'Cargar ficha gratis'}</strong>
-            <small>Datos basicos en un solo lugar.</small>
-          </button>
-          <button type="button" onClick={handlePublishFromPanel}>
-            <strong>Publicar promo</strong>
-            <small>Tenes 1 publicacion semanal gratis que dura 3 dias.</small>
           </button>
         </section>
 
@@ -3041,7 +3043,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           </section>
         )}
 
-        <section className="android-safe-actions android-safe-dashboard-actions">
+        <section className="android-safe-actions android-safe-dashboard-actions android-safe-secondary-actions">
           <button type="button" onClick={() => setOpenPanel(openPanel === 'offers' ? '' : 'offers')}>
             <strong>Ver mis promos</strong>
             <small>{localOffers.length ? `${localOffers.length} publicaciones cargadas.` : 'Historial y acciones rapidas.'}</small>

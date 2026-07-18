@@ -760,6 +760,10 @@ select:focus-visible {
   gap: 8px;
 }
 
+.home-access-actions.login-choice {
+  grid-template-columns: 1.18fr 1fr;
+}
+
 .home-access-card.merchant .home-access-actions {
   grid-template-columns: 1fr 1fr;
 }
@@ -774,13 +778,18 @@ select:focus-visible {
   justify-content: center;
   gap: 6px;
   min-height: 46px;
-  padding: 0 10px;
+  padding: 0 12px;
   color: #172112;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 1000;
   background: #eee6d5;
   border: 0;
   border-radius: 16px;
+}
+
+.home-access-actions.login-choice button {
+  min-height: 50px;
+  border-radius: 17px;
 }
 
 .home-access-actions button.primary {

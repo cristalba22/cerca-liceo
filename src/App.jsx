@@ -1749,7 +1749,7 @@ function App() {
   )
 }
 
-function HomeAccessCard({ account, local, onLogin, onRegisterNeighbor, onRegisterMerchant, onUpgradeMerchant, onMerchantPanel, onPublish }) {
+function HomeAccessCard({ account, local, onLogin, onRegisterMerchant, onUpgradeMerchant, onMerchantPanel, onPublish }) {
   const isMerchant = account?.type === 'merchant'
   const merchantAction = account ? onUpgradeMerchant : onRegisterMerchant
 
@@ -1778,26 +1778,20 @@ function HomeAccessCard({ account, local, onLogin, onRegisterNeighbor, onRegiste
   return (
     <section className="home-access-card">
       <div>
-        <span>{account ? 'Cuenta vecino' : 'Acceso rapido'}</span>
-        <strong>{account ? 'Tambien podes sumar un comercio.' : 'Publica tu local gratis.'}</strong>
-        <small>{account ? 'Si vendes algo, activa el panel comercio con esta misma cuenta.' : 'Los vecinos miran ofertas sin registrarse. Los comercios cargan ficha y promo gratis.'}</small>
+        <span>{account ? 'Cuenta activa' : 'Acceso'}</span>
+        <strong>{account ? 'Queres publicar como comercio?' : 'Entrar o registrarte.'}</strong>
+        <small>{account ? 'Activa el panel comercio con esta misma cuenta.' : 'Si tenes un local o emprendimiento, registrate y carga tu ficha gratis. Si ya tenes cuenta, inicia sesion.'}</small>
       </div>
-      <div className={`home-access-actions ${account ? 'single' : ''}`}>
+      <div className={`home-access-actions ${account ? 'single' : 'login-choice'}`}>
         <button className="primary" type="button" onClick={merchantAction}>
           <Store size={18} />
-          {account ? 'Activar comercio' : 'Comercio'}
+          {account ? 'Activar comercio' : 'Registrarme gratis'}
         </button>
         {!account && (
-          <>
-            <button className="dark" type="button" onClick={onLogin}>
-              <UserRound size={18} />
-              Entrar
-            </button>
-            <button className="soft" type="button" onClick={onRegisterNeighbor}>
-              <Heart size={18} />
-              Vecino
-            </button>
-          </>
+          <button className="dark" type="button" onClick={onLogin}>
+            <UserRound size={18} />
+            Iniciar sesion
+          </button>
         )}
       </div>
     </section>

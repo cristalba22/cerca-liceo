@@ -10620,6 +10620,12 @@ select:focus-visible {
   border: 1px solid rgba(54, 95, 0, 0.12);
 }
 
+.auth-form-card .password-toggle-button {
+  color: #10150f;
+  background: #fff7e6;
+  border: 1px solid rgba(16, 21, 15, 0.12);
+}
+
 .recovery-card p {
   margin: 12px 0 0;
   color: #665f53;
@@ -13708,6 +13714,11 @@ html.android-compat .android-safe-form button:disabled {
 html.android-compat .android-safe-form .android-safe-link {
   color: #172112;
   background: #eee6d5 !important;
+}
+
+html.android-compat .android-safe-form .password-toggle-button {
+  color: #10150f;
+  background: #fff7e6 !important;
 }
 
 html.android-compat .android-safe-form p {

@@ -4626,6 +4626,7 @@ function AdminScreen({
 
 function LoginScreen({ authNotice, onBack, onLogin, onForgotPassword, onQuickAccess, allowQuickAccess, onRegister, onToggleTheme }) {
   const [credentials, setCredentials] = useState({ email: '', password: '' })
+  const [showPassword, setShowPassword] = useState(false)
 
   if (isAndroidCompatMode()) {
     return (
@@ -4658,8 +4659,11 @@ function LoginScreen({ authNotice, onBack, onLogin, onForgotPassword, onQuickAcc
           </label>
           <label>
             <span>Clave</span>
-            <input value={credentials.password} onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))} placeholder="Tu clave" type="password" />
+            <input value={credentials.password} onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))} placeholder="Tu clave" type={showPassword ? 'text' : 'password'} />
           </label>
+          <button className="android-safe-link password-toggle-button" type="button" onClick={() => setShowPassword((current) => !current)}>
+            {showPassword ? 'Ocultar clave' : 'Mostrar clave'}
+          </button>
           <button type="button" onClick={() => onLogin(credentials)}>Iniciar sesion</button>
           <button className="android-safe-link" type="button" onClick={onForgotPassword}>Olvide mi clave</button>
         </section>
@@ -4723,10 +4727,13 @@ function LoginScreen({ authNotice, onBack, onLogin, onForgotPassword, onQuickAcc
         </label>
         <label>
           <span>Clave</span>
-          <input value={credentials.password} onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))} placeholder="Tu clave" type="password" />
+          <input value={credentials.password} onChange={(event) => setCredentials((current) => ({ ...current, password: event.target.value }))} placeholder="Tu clave" type={showPassword ? 'text' : 'password'} />
         </label>
         <div className="auth-form-actions">
           <button type="button" onClick={() => onLogin(credentials)}>Iniciar sesion</button>
+          <button className="link-button password-toggle-button" type="button" onClick={() => setShowPassword((current) => !current)}>
+            {showPassword ? 'Ocultar clave' : 'Mostrar clave'}
+          </button>
           <button className="link-button" type="button" onClick={onForgotPassword}>Olvide mi clave</button>
         </div>
       </section>

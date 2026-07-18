@@ -159,6 +159,30 @@ select:focus-visible {
   background: #303426;
 }
 
+.night-mode .home-access-card {
+  color: #fffbea;
+  background: #182014;
+  border-color: rgba(255, 251, 234, 0.1);
+}
+
+.night-mode .home-access-card.merchant {
+  background: #221d14;
+}
+
+.night-mode .home-access-card strong {
+  color: #fffbea;
+}
+
+.night-mode .home-access-card small {
+  color: rgba(255, 251, 234, 0.72);
+}
+
+.night-mode .home-access-actions button.soft {
+  color: #fffbea;
+  background: #303426;
+  border-color: rgba(255, 251, 234, 0.12);
+}
+
 .night-mode .search-row,
 .night-mode .business-card,
 .night-mode .empty-state,
@@ -675,6 +699,106 @@ select:focus-visible {
 .compact-home-radar h1 {
   max-width: 11ch;
   font-size: 25px;
+}
+
+.home-access-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin: 0 20px 14px;
+  padding: 14px;
+  color: #172112;
+  background:
+    radial-gradient(circle at 94% 0%, rgba(112, 223, 210, 0.4), transparent 28%),
+    linear-gradient(145deg, #f6ffd9, #fffdf7);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 12px 24px rgba(31, 30, 22, 0.08);
+}
+
+.home-access-card.merchant {
+  background:
+    radial-gradient(circle at 94% 0%, rgba(255, 122, 47, 0.32), transparent 28%),
+    linear-gradient(145deg, #fff5df, #fffdf7);
+}
+
+.home-access-card span,
+.home-access-card strong,
+.home-access-card small {
+  display: block;
+}
+
+.home-access-card span {
+  width: fit-content;
+  padding: 7px 10px;
+  color: #172112;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background: #a7e92a;
+  border-radius: 999px;
+}
+
+.home-access-card strong {
+  margin-top: 9px;
+  color: #10150f;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.home-access-card small {
+  margin-top: 6px;
+  color: #665f53;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.28;
+}
+
+.home-access-actions {
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr 0.9fr;
+  gap: 8px;
+}
+
+.home-access-card.merchant .home-access-actions {
+  grid-template-columns: 1fr 1fr;
+}
+
+.home-access-actions.single {
+  grid-template-columns: 1fr;
+}
+
+.home-access-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 0 10px;
+  color: #172112;
+  font-size: 11px;
+  font-weight: 1000;
+  background: #eee6d5;
+  border: 0;
+  border-radius: 16px;
+}
+
+.home-access-actions button.primary {
+  background: #a7e92a;
+}
+
+.home-access-actions button.hot {
+  background: #ff7a2f;
+}
+
+.home-access-actions button.dark {
+  color: #fffbea;
+  background: #10150f;
+}
+
+.home-access-actions button.soft {
+  background: #fffdf7;
+  border: 1px solid rgba(16, 21, 15, 0.08);
 }
 
 .home-section-title {
@@ -5436,6 +5560,15 @@ select:focus-visible {
 
 .dashboard-actions button:first-child {
   background: linear-gradient(145deg, #a7e92a, #70dfd2);
+}
+
+.dashboard-actions button:nth-child(2) {
+  background: linear-gradient(145deg, #ff7a2f, #ffd027);
+}
+
+.dashboard-actions button:nth-child(3) {
+  color: #fffbea;
+  background: #10150f;
 }
 
 .dashboard-actions span {
@@ -13348,6 +13481,57 @@ html.android-compat .android-safe-progress-card i::before {
 
 html.android-compat .android-safe-dashboard-actions {
   grid-template-columns: 1fr;
+}
+
+html.android-compat .android-safe-step-nav {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 10px;
+  background: #efe8d7 !important;
+}
+
+html.android-compat .android-safe-step-nav button {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 66px;
+  padding: 12px;
+  color: #172112;
+  background: #fffdf7 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 18px;
+}
+
+html.android-compat .android-safe-step-nav button svg {
+  width: 34px;
+  height: 34px;
+  padding: 8px;
+  color: #172112;
+  background: #e9ffc2;
+  border-radius: 14px;
+}
+
+html.android-compat .android-safe-step-nav button:nth-child(1).active,
+html.android-compat .android-safe-step-nav button:nth-child(1):active {
+  background: #a7e92a !important;
+}
+
+html.android-compat .android-safe-step-nav button:nth-child(2).active,
+html.android-compat .android-safe-step-nav button:nth-child(2):active {
+  background: #ffd027 !important;
+}
+
+html.android-compat .android-safe-step-nav button:nth-child(3).active,
+html.android-compat .android-safe-step-nav button:nth-child(3):active {
+  color: #fffbea;
+  background: #10150f !important;
+}
+
+html.android-compat .android-safe-step-nav button:nth-child(3).active svg,
+html.android-compat .android-safe-step-nav button:nth-child(3):active svg {
+  color: #a7e92a;
+  background: rgba(167, 233, 42, 0.12);
 }
 
 html.android-compat .android-safe-dashboard-actions button:nth-child(2) {

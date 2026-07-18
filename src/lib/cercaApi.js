@@ -11,6 +11,54 @@ const PUBLIC_OFFERS_CACHE_KEY = 'cerca-liceo-public-offers-cache'
 const PHOTO_BUCKET = 'business-photos'
 
 const isDataImage = (value) => typeof value === 'string' && value.startsWith('data:image/')
+const TEXT_NORMALIZED_WARNING = 'Ajustamos algunos caracteres especiales para evitar errores. Ejemplo: n con tilde pasa a n.'
+
+const normalizeSafeText = (value = '') => String(value || '')
+  .replace(/ñ/g, 'n')
+  .replace(/Ñ/g, 'N')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[“”]/g, '"')
+  .replace(/[‘’]/g, "'")
+  .replace(/[–—]/g, '-')
+  .replace(/\s+/g, ' ')
+  .trim()
+
+const normalizeTextFields = (source = {}, fields = []) => {
+  const next = { ...source }
+  const changedFields = []
+
+  fields.forEach((field) => {
+    const original = source[field]
+    if (original === null || original === undefined) return
+    if (typeof original !== 'string') return
+
+    const normalized = normalizeSafeText(original)
+    if (original.trim() !== normalized) {
+      changedFields.push(field)
+      next[field] = normalized
+    }
+  })
+
+  return { next, changed: changedFields.length > 0 }
+}
+
+const normalizeMenuText = (menu = []) => {
+  let changed = false
+  const safeMenu = Array.isArray(menu)
+    ? menu.map((item) => {
+        const normalizedName = normalizeSafeText(item?.name || '')
+        if (String(item?.name || '').trim() !== normalizedName) changed = true
+        return { ...item, name: normalizedName }
+      })
+    : []
+
+  return { menu: safeMenu, changed }
+}
+
+const mergeWarnings = (...warnings) => warnings
+  .filter((warning) => typeof warning === 'string' && warning.trim())
+  .join(' ')
 
 const createClientId = () => {
   const randomUuid = globalThis.crypto?.randomUUID
@@ -622,17 +670,32 @@ export const cercaApi = {
   },
 
   async registerAccount(form) {
+    const { next: safeForm, changed: textWasNormalized } = normalizeTextFields(form, [
+      'name',
+      'businessName',
+      'category',
+      'salesMode',
+      'whatsapp',
+      'instagram',
+      'section',
+      'address',
+      'reference',
+      'locationNote',
+      'interests',
+    ])
+    const textWarning = textWasNormalized ? TEXT_NORMALIZED_WARNING : ''
+
     if (!hasSupabaseConfig) {
-      const publicAccount = { ...form }
+      const publicAccount = { ...safeForm }
       delete publicAccount.password
       delete publicAccount.confirmPassword
       writeStorage(LOCAL_ACCOUNT_KEY, publicAccount)
-      return { account: publicAccount, error: null }
+      return { account: publicAccount, error: null, warning: textWarning }
     }
 
-    const email = normalizeEmail(form.email)
+    const email = normalizeEmail(safeForm.email)
 
-    if (!email || !form.password) {
+    if (!email || !safeForm.password) {
       return { account: null, error: new Error('Email y clave son obligatorios.') }
     }
 
@@ -640,34 +703,34 @@ export const cercaApi = {
       return { account: null, error: new Error('Revisa el email. Tiene que ser algo como nombre@gmail.com, con punto antes de com.') }
     }
 
-    if (form.password.length < 6) {
+    if (safeForm.password.length < 6) {
       return { account: null, error: new Error('La clave tiene que tener al menos 6 caracteres.') }
     }
 
-    const password = form.password
+    const password = safeForm.password
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: siteUrl,
         data: {
-          full_name: form.name,
-          account_type: form.type,
-          business_type: form.businessType,
-          business_name: form.businessName,
-          category: form.category,
-          sales_mode: form.salesMode,
-          whatsapp: form.whatsapp,
-          instagram: form.instagram,
-          section: form.section || 'Liceo Procrear',
-          address: form.address,
-          reference: form.reference,
-          location_mode: form.locationMode,
-          location_lat: form.locationLat,
-          location_lng: form.locationLng,
-          location_precision: form.locationPrecision,
-          location_note: form.locationNote,
-          interests: form.interests,
+          full_name: safeForm.name,
+          account_type: safeForm.type,
+          business_type: safeForm.businessType,
+          business_name: safeForm.businessName,
+          category: safeForm.category,
+          sales_mode: safeForm.salesMode,
+          whatsapp: safeForm.whatsapp,
+          instagram: safeForm.instagram,
+          section: safeForm.section || 'Liceo Procrear',
+          address: safeForm.address,
+          reference: safeForm.reference,
+          location_mode: safeForm.locationMode,
+          location_lat: safeForm.locationLat,
+          location_lng: safeForm.locationLng,
+          location_precision: safeForm.locationPrecision,
+          location_note: safeForm.locationNote,
+          interests: safeForm.interests,
         },
       },
     })
@@ -681,57 +744,59 @@ export const cercaApi = {
         account: null,
         error: null,
         pendingConfirmation: true,
-        message: form.type === 'merchant' ? merchantMessage : neighborMessage,
+        message: mergeWarnings(textWarning, safeForm.type === 'merchant' ? merchantMessage : neighborMessage),
+        warning: '',
       }
     }
 
     const profile = {
       id: data.user.id,
-      account_type: form.type,
-      full_name: form.name,
-      whatsapp: form.whatsapp,
-      section: form.section,
-      interests: form.interests,
+      account_type: safeForm.type,
+      full_name: safeForm.name,
+      whatsapp: safeForm.whatsapp,
+      section: safeForm.section,
+      interests: safeForm.interests,
     }
 
     const { error: profileError } = await supabase.from('profiles').upsert(profile)
     const account = {
       id: data.user.id,
-      type: form.type,
-      name: form.name,
-      whatsapp: form.whatsapp,
+      type: safeForm.type,
+      name: safeForm.name,
+      whatsapp: safeForm.whatsapp,
       email: data.user.email,
-      section: form.section,
+      section: safeForm.section,
       role: 'user',
-      businessName: form.businessName,
-      businessType: form.businessType,
-      category: form.category,
-      salesMode: form.salesMode,
-      instagram: form.instagram,
-      address: form.address,
-      reference: form.reference,
-      locationMode: form.locationMode,
-      locationLat: form.locationLat,
-      locationLng: form.locationLng,
-      locationPrecision: form.locationPrecision,
-      locationNote: form.locationNote,
-      interests: form.interests,
+      businessName: safeForm.businessName,
+      businessType: safeForm.businessType,
+      category: safeForm.category,
+      salesMode: safeForm.salesMode,
+      instagram: safeForm.instagram,
+      address: safeForm.address,
+      reference: safeForm.reference,
+      locationMode: safeForm.locationMode,
+      locationLat: safeForm.locationLat,
+      locationLng: safeForm.locationLng,
+      locationPrecision: safeForm.locationPrecision,
+      locationNote: safeForm.locationNote,
+      interests: safeForm.interests,
     }
 
     if (profileError) {
       return {
         account,
         error: null,
-        warning: `Cuenta creada. Si algun dato no aparece, inicia sesion de nuevo. (${authErrorMessage(profileError, 'perfil pendiente')})`,
+        warning: mergeWarnings(textWarning, `Cuenta creada. Si algun dato no aparece, inicia sesion de nuevo. (${authErrorMessage(profileError, 'perfil pendiente')})`),
       }
     }
 
     return {
       account,
-      message: form.type === 'merchant'
+      message: safeForm.type === 'merchant'
         ? 'Cuenta comercio creada. Ya podes cargar tu ficha.'
         : 'Cuenta creada. Ya podes usar favoritos y avisos.',
       error: null,
+      warning: textWarning,
     }
   },
 
@@ -1153,13 +1218,34 @@ export const cercaApi = {
   },
 
   async saveBusiness(draft) {
+    const { next: safeDraftBase, changed: businessTextWasNormalized } = normalizeTextFields(draft, [
+      'name',
+      'businessType',
+      'category',
+      'section',
+      'address',
+      'reference',
+      'locationNote',
+      'hours',
+      'whatsapp',
+      'instagram',
+      'description',
+      'paymentMethods',
+      'delivery',
+      'openTime',
+      'closeTime',
+    ])
+    const { menu: safeMenu, changed: menuTextWasNormalized } = normalizeMenuText(safeDraftBase.menu)
+    const safeDraft = { ...safeDraftBase, menu: safeMenu }
+    const textWarning = businessTextWasNormalized || menuTextWasNormalized ? TEXT_NORMALIZED_WARNING : ''
+
     if (!hasSupabaseConfig) {
       const current = readStorage(LOCAL_BUSINESS_KEY)
-      const business = normalizeBusiness({ ...draft, id: current?.id || createClientId(), ready: true })
+      const business = normalizeBusiness({ ...safeDraft, id: current?.id || createClientId(), ready: true })
       const savedBusinesses = readStorage(LOCAL_BUSINESSES_KEY) || []
       writeStorage(LOCAL_BUSINESSES_KEY, mergeById([business, ...savedBusinesses]))
       writeStorage(LOCAL_BUSINESS_KEY, business)
-      return { business, error: null }
+      return { business, error: null, warning: textWarning }
     }
 
     const { data: auth } = await supabase.auth.getUser()
@@ -1173,46 +1259,46 @@ export const cercaApi = {
       .eq('owner_id', auth.user.id)
       .maybeSingle()
 
-    const { url: imageUrl, error: imageError } = await uploadPublicImage(draft.image, 'locals')
+    const { url: imageUrl, error: imageError } = await uploadPublicImage(safeDraft.image, 'locals')
     const safeImageKey = imageError
-      ? (isDataImage(draft.image) ? draft.image : existingBusiness?.image_key || draft.image || 'generic')
-      : imageUrl || draft.image || existingBusiness?.image_key || 'generic'
+      ? (isDataImage(safeDraft.image) ? safeDraft.image : existingBusiness?.image_key || safeDraft.image || 'generic')
+      : imageUrl || safeDraft.image || existingBusiness?.image_key || 'generic'
 
     const payload = {
       owner_id: auth.user.id,
-      name: draft.name,
-      business_type: draft.businessType || 'local',
-      has_public_address: draft.hasPublicAddress ?? Boolean(draft.address),
-      category: draft.category,
-      section: draft.section,
-      address: draft.address,
-      reference: draft.reference,
-      location_mode: draft.businessType === 'entrepreneur' ? 'none' : draft.locationMode || 'address',
-      location_lat: draft.locationMode === 'pin' ? draft.locationLat || null : null,
-      location_lng: draft.locationMode === 'pin' ? draft.locationLng || null : null,
-      location_precision: draft.locationMode === 'pin' ? draft.locationPrecision || 'approximate' : null,
-      location_note: draft.locationNote || draft.reference || null,
-      hours: draft.hours,
-      open_days: draft.openDays,
-      open_time: draft.openTime,
-      close_time: draft.closeTime,
-      whatsapp: draft.whatsapp,
-      instagram: draft.instagram,
-      description: draft.description,
-      payment_methods: draft.paymentMethods,
-      delivery_label: draft.delivery,
-      has_delivery: String(draft.delivery || '').toLowerCase().includes('delivery'),
-      order_hours: draft.hours,
+      name: safeDraft.name,
+      business_type: safeDraft.businessType || 'local',
+      has_public_address: safeDraft.hasPublicAddress ?? Boolean(safeDraft.address),
+      category: safeDraft.category,
+      section: safeDraft.section,
+      address: safeDraft.address,
+      reference: safeDraft.reference,
+      location_mode: safeDraft.businessType === 'entrepreneur' ? 'none' : safeDraft.locationMode || 'address',
+      location_lat: safeDraft.locationMode === 'pin' ? safeDraft.locationLat || null : null,
+      location_lng: safeDraft.locationMode === 'pin' ? safeDraft.locationLng || null : null,
+      location_precision: safeDraft.locationMode === 'pin' ? safeDraft.locationPrecision || 'approximate' : null,
+      location_note: safeDraft.locationNote || safeDraft.reference || null,
+      hours: safeDraft.hours,
+      open_days: safeDraft.openDays,
+      open_time: safeDraft.openTime,
+      close_time: safeDraft.closeTime,
+      whatsapp: safeDraft.whatsapp,
+      instagram: safeDraft.instagram,
+      description: safeDraft.description,
+      payment_methods: safeDraft.paymentMethods,
+      delivery_label: safeDraft.delivery,
+      has_delivery: String(safeDraft.delivery || '').toLowerCase().includes('delivery'),
+      order_hours: safeDraft.hours,
       image_key: safeImageKey,
-      image_zoom: draft.imageZoom,
-      image_position: draft.imagePosition,
-      plan: draft.plan === 'pedidos' ? 'orders' : 'free',
-      plan_status: draft.plan === 'pedidos'
-        ? (draft.planStatus === 'active' ? 'active' : 'manual_pending')
+      image_zoom: safeDraft.imageZoom,
+      image_position: safeDraft.imagePosition,
+      plan: safeDraft.plan === 'pedidos' ? 'orders' : 'free',
+      plan_status: safeDraft.plan === 'pedidos'
+        ? (safeDraft.planStatus === 'active' ? 'active' : 'manual_pending')
         : 'free',
-      paid_until: draft.paidUntil || null,
-      is_public: draft.isPublic ?? true,
-      is_open: draft.open !== false,
+      paid_until: safeDraft.paidUntil || null,
+      is_public: safeDraft.isPublic ?? true,
+      is_open: safeDraft.open !== false,
       updated_at: new Date().toISOString(),
     }
 
@@ -1246,7 +1332,7 @@ export const cercaApi = {
 
     const planIsActive = isOrdersPlanActive(mapBusinessRow(data))
     const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
-    const menu = (planIsActive ? (draft.menu || []) : [])
+    const menu = (planIsActive ? (safeDraft.menu || []) : [])
       .slice(0, 15)
       .filter((item) => item.name?.trim())
       .map((item, index) => ({
@@ -1307,11 +1393,21 @@ export const cercaApi = {
     return {
       business: refreshed ? mapBusinessRow(refreshed) : mapBusinessRow(data),
       error: refreshError,
-      warning: imageError ? 'El local se guardo. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
+      warning: mergeWarnings(
+        textWarning,
+        imageError ? 'El local se guardo. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
+      ),
     }
   },
 
   async createOffer({ business, title, description, priceLabel, imageKey, expiresInDays = 4 }) {
+    const { next: safeOffer, changed: offerTextWasNormalized } = normalizeTextFields({
+      title,
+      description,
+      priceLabel,
+    }, ['title', 'description', 'priceLabel'])
+    const textWarning = offerTextWasNormalized ? TEXT_NORMALIZED_WARNING : ''
+
     if (!business) {
       return { offer: null, error: new Error('Primero carga la ficha del local.') }
     }
@@ -1336,14 +1432,14 @@ export const cercaApi = {
       const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString()
       const offer = {
         id: createClientId(),
-        title,
+        title: safeOffer.title,
         business: business.name,
         businessId: business.id,
         businessType: business.businessType || 'local',
         hasPublicAddress: business.hasPublicAddress ?? Boolean(business.address),
         category: business.category,
         section: business.section,
-        price: priceLabel || 'Consultar',
+        price: safeOffer.priceLabel || 'Consultar',
         expires: `${expiresInDays} dias`,
         address: business.address,
         reference: business.reference,
@@ -1351,7 +1447,7 @@ export const cercaApi = {
         openDays: business.openDays || [],
         openTime: business.openTime || '',
         closeTime: business.closeTime || '',
-        description,
+        description: safeOffer.description,
         tone: business.tone || 'orange',
         image: imageKey || business.image || 'generic',
         whatsapp: business.whatsapp || '',
@@ -1365,7 +1461,7 @@ export const cercaApi = {
       }
       const savedOffers = readStorage(LOCAL_OFFERS_KEY) || []
       writeStorage(LOCAL_OFFERS_KEY, [offer, ...savedOffers].slice(0, 80))
-      return { offer, error: null }
+      return { offer, error: null, warning: textWarning }
     }
 
     if (!founderActive) {
@@ -1390,11 +1486,11 @@ export const cercaApi = {
 
     const payload = {
       business_id: business.id,
-      title,
-      description,
+      title: safeOffer.title,
+      description: safeOffer.description,
       category: business.category,
       section: business.section,
-      price_label: priceLabel,
+      price_label: safeOffer.priceLabel,
       image_key: imageError
         ? (isDataImage(imageKey) ? imageKey : business.image || imageKey || 'generic')
         : offerImageUrl || imageKey || business.image || 'generic',
@@ -1413,11 +1509,21 @@ export const cercaApi = {
     return {
       offer: data ? mapOfferRowWithBusiness(data, business) : null,
       error,
-      warning: imageError ? 'La promo se publico. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
+      warning: mergeWarnings(
+        textWarning,
+        imageError ? 'La promo se publico. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
+      ),
     }
   },
 
   async updateOffer({ offerId, business, title, description, priceLabel, imageKey, expiresInDays = 4 }) {
+    const { next: safeOffer, changed: offerTextWasNormalized } = normalizeTextFields({
+      title,
+      description,
+      priceLabel,
+    }, ['title', 'description', 'priceLabel'])
+    const textWarning = offerTextWasNormalized ? TEXT_NORMALIZED_WARNING : ''
+
     if (!offerId) {
       return { offer: null, error: new Error('No se encontro la publicacion para editar.') }
     }
@@ -1427,9 +1533,9 @@ export const cercaApi = {
         offer.id === offerId
           ? {
               ...offer,
-              title,
-              description,
-              price: priceLabel || 'Consultar',
+              title: safeOffer.title,
+              description: safeOffer.description,
+              price: safeOffer.priceLabel || 'Consultar',
               image: imageKey || offer.image || business?.image || 'generic',
               expires: `${expiresInDays} dias`,
               expiresAt: new Date(Date.now() + expiresInDays * 86400000).toISOString(),
@@ -1438,14 +1544,14 @@ export const cercaApi = {
           : offer
       ))
       writeLocalOffers(nextOffers)
-      return { offer: nextOffers.find((offer) => offer.id === offerId) || null, error: null }
+      return { offer: nextOffers.find((offer) => offer.id === offerId) || null, error: null, warning: textWarning }
     }
 
     const { url: offerImageUrl, error: imageError } = await uploadPublicImage(imageKey, 'offers')
     const payload = {
-      title,
-      description,
-      price_label: priceLabel || 'Consultar',
+      title: safeOffer.title,
+      description: safeOffer.description,
+      price_label: safeOffer.priceLabel || 'Consultar',
       image_key: imageError
         ? (isDataImage(imageKey) ? imageKey : imageKey || business?.image || 'generic')
         : offerImageUrl || imageKey || business?.image || 'generic',
@@ -1463,7 +1569,10 @@ export const cercaApi = {
     return {
       offer: data ? mapOfferRowWithBusiness(data, business) : null,
       error,
-      warning: imageError ? 'La promo se actualizo. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
+      warning: mergeWarnings(
+        textWarning,
+        imageError ? 'La promo se actualizo. La foto quedo en modo temporal porque faltan politicas de Storage.' : '',
+      ),
     }
   },
 

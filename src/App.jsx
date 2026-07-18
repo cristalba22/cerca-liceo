@@ -3115,10 +3115,10 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         </div>
       </section>
 
-      <section className="dashboard-actions" aria-label="Acciones principales del comercio">
+      <section className="dashboard-actions dashboard-actions-large" aria-label="Acciones principales del comercio">
         <button type="button" onClick={() => setOpenPanel(nextPanel)}>
           <Check size={18} />
-          <span>{pendingTasks.length ? 'Completar pendiente' : 'Ver ficha'}</span>
+          <span>{pendingTasks.length ? 'Completar ficha' : 'Panel comercio'}</span>
         </button>
         <button type="button" onClick={handlePublishFromPanel}>
           <Flame size={18} />
@@ -3156,34 +3156,6 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         </section>
       )}
 
-      <section className="merchant-focus-card" aria-label="Proximo paso recomendado">
-        <div>
-          <span>Proximo paso</span>
-          <strong>{pendingTasks.length ? `Completa ${pendingTasks[0].title.toLowerCase()}` : activeLocalOffers.length ? 'Mantene tus promos al dia' : 'Publica tu primera promo'}</strong>
-          <p>
-            {pendingTasks.length
-              ? 'Con esos datos ya podes aparecer gratis en la guia.'
-              : activeLocalOffers.length
-                ? 'Si cambian precios o stock, pausala o republicala para que el vecino vea info actual.'
-                : 'Tenes 1 publicacion semanal gratis. Dura pocos dias y se baja sola.'}
-          </p>
-        </div>
-        <div className="merchant-focus-actions">
-          <button type="button" onClick={() => setOpenPanel(pendingTasks[0]?.id || 'preview')}>
-            <Check size={16} />
-            Ficha
-          </button>
-          <button type="button" onClick={handlePublishFromPanel}>
-            <Flame size={16} />
-            Promo
-          </button>
-          <button type="button" onClick={() => setOpenPanel(founderActive ? 'menu' : 'plan')}>
-            <ShoppingBasket size={16} />
-            {founderActive ? 'Catalogo' : 'Fundador'}
-          </button>
-        </div>
-      </section>
-
       <section className="merchant-quick-controls" aria-label="Controles rapidos del comercio">
         <button
           className={localDraft.open === false ? 'is-off' : 'is-on'}
@@ -3209,18 +3181,6 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <span>{localDraft.isPublic === false ? 'Ficha pausada' : 'Ficha visible'}</span>
           <small>{localDraft.isPublic === false ? 'Mostrar de nuevo' : 'Pausar sin borrar'}</small>
         </button>
-      </section>
-
-      <section className="dashboard-checklist" aria-label="Checklist del local">
-        {dashboardTasks.map((task) => (
-          <button className={task.done ? 'done' : task.optional ? 'optional' : 'todo'} type="button" key={task.id} onClick={() => setOpenPanel(task.id)}>
-            <b>{task.done ? <Check size={15} /> : <ChevronRight size={15} />}</b>
-            <span>
-              <strong>{task.title}</strong>
-              <small>{task.meta}</small>
-            </span>
-          </button>
-        ))}
       </section>
 
       <section className="dashboard-metrics" aria-label="Resumen del comercio">
@@ -3253,9 +3213,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       <section className="local-builder">
         <div className="merchant-hub-head">
           <div>
-            <span>Configuracion guiada</span>
-            <h2>{localDraft.name || 'Tu local'}</h2>
-            <p>{completion}% listo para mostrarse bien en la guia.</p>
+            <span>Editar ficha</span>
+            <h2>{localDraft.name || 'Tu comercio'}</h2>
+            <p>Toca una seccion, cambia el dato y guarda.</p>
           </div>
           <div className="merchant-hub-meter" style={{ '--progress': `${completion}%` }}>
             <strong>{completion}%</strong>
@@ -3271,7 +3231,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </section>
           )}
 
-          {panelButton('basic', 'Paso 1', 'Datos basicos', localDraft.name ? 'Completo' : 'Pendiente', Store)}
+          {panelButton('basic', 'Ficha', 'Datos basicos', localDraft.name ? 'Completo' : 'Pendiente', Store)}
           {openPanel === 'basic' && (
             <div className="merchant-panel-body">
               <section className="presence-selector" aria-label="Tipo de comercio">
@@ -3343,7 +3303,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('photo', 'Paso 2', 'Foto y encuadre', isUploadedImage(localDraft.image) ? 'Foto cargada' : localDraft.category || 'Elegir', Camera)}
+          {panelButton('photo', 'Foto', 'Imagen principal', isUploadedImage(localDraft.image) ? 'Cargada' : 'Agregar', Camera)}
           {openPanel === 'photo' && (
             <div className="merchant-panel-body">
               <div className="local-builder-top">
@@ -3382,7 +3342,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('location', 'Paso 3', localDraft.businessType === 'entrepreneur' ? 'Zona, dias y horario' : 'Direccion, dias y horario', dashboardTasks.find((task) => task.id === 'location')?.done ? 'Completo' : 'Pendiente', MapPin)}
+          {panelButton('location', 'Ubicacion', localDraft.businessType === 'entrepreneur' ? 'Zona y horarios' : 'Direccion y horarios', dashboardTasks.find((task) => task.id === 'location')?.done ? 'Completo' : 'Pendiente', MapPin)}
           {openPanel === 'location' && (
             <div className="merchant-panel-body">
               <section className={`local-map-editor ${localDraft.businessType === 'entrepreneur' ? 'contact-first' : ''}`}>
@@ -3518,7 +3478,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('menu', 'Paso 4', 'Catalogo', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} items` : founderRequested ? 'Pendiente' : 'Bloqueado', ShoppingBasket)}
+          {panelButton('menu', 'Catalogo', 'Productos o servicios', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} items` : founderRequested ? 'Pendiente' : 'Fundador', ShoppingBasket)}
           {openPanel === 'menu' && (
             <div className="merchant-panel-body">
               {!founderActive ? (
@@ -3617,7 +3577,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('plan', 'Paso 5', 'Gratis o fundador', founderActive ? 'Activo' : founderRequested ? 'Pendiente' : 'Gratis', ShoppingBasket)}
+          {panelButton('plan', 'Plan', 'Gratis o fundador', founderActive ? 'Activo' : founderRequested ? 'Pendiente' : 'Gratis', ShoppingBasket)}
           {openPanel === 'plan' && (
             <div className="merchant-panel-body">
               <section className="local-plan-selector" aria-label="Plan del comercio">
@@ -3702,7 +3662,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('preview', 'Final', 'Vista previa publica', 'Ver ficha', Eye)}
+          {panelButton('preview', 'Vista previa', 'Asi lo ve el vecino', 'Ver ficha', Eye)}
           {openPanel === 'preview' && (
             <div className="merchant-panel-body">
               <section className="public-local-preview">
@@ -4162,17 +4122,17 @@ function AdminScreen({
 
       <section className="admin-command-center">
         <article>
-          <span>Paso 1</span>
+          <span>Revision</span>
           <strong>Corregir datos</strong>
           <p>{needsReview.length ? `${needsReview.length} locales necesitan revisar WhatsApp, direccion, horario o verificacion.` : 'No hay locales urgentes para revisar.'}</p>
         </article>
         <article>
-          <span>Paso 2</span>
+          <span>Publicacion</span>
           <strong>Verificar y publicar</strong>
           <p>{readyBusinesses.length} locales tienen datos suficientes para mostrarse con confianza.</p>
         </article>
         <article>
-          <span>Paso 3</span>
+          <span>Planes</span>
           <strong>Planes manuales</strong>
           <p>{pendingOrders.length ? `${pendingOrders.length} comercio(s) pidieron fundador y esperan tu activacion.` : 'No hay solicitudes de fundador pendientes.'}</p>
         </article>
@@ -4885,7 +4845,7 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
       )}
 
       {isLogged && (
-        <section className="profile-actions compact">
+        <section className={`profile-actions compact ${isMerchant ? 'merchant-primary-actions' : ''}`}>
           {!isMerchant && (
             <>
               <button type="button">
@@ -4906,7 +4866,7 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
             <>
               <button type="button" onClick={onMerchantPanel}>
                 <List size={19} />
-                Panel comercio
+                Panel de comercio
               </button>
               <button type="button" onClick={onPublish}>
                 <Flame size={19} />
@@ -4923,7 +4883,7 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
         </section>
       )}
 
-      {isMerchant && (
+      {isMerchant && !local && (
         <section className="merchant-entry-card">
           <span>{local ? 'Local publicado' : 'Para comercios'}</span>
           <h2>{local ? local.name : 'Carga tu ficha y apareces en la guia.'}</h2>

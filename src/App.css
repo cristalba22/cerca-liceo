@@ -138,6 +138,13 @@ select:focus-visible {
   box-shadow: none;
 }
 
+.night-mode .password-eye-button,
+.night-mode .auth-form-card .password-eye-button {
+  color: #fffbea;
+  background: rgba(255, 251, 234, 0.1);
+  border-color: rgba(255, 251, 234, 0.16);
+}
+
 .night-mode .app-header,
 .night-mode .bottom-nav,
 .night-mode .detail-header {
@@ -10762,6 +10769,35 @@ select:focus-visible {
   outline: 0;
 }
 
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 54px;
+}
+
+.password-eye-button {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  color: #10150f;
+  background: rgba(255, 251, 234, 0.82);
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 999px;
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
 .auth-form-actions {
   display: flex;
   align-items: center;
@@ -10793,10 +10829,13 @@ select:focus-visible {
   border: 1px solid rgba(54, 95, 0, 0.12);
 }
 
-.auth-form-card .password-toggle-button {
+.auth-form-card .password-eye-button {
+  min-height: 40px;
+  margin-top: 0;
+  padding: 0;
   color: #10150f;
-  background: #fff7e6;
-  border: 1px solid rgba(16, 21, 15, 0.12);
+  background: rgba(255, 251, 234, 0.82);
+  border: 1px solid rgba(16, 21, 15, 0.1);
 }
 
 .recovery-card p {
@@ -13875,6 +13914,27 @@ html.android-compat .android-safe-form textarea {
   outline: 0;
 }
 
+html.android-compat .android-safe-form .password-field input {
+  padding-right: 56px;
+}
+
+html.android-compat .android-safe-form .password-eye-button {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  color: #10150f;
+  background: rgba(255, 251, 234, 0.86) !important;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 999px;
+  box-shadow: none !important;
+  transform: translateY(-50%);
+}
+
 html.android-compat .android-safe-form textarea {
   min-height: 104px;
   padding: 14px;
@@ -13909,11 +13969,6 @@ html.android-compat .android-safe-form button:disabled {
 html.android-compat .android-safe-form .android-safe-link {
   color: #172112;
   background: #eee6d5 !important;
-}
-
-html.android-compat .android-safe-form .password-toggle-button {
-  color: #10150f;
-  background: #fff7e6 !important;
 }
 
 html.android-compat .android-safe-form p {

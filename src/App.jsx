@@ -66,6 +66,22 @@ const categories = [
 ]
 
 const commerceCategories = categories.filter((category) => category.name !== 'Todas')
+const categoryToneMap = Object.fromEntries(categories.map((category) => [category.name, category.tone]))
+const offerToneCycle = ['orange', 'yellow', 'green', 'teal', 'amber', 'red', 'pink', 'sky', 'mint', 'coral']
+
+const getOfferTone = (category = '', index = 0) => {
+  const preferredTone = categoryToneMap[category]
+  if (preferredTone && preferredTone !== 'lime' && index % 3 === 0) return preferredTone
+  const seed = String(category).split('').reduce((total, char) => total + char.charCodeAt(0), index)
+  return offerToneCycle[Math.abs(seed) % offerToneCycle.length]
+}
+
+const normalizeSearchText = (value = '') => String(value)
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/ñ/g, 'n')
+  .trim()
 
 const readStoredJson = (key) => {
   try {
@@ -278,8 +294,81 @@ const formatOpenDays = (days = []) => {
   return days.length ? days.join(', ') : 'Dias a definir'
 }
 
+const parseOpenDayLabel = (label = '') => {
+  const clean = label.trim()
+  if (clean === 'Todos los dias') return weekDays
+  if (clean === 'Lun a Vie') return weekDays.slice(0, 5)
+  if (clean === 'Lun a Sab') return weekDays.slice(0, 6)
+  if (clean === 'Sab y Dom') return ['Sab', 'Dom']
+  return clean.split(',').map((item) => item.trim()).filter((item) => weekDays.includes(item))
+}
+
+const parseTimeToMinutes = (time = '') => {
+  const match = String(time).match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours > 23 || minutes > 59) return null
+  return hours * 60 + minutes
+}
+
+const buildScheduleSlots = (schedule = {}) => {
+  const days = schedule.openDays || schedule.open_days || []
+  const mainSlot = schedule.openTime && schedule.closeTime
+    ? [{ open: schedule.openTime, close: schedule.closeTime }]
+    : []
+  const splitSlot = schedule.splitHours && schedule.splitOpenTime && schedule.splitCloseTime
+    ? [{ open: schedule.splitOpenTime, close: schedule.splitCloseTime }]
+    : []
+
+  return weekDays.reduce((result, day) => {
+    if (!days.includes(day)) return result
+    const isSaturday = day === 'Sab'
+    const isSunday = day === 'Dom'
+    const weekendSlot = schedule.weekendHours && (
+      isSaturday && schedule.satOpenTime && schedule.satCloseTime
+        ? [{ open: schedule.satOpenTime, close: schedule.satCloseTime }]
+        : isSunday && schedule.sunOpenTime && schedule.sunCloseTime
+          ? [{ open: schedule.sunOpenTime, close: schedule.sunCloseTime }]
+          : null
+    )
+    result[day] = weekendSlot || [...mainSlot, ...splitSlot]
+    return result
+  }, {})
+}
+
+const parseScheduleLabel = (hours = '') => {
+  if (!hours || !hours.includes(' - ')) return {}
+  return String(hours).split('|').reduce((result, part) => {
+    const [dayLabel, slotLabel] = part.split(' - ').map((item) => item.trim())
+    if (!dayLabel || !slotLabel) return result
+    const slots = slotLabel.split(' y ').map((slot) => {
+      const [open, close] = slot.split(' a ').map((item) => item.trim())
+      return open && close ? { open, close } : null
+    }).filter(Boolean)
+    parseOpenDayLabel(dayLabel).forEach((day) => {
+      result[day] = slots
+    })
+    return result
+  }, {})
+}
+
+const formatSlotGroup = (slots = []) => slots
+  .filter((slot) => slot.open && slot.close)
+  .map((slot) => `${slot.open} a ${slot.close}`)
+  .join(' y ')
+
 const formatSchedule = (schedule = {}) => {
   const { openDays = [], openTime = '', closeTime = '', hours = '' } = schedule || {}
+  const slotsByDay = buildScheduleSlots(schedule)
+  const groups = Object.entries(slotsByDay).reduce((result, [day, slots]) => {
+    const label = formatSlotGroup(slots)
+    if (!label) return result
+    result[label] = [...(result[label] || []), day]
+    return result
+  }, {})
+  const formattedGroups = Object.entries(groups).map(([slotLabel, days]) => `${formatOpenDays(days)} - ${slotLabel}`)
+  if (formattedGroups.length) return formattedGroups.join(' | ')
   const days = formatOpenDays(openDays)
   if (openTime && closeTime) return `${days} - ${openTime} a ${closeTime}`
   return hours || `${days} - Horario a definir`
@@ -456,6 +545,17 @@ const getOpenStatus = (business = {}) => {
   const days = safeBusiness.openDays || safeBusiness.open_days || []
   const openTime = safeBusiness.openTime || safeBusiness.open_time
   const closeTime = safeBusiness.closeTime || safeBusiness.close_time
+  const now = new Date()
+  const day = weekDays[(now.getDay() + 6) % 7]
+  const scheduleSlots = {
+    ...buildScheduleSlots({
+      ...safeBusiness,
+      openDays: days,
+      openTime,
+      closeTime,
+    }),
+    ...parseScheduleLabel(safeBusiness.hours || safeBusiness.orderHours || ''),
+  }
 
   if (safeBusiness.open === false) {
     return {
@@ -465,42 +565,36 @@ const getOpenStatus = (business = {}) => {
     }
   }
 
-  if (!days.length || !openTime || !closeTime) {
+  const todaySlots = scheduleSlots[day] || []
+  if (!todaySlots.length) {
+    const hasAnySchedule = Object.values(scheduleSlots).some((slots) => slots?.length)
     return {
-      open: safeBusiness.open !== false,
-      label: safeBusiness.open === false ? 'Cerrado' : 'Consultar horario',
+      open: hasAnySchedule ? false : safeBusiness.open !== false,
+      label: hasAnySchedule ? 'Cerrado ahora' : 'Consultar horario',
       detail: safeBusiness.hours || safeBusiness.orderHours || 'Horario a confirmar',
     }
   }
 
-  const now = new Date()
-  const day = weekDays[(now.getDay() + 6) % 7]
-  const [openHour, openMinute] = openTime.split(':').map(Number)
-  const [closeHour, closeMinute] = closeTime.split(':').map(Number)
-  if (!Number.isFinite(openHour) || !Number.isFinite(closeHour)) {
-    return {
-      open: safeBusiness.open !== false,
-      label: safeBusiness.open === false ? 'Cerrado ahora' : 'Horario a confirmar',
-      detail: safeBusiness.hours || 'Horario a confirmar',
-    }
-  }
   const minutesNow = now.getHours() * 60 + now.getMinutes()
-  const opensAt = openHour * 60 + (openMinute || 0)
-  let closesAt = closeHour * 60 + (closeMinute || 0)
-  let currentMinutes = minutesNow
-
-  if (closesAt <= opensAt) {
-    closesAt += 24 * 60
-    if (currentMinutes < opensAt) currentMinutes += 24 * 60
-  }
-
-  const opensToday = days.includes(day)
-  const isOpen = opensToday && currentMinutes >= opensAt && currentMinutes <= closesAt
+  let closesLabel = ''
+  const isOpen = todaySlots.some((slot) => {
+    const opensAt = parseTimeToMinutes(slot.open)
+    let closesAt = parseTimeToMinutes(slot.close)
+    if (opensAt === null || closesAt === null) return false
+    let currentMinutes = minutesNow
+    if (closesAt <= opensAt) {
+      closesAt += 24 * 60
+      if (currentMinutes < opensAt) currentMinutes += 24 * 60
+    }
+    const inSlot = currentMinutes >= opensAt && currentMinutes <= closesAt
+    if (inSlot) closesLabel = slot.close
+    return inSlot
+  })
 
   return {
     open: isOpen,
     label: isOpen ? 'Abierto ahora' : 'Cerrado ahora',
-    detail: isOpen ? `Hasta ${closeTime}` : formatSchedule(safeBusiness),
+    detail: isOpen ? `Hasta ${closesLabel}` : formatSchedule(safeBusiness),
   }
 }
 
@@ -598,7 +692,35 @@ const mergeUniqueById = (items) => {
   })
 }
 
-const buildLocalDraft = (local, account) => ({
+const inferScheduleDraft = (local = {}) => {
+  const parsed = parseScheduleLabel(local.hours || '')
+  const mondaySlots = parsed.Lun || []
+  const saturdaySlots = parsed.Sab || []
+  const sundaySlots = parsed.Dom || []
+  const primary = mondaySlots[0] || saturdaySlots[0] || sundaySlots[0] || {}
+  const split = mondaySlots[1] || {}
+  const hasWeekendHours = Boolean(
+    (saturdaySlots[0] && (saturdaySlots[0].open !== primary.open || saturdaySlots[0].close !== primary.close)) ||
+    (sundaySlots[0] && (sundaySlots[0].open !== primary.open || sundaySlots[0].close !== primary.close))
+  )
+
+  return {
+    openTime: local?.openTime || primary.open || '',
+    closeTime: local?.closeTime || primary.close || '',
+    splitHours: Boolean(split.open && split.close),
+    splitOpenTime: split.open || '',
+    splitCloseTime: split.close || '',
+    weekendHours: hasWeekendHours,
+    satOpenTime: saturdaySlots[0]?.open || '',
+    satCloseTime: saturdaySlots[0]?.close || '',
+    sunOpenTime: sundaySlots[0]?.open || '',
+    sunCloseTime: sundaySlots[0]?.close || '',
+  }
+}
+
+const buildLocalDraft = (local, account) => {
+  const scheduleDraft = inferScheduleDraft(local || {})
+  return ({
   name: local?.name || account?.businessName || '',
   businessType: local?.businessType || account?.businessType || 'local',
   hasPublicAddress: local?.hasPublicAddress ?? (account?.businessType !== 'entrepreneur'),
@@ -613,8 +735,16 @@ const buildLocalDraft = (local, account) => ({
   locationNote: local?.locationNote || account?.locationNote || '',
   hours: local?.hours || '',
   openDays: local?.openDays || [],
-  openTime: local?.openTime || '',
-  closeTime: local?.closeTime || '',
+  openTime: scheduleDraft.openTime,
+  closeTime: scheduleDraft.closeTime,
+  splitHours: local?.splitHours || scheduleDraft.splitHours,
+  splitOpenTime: local?.splitOpenTime || scheduleDraft.splitOpenTime,
+  splitCloseTime: local?.splitCloseTime || scheduleDraft.splitCloseTime,
+  weekendHours: local?.weekendHours || scheduleDraft.weekendHours,
+  satOpenTime: local?.satOpenTime || scheduleDraft.satOpenTime,
+  satCloseTime: local?.satCloseTime || scheduleDraft.satCloseTime,
+  sunOpenTime: local?.sunOpenTime || scheduleDraft.sunOpenTime,
+  sunCloseTime: local?.sunCloseTime || scheduleDraft.sunCloseTime,
   whatsapp: local?.whatsapp || account?.whatsapp || '',
   instagram: local?.instagram || account?.instagram || '',
   description: local?.description || '',
@@ -640,7 +770,8 @@ const buildLocalDraft = (local, account) => ({
         { name: '', price: '' },
       ],
   ),
-})
+  })
+}
 
 const imageSurfaceProps = (image, baseClass, options = {}) => ({
   className: `${baseClass} ${isUploadedImage(image) ? 'custom-image' : `image-${image || 'generic'}`}`,
@@ -1170,7 +1301,7 @@ function App() {
 
   const publicFeedOffers = useMemo(() => {
     const seen = new Set()
-    return feedOffers.map((offer) => {
+    return feedOffers.map((offer, index) => {
       const matchedBusiness = feedBusinesses.find((business) => (
         business.id === offer.businessId ||
         business.name === offer.business
@@ -1179,6 +1310,7 @@ function App() {
       return matchedBusiness
         ? {
             ...offer,
+            business: offer.business || matchedBusiness.name,
             address: offer.address || matchedBusiness.address,
             reference: offer.reference || matchedBusiness.reference,
             hours: offer.hours || matchedBusiness.hours,
@@ -1187,8 +1319,9 @@ function App() {
             closeTime: offer.closeTime || matchedBusiness.closeTime,
             open: matchedBusiness.open,
             whatsapp: offer.whatsapp || matchedBusiness.whatsapp,
+            tone: offer.tone || getOfferTone(offer.category || matchedBusiness.category, index),
           }
-        : offer
+        : { ...offer, tone: offer.tone || getOfferTone(offer.category, index) }
     }).filter((offer) => {
       if (!isOfferActiveNow(offer)) return false
       const key = `${offer.businessId || offer.business}-${offer.title}-${offer.price}`
@@ -1199,17 +1332,59 @@ function App() {
   }, [feedBusinesses, feedOffers])
 
   const filteredOffers = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
+    const normalizedQuery = normalizeSearchText(query)
     return publicFeedOffers.filter((offer) => {
       const byCategory = selectedCategory === 'Todas' || offer.category === selectedCategory
       const bySection = selectedSection === 'Todos' || offer.section === selectedSection
+      const matchedBusiness = feedBusinesses.find((business) => business.id === offer.businessId || business.name === offer.business)
+      const searchable = normalizeSearchText([
+        offer.title,
+        offer.business,
+        offer.category,
+        offer.highlight,
+        offer.description,
+        offer.section,
+        offer.price,
+        matchedBusiness?.name,
+        matchedBusiness?.category,
+        matchedBusiness?.address,
+        matchedBusiness?.reference,
+        ...(matchedBusiness?.menu || []).map((item) => `${item.name || ''} ${item.price || ''}`),
+      ].filter(Boolean).join(' '))
       const byQuery =
         normalizedQuery.length === 0 ||
-        `${offer.title} ${offer.business} ${offer.category}`.toLowerCase().includes(normalizedQuery)
+        searchable.includes(normalizedQuery)
 
       return byCategory && bySection && byQuery
     })
-  }, [publicFeedOffers, query, selectedCategory, selectedSection])
+  }, [feedBusinesses, publicFeedOffers, query, selectedCategory, selectedSection])
+
+  const instantHomeResults = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(query)
+    if (normalizedQuery.length < 2) return { offers: [], businesses: [], categories: [] }
+    const offerResults = publicFeedOffers.filter((offer) => normalizeSearchText([
+      offer.title,
+      offer.business,
+      offer.category,
+      offer.highlight,
+      offer.description,
+      offer.section,
+      offer.price,
+    ].filter(Boolean).join(' ')).includes(normalizedQuery)).slice(0, 3)
+    const businessResults = feedBusinesses.filter((business) => normalizeSearchText([
+      business.name,
+      business.category,
+      business.section,
+      business.address,
+      business.reference,
+      business.description,
+      ...(business.menu || []).map((item) => `${item.name || ''} ${item.price || ''}`),
+    ].filter(Boolean).join(' ')).includes(normalizedQuery)).slice(0, 3)
+    const categoryResults = commerceCategories
+      .filter((category) => normalizeSearchText(category.name).includes(normalizedQuery))
+      .slice(0, 4)
+    return { offers: offerResults, businesses: businessResults, categories: categoryResults }
+  }, [feedBusinesses, publicFeedOffers, query])
 
   const visibleFeedOffers = publicFeedOffers
   const heroOffers = visibleFeedOffers
@@ -1484,6 +1659,55 @@ function App() {
                   </button>
                 ))}
               </div>
+              {query.trim().length >= 2 && (
+                <section className="home-live-search" aria-label="Resultados rapidos">
+                  <div>
+                    <span>Resultados al toque</span>
+                    <button type="button" onClick={() => setQuery('')}>Limpiar</button>
+                  </div>
+                  {[...instantHomeResults.offers.map((offer) => ({
+                    id: offer.id || `${offer.business}-${offer.title}`,
+                    type: 'Oferta',
+                    title: offer.title,
+                    meta: `${offer.business} · ${offer.category}`,
+                    action: () => {
+                      setSelectedOffer(offer)
+                      setScreen('detail')
+                    },
+                  })), ...instantHomeResults.businesses.map((business) => ({
+                    id: business.id || business.name,
+                    type: 'Local',
+                    title: business.name,
+                    meta: `${business.category} · ${business.section}`,
+                    action: () => {
+                      setSelectedBusiness(business)
+                      setScreen('business-detail')
+                    },
+                  })), ...instantHomeResults.categories.map((category) => ({
+                    id: category.name,
+                    type: 'Rubro',
+                    title: category.name,
+                    meta: 'Ver ofertas y locales',
+                    action: () => {
+                      setSelectedCategory(category.name)
+                      setQuery('')
+                    },
+                  }))].slice(0, 5).map((result) => (
+                    <button type="button" key={`${result.type}-${result.id}`} onClick={result.action}>
+                      <small>{result.type}</small>
+                      <strong>{result.title}</strong>
+                      <span>{result.meta}</span>
+                    </button>
+                  ))}
+                  {!instantHomeResults.offers.length && !instantHomeResults.businesses.length && !instantHomeResults.categories.length && (
+                    <button type="button" onClick={() => setScreen('directory')}>
+                      <small>Sin promo</small>
+                      <strong>Buscar en la guia</strong>
+                      <span>Puede estar como local fijo</span>
+                    </button>
+                  )}
+                </section>
+              )}
             </div>
 
             <HomeAccessCard
@@ -1641,34 +1865,6 @@ function App() {
                 )}
               </div>
             </section>
-
-            {query.trim() && (
-              <section className="search-results-panel">
-                <span>Busqueda activa</span>
-                <h2>{filteredOffers.length} resultados cerca tuyo</h2>
-                <p>Mostramos primero publicaciones vivas. Tambien podes ir a la guia para buscar locales fijos.</p>
-                {filteredOffers.length > 0 && (
-                  <div className="instant-results">
-                    {filteredOffers.slice(0, 3).map((offer, index) => (
-                      <button
-                        className={`instant-card offer-${offer.tone}`}
-                        type="button"
-                        key={offer.id || `${offer.title}-${index}`}
-                        onClick={() => {
-                          setSelectedOffer(offer)
-                          setScreen('detail')
-                        }}
-                      >
-                        <strong>{offer.title}</strong>
-                        <small>{offer.business} - {offer.section}</small>
-                        <b>{offer.price}</b>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <button type="button" onClick={() => setScreen('directory')}>Buscar en guia</button>
-              </section>
-            )}
 
             {(filteredOffers.length > 0 || query.trim()) && (
               <>
@@ -2476,6 +2672,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       needsPublicAddress && !localDraft.address.trim() && 'direccion o referencia',
       !localDraft.openDays.length && 'dias que abre',
       (!localDraft.openTime.trim() || !localDraft.closeTime.trim()) && 'horario',
+      localDraft.splitHours && (!localDraft.splitOpenTime.trim() || !localDraft.splitCloseTime.trim()) && 'horario de tarde',
+      localDraft.weekendHours && localDraft.openDays.includes('Sab') && (!localDraft.satOpenTime.trim() || !localDraft.satCloseTime.trim()) && 'horario del sabado',
+      localDraft.weekendHours && localDraft.openDays.includes('Dom') && (!localDraft.sunOpenTime.trim() || !localDraft.sunCloseTime.trim()) && 'horario del domingo',
     ].filter(Boolean)
 
     if (missing.length) {
@@ -2908,6 +3107,49 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
               <input type="time" value={localDraft.closeTime} onChange={(event) => updateLocalDraft('closeTime', event.target.value)} />
             </label>
           </div>
+
+          <div className="schedule-options">
+            <button className={localDraft.splitHours ? 'active' : ''} type="button" onClick={() => updateLocalDraft('splitHours', !localDraft.splitHours)}>
+              Horario cortado
+            </button>
+            <button className={localDraft.weekendHours ? 'active' : ''} type="button" onClick={() => updateLocalDraft('weekendHours', !localDraft.weekendHours)}>
+              Sab/Dom distinto
+            </button>
+          </div>
+
+          {localDraft.splitHours && (
+            <div className="android-safe-two-cols">
+              <label>
+                <span>Tarde desde</span>
+                <input type="time" value={localDraft.splitOpenTime} onChange={(event) => updateLocalDraft('splitOpenTime', event.target.value)} />
+              </label>
+              <label>
+                <span>Tarde hasta</span>
+                <input type="time" value={localDraft.splitCloseTime} onChange={(event) => updateLocalDraft('splitCloseTime', event.target.value)} />
+              </label>
+            </div>
+          )}
+
+          {localDraft.weekendHours && (
+            <div className="weekend-schedule-grid">
+              <label>
+                <span>Sab desde</span>
+                <input type="time" value={localDraft.satOpenTime} onChange={(event) => updateLocalDraft('satOpenTime', event.target.value)} />
+              </label>
+              <label>
+                <span>Sab hasta</span>
+                <input type="time" value={localDraft.satCloseTime} onChange={(event) => updateLocalDraft('satCloseTime', event.target.value)} />
+              </label>
+              <label>
+                <span>Dom desde</span>
+                <input type="time" value={localDraft.sunOpenTime} onChange={(event) => updateLocalDraft('sunOpenTime', event.target.value)} />
+              </label>
+              <label>
+                <span>Dom hasta</span>
+                <input type="time" value={localDraft.sunCloseTime} onChange={(event) => updateLocalDraft('sunCloseTime', event.target.value)} />
+              </label>
+            </div>
+          )}
 
           <label>
             <span>Descripcion corta</span>
@@ -3453,6 +3695,46 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   <span>Cierra</span>
                   <input type="time" value={localDraft.closeTime} onChange={(event) => updateLocalDraft('closeTime', event.target.value)} />
                 </label>
+                <div className="schedule-options wide">
+                  <button className={localDraft.splitHours ? 'active' : ''} type="button" onClick={() => updateLocalDraft('splitHours', !localDraft.splitHours)}>
+                    Horario cortado
+                  </button>
+                  <button className={localDraft.weekendHours ? 'active' : ''} type="button" onClick={() => updateLocalDraft('weekendHours', !localDraft.weekendHours)}>
+                    Sab/Dom distinto
+                  </button>
+                </div>
+                {localDraft.splitHours && (
+                  <div className="split-schedule-grid wide">
+                    <label>
+                      <span>Tarde desde</span>
+                      <input type="time" value={localDraft.splitOpenTime} onChange={(event) => updateLocalDraft('splitOpenTime', event.target.value)} />
+                    </label>
+                    <label>
+                      <span>Tarde hasta</span>
+                      <input type="time" value={localDraft.splitCloseTime} onChange={(event) => updateLocalDraft('splitCloseTime', event.target.value)} />
+                    </label>
+                  </div>
+                )}
+                {localDraft.weekendHours && (
+                  <div className="weekend-schedule-grid wide">
+                    <label>
+                      <span>Sab desde</span>
+                      <input type="time" value={localDraft.satOpenTime} onChange={(event) => updateLocalDraft('satOpenTime', event.target.value)} />
+                    </label>
+                    <label>
+                      <span>Sab hasta</span>
+                      <input type="time" value={localDraft.satCloseTime} onChange={(event) => updateLocalDraft('satCloseTime', event.target.value)} />
+                    </label>
+                    <label>
+                      <span>Dom desde</span>
+                      <input type="time" value={localDraft.sunOpenTime} onChange={(event) => updateLocalDraft('sunOpenTime', event.target.value)} />
+                    </label>
+                    <label>
+                      <span>Dom hasta</span>
+                      <input type="time" value={localDraft.sunCloseTime} onChange={(event) => updateLocalDraft('sunCloseTime', event.target.value)} />
+                    </label>
+                  </div>
+                )}
                 <div className="schedule-preview wide">
                   <Clock3 size={15} />
                   <strong>{scheduleLabel}</strong>

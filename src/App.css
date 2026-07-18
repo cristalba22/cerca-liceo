@@ -868,6 +868,87 @@ select:focus-visible {
   font-weight: 850;
 }
 
+.home-live-search {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(255, 253, 247, 0.78);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 18px;
+}
+
+.home-live-search > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.home-live-search > div span {
+  color: #6a8d17;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.home-live-search > div button {
+  min-height: 28px;
+  padding: 0 10px;
+  color: #172112;
+  font-size: 10px;
+  font-weight: 1000;
+  background: #eee6d5;
+  border: 0;
+  border-radius: 999px;
+}
+
+.home-live-search > button {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  column-gap: 9px;
+  row-gap: 2px;
+  min-height: 54px;
+  padding: 10px 12px;
+  text-align: left;
+  color: #172112;
+  background: #fffdf7;
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 15px;
+}
+
+.home-live-search > button small {
+  grid-row: span 2;
+  align-self: center;
+  width: fit-content;
+  padding: 6px 8px;
+  color: #172112;
+  font-size: 9px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background: #a7e92a;
+  border-radius: 999px;
+}
+
+.home-live-search > button strong,
+.home-live-search > button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-live-search > button strong {
+  font-size: 14px;
+  line-height: 1.05;
+}
+
+.home-live-search > button span {
+  color: #665f53;
+  font-size: 11px;
+  font-weight: 850;
+}
+
 .smart-row,
 .business-row,
 .quality-strip,
@@ -1739,8 +1820,44 @@ select:focus-visible {
   --offer: linear-gradient(135deg, #70dfd2, #2aa89a);
 }
 
+.offer-blue {
+  --offer: linear-gradient(135deg, #96d8ff, #48a8e8);
+}
+
 .offer-pink {
   --offer: linear-gradient(135deg, #ffb1cc, #e35d8f);
+}
+
+.offer-sky {
+  --offer: linear-gradient(135deg, #b2e5ff, #6bb5ff);
+}
+
+.offer-rose {
+  --offer: linear-gradient(135deg, #ffabc8, #ff6c9f);
+}
+
+.offer-mint {
+  --offer: linear-gradient(135deg, #b7f7d9, #4dd9ad);
+}
+
+.offer-violet {
+  --offer: linear-gradient(135deg, #d2c2ff, #9b7dff);
+}
+
+.offer-sand {
+  --offer: linear-gradient(135deg, #f4df99, #ddb85c);
+}
+
+.offer-coral {
+  --offer: linear-gradient(135deg, #ffb184, #ff724f);
+}
+
+.offer-cyan {
+  --offer: linear-gradient(135deg, #8eeef5, #28bdd1);
+}
+
+.offer-olive {
+  --offer: linear-gradient(135deg, #d3ee72, #99ca42);
 }
 
 .offer-image,
@@ -1850,7 +1967,7 @@ select:focus-visible {
 
 .offer-info {
   min-width: 0;
-  padding: 14px 12px 12px 0;
+  padding: 14px 12px 12px 12px;
 }
 
 .offer-top {
@@ -1902,11 +2019,12 @@ select:focus-visible {
 }
 
 .offer-info h2 {
-  max-width: 12ch;
+  max-width: 13ch;
   margin: 8px 0 9px;
   color: #172112;
   font-size: 23px;
   line-height: 0.98;
+  overflow-wrap: anywhere;
 }
 
 .offer-meta {
@@ -4521,6 +4639,21 @@ select:focus-visible {
   background: linear-gradient(145deg, #a7e92a, #70dfd2);
 }
 
+.night-mode .home-live-search,
+.night-mode .home-live-search > button {
+  color: #fffbea;
+  background: #22261d;
+  border-color: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .home-live-search > button strong {
+  color: #fffbea;
+}
+
+.night-mode .home-live-search > button span {
+  color: #bfb6a4;
+}
+
 .night-mode .account-switch button.active small {
   color: rgba(23, 33, 18, 0.68);
 }
@@ -4963,13 +5096,16 @@ select:focus-visible {
 .night-mode .local-builder-fields input,
 .night-mode .local-builder-fields select,
 .night-mode .open-days-field button,
+.night-mode .schedule-options button,
+.night-mode .weekend-schedule-grid,
 .night-mode .schedule-preview {
   color: #fffbea;
   background: #303426;
   border-color: rgba(255, 251, 234, 0.08);
 }
 
-.night-mode .open-days-field button.active {
+.night-mode .open-days-field button.active,
+.night-mode .schedule-options button.active {
   color: #172112;
   background: #a7e92a;
 }
@@ -6371,6 +6507,42 @@ select:focus-visible {
 .open-days-field button.active {
   background: #a7e92a;
   border-color: rgba(105, 142, 16, 0.25);
+}
+
+.schedule-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.schedule-options button {
+  min-height: 44px;
+  padding: 0 10px;
+  color: #172112;
+  font-size: 12px;
+  font-weight: 1000;
+  background: #fffdf7;
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 14px;
+}
+
+.schedule-options button.active {
+  background: #a7e92a;
+  border-color: rgba(105, 142, 16, 0.24);
+}
+
+.split-schedule-grid,
+.weekend-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.weekend-schedule-grid {
+  padding: 10px;
+  background: rgba(246, 238, 220, 0.64);
+  border: 1px solid rgba(16, 21, 15, 0.07);
+  border-radius: 17px;
 }
 
 .schedule-preview {
@@ -11684,11 +11856,21 @@ select:focus-visible {
   }
 
   .offer-card {
-    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+
+  .offer-info {
+    padding-left: 14px;
+  }
+
+  .offer-image::before {
+    width: 86px;
+    left: 8px;
   }
 
   .offer-info h2 {
     font-size: 20px;
+    max-width: 12ch;
   }
 }
 
@@ -13983,8 +14165,37 @@ html.android-compat .android-safe-two-cols {
   gap: 10px;
 }
 
+html.android-compat .schedule-options,
+html.android-compat .weekend-schedule-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+html.android-compat .schedule-options button {
+  min-height: 46px;
+  color: #172112;
+  font-size: 13px;
+  font-weight: 1000;
+  background: #fffdf7 !important;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 14px;
+}
+
+html.android-compat .schedule-options button.active {
+  background: #a7e92a !important;
+}
+
+html.android-compat .weekend-schedule-grid {
+  padding: 10px;
+  background: #f6eedc;
+  border-radius: 18px;
+}
+
 @media (max-width: 360px) {
-  html.android-compat .android-safe-two-cols {
+  html.android-compat .android-safe-two-cols,
+  html.android-compat .schedule-options,
+  html.android-compat .weekend-schedule-grid {
     grid-template-columns: 1fr;
   }
 }

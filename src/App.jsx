@@ -1467,6 +1467,7 @@ function App() {
             offers={merchantOfferHistory}
             pageViews={pageViews}
             onBack={() => setScreen('profile')}
+            onHome={() => setScreen('home')}
             onMerchantPanel={() => setScreen('my-posts')}
             onPublishOffer={publishOffer}
             onToggleTheme={() => setDarkMode((value) => !value)}
@@ -1480,6 +1481,7 @@ function App() {
             offers={merchantOfferHistory}
             onSaveLocal={saveMerchantLocal}
             onBack={() => setScreen('profile')}
+            onHome={() => setScreen('home')}
             onPublish={openPublish}
             onPauseOffer={pauseOffer}
             onDeleteOffer={deleteOffer}
@@ -2063,6 +2065,19 @@ function ThemeToggle({ onToggleTheme }) {
   )
 }
 
+function HomeReturnStrip({ onHome }) {
+  if (!onHome) return null
+
+  return (
+    <div className="home-return-strip">
+      <button type="button" onClick={onHome}>
+        <Home size={18} />
+        <span>Volver al inicio</span>
+      </button>
+    </div>
+  )
+}
+
 function ActionToast({ notice, onClose }) {
   if (!notice) return null
   const noticeText = toNoticeText(notice)
@@ -2219,7 +2234,7 @@ function NeighborhoodLiveMap({ businesses = [], loading = false, onOpen, onDirec
   )
 }
 
-function PublishScreen({ account, local, template, offers = [], onBack, onMerchantPanel, onPublishOffer, onToggleTheme }) {
+function PublishScreen({ account, local, template, offers = [], onBack, onHome, onMerchantPanel, onPublishOffer, onToggleTheme }) {
   const isEditingOffer = template?.editMode === 'edit' && template?.id
   const firstOfferTemplate = {
     title: '',
@@ -2352,6 +2367,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
         <strong>Publicar</strong>
         <ThemeToggle onToggleTheme={onToggleTheme} />
       </header>
+      <HomeReturnStrip onHome={onHome} />
 
       <section className={`publish-hero publish-hero-simple ${founderActive ? 'founder' : ''}`}>
         <span>{isEditingOffer ? 'Editar promo' : founderActive ? 'Fundador activo' : canPublish ? 'Promo gratis' : 'Falta local'}</span>
@@ -2571,7 +2587,7 @@ function PublishPreviewCard({ offer, local, draft }) {
   )
 }
 
-function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal, onBack, onPublish, onPauseOffer, onDeleteOffer, onRepostOffer, onToggleTheme, onPrivacy }) {
+function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal, onBack, onHome, onPublish, onPauseOffer, onDeleteOffer, onRepostOffer, onToggleTheme, onPrivacy }) {
   const initialPanel = local ? '' : 'basic'
   const [openPanel, setOpenPanel] = useState(initialPanel)
   const [saveStatus, setSaveStatus] = useState('')
@@ -3330,6 +3346,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <strong>Panel comercio</strong>
           <ThemeToggle onToggleTheme={onToggleTheme} />
         </header>
+        <HomeReturnStrip onHome={onHome} />
         <section className="merchant-empty-posts account-gate">
           <Store size={24} />
           <strong>Esta seccion es para comercios.</strong>
@@ -3349,6 +3366,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         <strong>Mis publicaciones</strong>
         <ThemeToggle onToggleTheme={onToggleTheme} />
       </header>
+      <HomeReturnStrip onHome={onHome} />
 
       <section className="merchant-dashboard-hero">
         <div className="merchant-hero-copy">

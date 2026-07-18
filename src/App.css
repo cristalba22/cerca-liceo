@@ -132,6 +132,12 @@ select:focus-visible {
   background: rgba(255, 251, 234, 0.1);
 }
 
+.night-mode .home-return-strip button {
+  color: #10150f;
+  background: #9bef17;
+  box-shadow: none;
+}
+
 .night-mode .app-header,
 .night-mode .bottom-nav,
 .night-mode .detail-header {
@@ -3929,6 +3935,31 @@ select:focus-visible {
 .detail-header strong {
   color: #10150f;
   text-align: center;
+}
+
+.home-return-strip {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 20px 14px;
+}
+
+.home-return-strip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  gap: 8px;
+  color: #fffbea;
+  font-weight: 1000;
+  background: #10150f;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(16, 21, 15, 0.16);
+}
+
+.home-return-strip svg {
+  flex: 0 0 auto;
 }
 
 .detail-hero {

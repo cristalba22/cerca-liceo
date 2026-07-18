@@ -680,7 +680,7 @@ const readCompressedImage = (file) => new Promise((resolve, reject) => {
 })
 
 function App() {
-  const [screen, setScreen] = useState('welcome')
+  const [screen, setScreen] = useState('home')
   const [selectedOffer, setSelectedOffer] = useState(null)
   const [selectedBusiness, setSelectedBusiness] = useState(null)
   const [query, setQuery] = useState('')

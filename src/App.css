@@ -5241,6 +5241,21 @@ select:focus-visible {
   font-weight: 850;
 }
 
+.upload-stage-simple {
+  min-height: 94px;
+  padding: 14px;
+}
+
+.upload-stage-simple strong {
+  font-size: 21px;
+}
+
+.upload-stage-simple .file-pill {
+  min-height: 54px;
+  padding: 0 16px;
+  font-size: 13px;
+}
+
 .upload-stage button,
 .file-pill {
   flex: 0 0 auto;
@@ -5313,6 +5328,61 @@ select:focus-visible {
 
 .suggestion-row button:first-child {
   background: #a7e92a;
+}
+
+.publish-grid-simple {
+  gap: 9px;
+}
+
+.publish-ready-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 14px;
+  color: #172112;
+  background: linear-gradient(145deg, #fffdf7, #f2ead8);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 12px 24px rgba(31, 30, 22, 0.08);
+}
+
+.publish-ready-card.ready {
+  background: linear-gradient(145deg, #a7e92a, #70dfd2);
+}
+
+.publish-ready-card span,
+.publish-ready-card strong {
+  display: block;
+}
+
+.publish-ready-card span {
+  color: rgba(23, 33, 18, 0.66);
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.publish-ready-card strong {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.publish-ready-card button {
+  grid-row: span 2;
+  min-height: 46px;
+  padding: 0 13px;
+  color: #172112;
+  font-size: 12px;
+  font-weight: 1000;
+  background: #a7e92a;
+  border: 0;
+  border-radius: 999px;
+}
+
+.publish-ready-card.ready button {
+  color: #fffbea;
+  background: #10150f;
 }
 
 .merchant-timeline {
@@ -8285,6 +8355,28 @@ select:focus-visible {
   line-height: 1.45;
 }
 
+.publish-hero-simple {
+  min-height: 174px;
+}
+
+.publish-hero-simple::after {
+  right: -30px;
+  bottom: -46px;
+  width: 150px;
+  height: 150px;
+}
+
+.publish-hero-simple h1 {
+  max-width: 8ch;
+  font-size: 45px;
+}
+
+.publish-hero-simple p {
+  max-width: 24ch;
+  font-size: 15px;
+  font-weight: 850;
+}
+
 .publish-mode {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -8789,6 +8881,42 @@ select:focus-visible {
 
 .delivery-fields input:disabled {
   color: rgba(16, 21, 15, 0.46);
+}
+
+.delivery-setup-simple {
+  gap: 10px;
+  padding: 14px;
+  background:
+    radial-gradient(circle at 94% 10%, rgba(167, 233, 42, 0.24), transparent 32%),
+    #10150f;
+}
+
+.delivery-setup-simple .delivery-setup-copy {
+  display: grid;
+  gap: 7px;
+}
+
+.delivery-setup-simple .delivery-setup-copy h2 {
+  max-width: none;
+  margin: 0;
+  font-size: 27px;
+}
+
+.delivery-setup-simple .delivery-setup-copy p {
+  max-width: none;
+  font-size: 12px;
+}
+
+.delivery-setup-simple .delivery-toggle-grid button {
+  min-height: 78px;
+}
+
+.delivery-setup-simple .delivery-fields {
+  gap: 7px;
+}
+
+.delivery-setup-simple .delivery-fields label {
+  min-height: 48px;
 }
 
 .primary-action {
@@ -10795,6 +10923,24 @@ select:focus-visible {
   border-radius: 999px;
 }
 
+.publish-status-simple {
+  grid-template-columns: minmax(0, 1fr) 72px;
+  padding: 14px;
+}
+
+.publish-status-simple h2 {
+  margin-top: 8px;
+  font-size: 24px;
+}
+
+.publish-status-simple p {
+  font-size: 12px;
+}
+
+.publish-status-simple button {
+  min-height: 54px;
+}
+
 .publish-quota {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -10840,6 +10986,42 @@ select:focus-visible {
   font-size: 10px;
   font-weight: 900;
   line-height: 1.18;
+}
+
+.publish-quota-simple {
+  grid-template-columns: 1fr 1fr;
+}
+
+.publish-quota-simple article {
+  min-height: 88px;
+  padding: 13px;
+}
+
+.publish-quota-simple strong {
+  font-size: 25px;
+}
+
+.publish-steps-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0 20px 14px;
+}
+
+.publish-steps-strip span {
+  display: grid;
+  min-height: 48px;
+  place-items: center;
+  color: #172112;
+  font-size: 13px;
+  font-weight: 1000;
+  background: #f0e7d0;
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 16px;
+}
+
+.publish-steps-strip span.done {
+  background: linear-gradient(145deg, #a7e92a, #70dfd2);
 }
 
 .merchant-progress,
@@ -11042,6 +11224,8 @@ select:focus-visible {
 .night-mode .auth-register-strip,
 .night-mode .session-bar,
 .night-mode .publish-quota article,
+.night-mode .publish-ready-card,
+.night-mode .publish-steps-strip span,
 .night-mode .publish-field,
 .night-mode .publish-toggle {
   color: #fffbea;
@@ -11050,6 +11234,8 @@ select:focus-visible {
 }
 
 .night-mode .publish-quota article.is-free,
+.night-mode .publish-ready-card.ready,
+.night-mode .publish-steps-strip span.done,
 .night-mode .merchant-progress article.done,
 .night-mode .merchant-next-steps article.active,
 .night-mode .register-roadmap article.active,
@@ -11068,6 +11254,7 @@ select:focus-visible {
 .night-mode .auth-register-strip strong,
 .night-mode .session-bar strong,
 .night-mode .publish-quota strong,
+.night-mode .publish-ready-card strong,
 .night-mode .publish-field input,
 .night-mode .publish-field select,
 .night-mode .publish-field textarea {
@@ -11084,9 +11271,15 @@ select:focus-visible {
 .night-mode .session-bar span,
 .night-mode .publish-quota small,
 .night-mode .publish-quota span,
+.night-mode .publish-ready-card span,
 .night-mode .publish-field span,
 .night-mode .publish-toggle span {
   color: rgba(255, 251, 234, 0.68);
+}
+
+.night-mode .publish-ready-card.ready span,
+.night-mode .publish-steps-strip span.done {
+  color: rgba(23, 33, 18, 0.72);
 }
 
 .night-mode .delivery-fields label {
@@ -11129,6 +11322,7 @@ select:focus-visible {
 
 .night-mode .publish-quota article.is-free small,
 .night-mode .publish-quota article.is-free span,
+.night-mode .publish-ready-card.ready span,
 .night-mode .merchant-progress article.done span,
 .night-mode .merchant-next-steps article.active span,
 .night-mode .register-roadmap article.active span,
@@ -11198,6 +11392,36 @@ select:focus-visible {
 
   .dashboard-status-card {
     grid-template-columns: 1fr;
+  }
+
+  .publish-hero-simple {
+    min-height: 158px;
+  }
+
+  .publish-hero-simple h1 {
+    font-size: 40px;
+  }
+
+  .publish-status-simple button {
+    width: 100%;
+  }
+
+  .publish-ready-card {
+    grid-template-columns: 1fr;
+  }
+
+  .publish-ready-card button {
+    grid-row: auto;
+    width: 100%;
+  }
+
+  .delivery-fields label {
+    display: grid;
+  }
+
+  .delivery-fields input {
+    max-width: none;
+    text-align: left;
   }
 }
 

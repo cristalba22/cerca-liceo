@@ -1639,12 +1639,16 @@ function App() {
             </header>
 
             <div className="search-panel">
+              <div className="search-intro">
+                <strong>Busca ofertas, locales o rubros.</strong>
+                <span>Ej: milanesa, despensa, peluqueria, Mr Food.</span>
+              </div>
               <div className="search-row">
                 <Search size={20} />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar en Liceo"
+                  placeholder="Buscar oferta, local o rubro"
                 />
               </div>
               <div className="section-row">
@@ -1659,10 +1663,35 @@ function App() {
                   </button>
                 ))}
               </div>
+              {query.trim().length < 2 && (
+                <div className="home-search-chips" aria-label="Busquedas rapidas">
+                  <button type="button" onClick={() => {
+                    setSelectedCategory('Comida')
+                    setQuery('comida')
+                  }}>
+                    Comida
+                  </button>
+                  <button type="button" onClick={() => {
+                    setSelectedCategory('Despensa')
+                    setQuery('despensa')
+                  }}>
+                    Despensa
+                  </button>
+                  <button type="button" onClick={() => {
+                    setSelectedCategory('Servicios')
+                    setQuery('servicios')
+                  }}>
+                    Servicios
+                  </button>
+                  <button type="button" onClick={() => setScreen('directory')}>
+                    Ver mapa
+                  </button>
+                </div>
+              )}
               {query.trim().length >= 2 && (
                 <section className="home-live-search" aria-label="Resultados rapidos">
                   <div>
-                    <span>Resultados al toque</span>
+                    <span>Resultados cerca</span>
                     <button type="button" onClick={() => setQuery('')}>Limpiar</button>
                   </div>
                   {[...instantHomeResults.offers.map((offer) => ({
@@ -1726,34 +1755,6 @@ function App() {
               onMerchantPanel={() => setScreen('my-posts')}
               onPublish={() => openPublish()}
             />
-
-            <section className="neighbor-toolbar" aria-label="Accesos rapidos">
-              <button type="button" onClick={() => {
-                setSelectedCategory('Comida')
-                setQuery('')
-              }}>
-                <Utensils size={18} />
-                <span>Cena hoy</span>
-              </button>
-              <button type="button" onClick={() => {
-                setSelectedCategory('Despensa')
-                setQuery('')
-              }}>
-                <ShoppingBasket size={18} />
-                <span>Despensa</span>
-              </button>
-              <button type="button" onClick={() => {
-                setSelectedCategory('Servicios')
-                setQuery('')
-              }}>
-                <Hammer size={18} />
-                <span>Servicios</span>
-              </button>
-              <button type="button" onClick={() => setScreen('directory')}>
-                <MapPin size={18} />
-                <span>Mapa guia</span>
-              </button>
-            </section>
 
             <nav className="category-dock" aria-label="Categorias">
               {categories.map(({ name, icon: Icon, tone }) => (

@@ -183,6 +183,31 @@ select:focus-visible {
   border-color: rgba(255, 251, 234, 0.12);
 }
 
+.night-mode .search-panel {
+  background:
+    radial-gradient(circle at 92% 4%, rgba(112, 223, 210, 0.18), transparent 28%),
+    linear-gradient(145deg, #172112, #242b1c);
+  border-color: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .search-intro strong {
+  color: #fffbea;
+}
+
+.night-mode .search-intro span {
+  color: rgba(255, 251, 234, 0.72);
+}
+
+.night-mode .home-search-chips button {
+  color: #172112;
+  border-color: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .home-search-chips button:nth-child(4) {
+  color: #fffbea;
+  background: #070b08;
+}
+
 .night-mode .search-row,
 .night-mode .business-card,
 .night-mode .empty-state,
@@ -631,7 +656,33 @@ select:focus-visible {
 }
 
 .search-panel {
-  padding: 0 20px 10px;
+  margin: 0 20px 12px;
+  padding: 13px;
+  background:
+    radial-gradient(circle at 92% 4%, rgba(112, 223, 210, 0.3), transparent 28%),
+    linear-gradient(145deg, #fffdf7, #f7ffd9);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 24px;
+  box-shadow: 0 14px 30px rgba(43, 36, 22, 0.08);
+}
+
+.search-intro {
+  display: grid;
+  gap: 3px;
+  margin: 0 2px 10px;
+}
+
+.search-intro strong {
+  color: #10150f;
+  font-size: 16px;
+  line-height: 1.05;
+}
+
+.search-intro span {
+  color: #665f53;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .radar-hero {
@@ -849,13 +900,13 @@ select:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
+  min-height: 56px;
   padding: 0 15px;
   color: #7b7468;
   background: #fffdf7;
   border: 1px solid rgba(16, 21, 15, 0.08);
   border-radius: 18px;
-  box-shadow: 0 14px 30px rgba(43, 36, 22, 0.08);
+  box-shadow: 0 10px 20px rgba(43, 36, 22, 0.07);
 }
 
 .search-row input {
@@ -866,6 +917,41 @@ select:focus-visible {
   outline: 0;
   font-size: 15px;
   font-weight: 850;
+}
+
+.home-search-chips {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.home-search-chips button {
+  min-height: 38px;
+  padding: 0 8px;
+  color: #172112;
+  font-size: 11px;
+  font-weight: 1000;
+  background: #eee6d5;
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 14px;
+}
+
+.home-search-chips button:first-child {
+  background: #ff9a59;
+}
+
+.home-search-chips button:nth-child(2) {
+  background: #ffd85a;
+}
+
+.home-search-chips button:nth-child(3) {
+  background: #9ee8ff;
+}
+
+.home-search-chips button:nth-child(4) {
+  color: #fffbea;
+  background: #10150f;
 }
 
 .home-live-search {

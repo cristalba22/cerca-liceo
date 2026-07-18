@@ -2350,14 +2350,14 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
       <section className={`publish-hero publish-hero-simple ${founderActive ? 'founder' : ''}`}>
         <span>{isEditingOffer ? 'Editar promo' : founderActive ? 'Fundador activo' : canPublish ? 'Promo gratis' : 'Falta local'}</span>
         <h1>{isEditingOffer ? 'Edita la promo.' : 'Nueva promo.'}</h1>
-        <p>{canPublish ? 'Carga foto, titulo, precio opcional y publica. Dura 3 o 4 dias.' : 'Primero completa tu ficha gratis para aparecer en la guia.'}</p>
+        <p>{canPublish ? 'Subi una foto, escribi que ofreces y publicala. Corta, clara y por WhatsApp.' : 'Primero completa tu ficha gratis para aparecer en la guia.'}</p>
       </section>
 
       <section className="merchant-status-card publish-status-simple">
         <div>
-          <span>{canPublish ? 'Listo para cargar' : 'Pendiente'}</span>
+          <span>{canPublish ? 'Tu comercio' : 'Pendiente'}</span>
           <h2>{canPublish ? local.name : hasMerchantAccount ? 'Completa tu local' : 'Crea cuenta comercio'}</h2>
-          <p>{canPublish ? (freePostUsed && founderActive && !isEditingOffer ? 'La gratis semanal ya se uso. Esta sale como extra fundador.' : freePostUsed && !founderActive && !isEditingOffer ? 'La gratis semanal ya se uso. Pedi fundador para publicar extra.' : 'Disponible: 1 promo semanal gratis.') : 'La ficha del local es gratis.'}</p>
+          <p>{canPublish ? 'La promo aparece en el inicio y el vecino escribe directo por WhatsApp.' : 'La ficha del local es gratis.'}</p>
         </div>
         <button type="button" onClick={onMerchantPanel}>
           {canPublish ? 'Panel' : 'Completar'}
@@ -2398,13 +2398,16 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
       </section>
 
       <section className="publish-grid publish-grid-simple">
-        <div className={`publish-ready-card wide ${publishMissing.length === 0 ? 'ready' : ''}`}>
-          <span>{isEditingOffer ? 'Editando' : isFounderExtraPost ? 'Extra fundador' : freePostUsed ? 'Necesita fundador' : 'Gratis semanal'}</span>
-          <strong>{publishMissing.length === 0 ? 'Lista para publicar' : `Falta ${publishMissing[0]}`}</strong>
-          <button type="button" onClick={applySuggestion}>Completar ejemplo</button>
+        <div className={`publish-fast-card wide ${publishMissing.length === 0 ? 'ready' : ''}`}>
+          <span>Datos de la promo</span>
+          <strong>{publishMissing.length === 0 ? 'Ya esta lista.' : 'Completa lo basico.'}</strong>
+          <p>{publishMissing.length === 0 ? 'Revisa la vista previa y toca publicar.' : 'Con titulo, precio o consulta, y descripcion corta alcanza.'}</p>
+          {!offerDraft.title && !offerDraft.description && (
+            <button type="button" onClick={applySuggestion}>Usar texto simple</button>
+          )}
         </div>
         <label className="publish-field wide">
-          <span>Titulo</span>
+          <span>Titulo de la promo</span>
           <input value={offerDraft.title} onChange={(event) => updateOfferDraft('title', event.target.value)} placeholder="Ej: Combo, descuento, producto o servicio" />
         </label>
         <div className="fake-field">
@@ -2496,22 +2499,33 @@ function PublishScreen({ account, local, template, offers = [], onBack, onMercha
         </section>
       )}
 
+      <button
+        className="primary-action publish-main-submit"
+        type="button"
+        onClick={canPublish
+          ? (freePostUsed && !founderActive ? () => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer') : publishPreparedOffer)
+          : onMerchantPanel}
+      >
+        {canPublish ? (canSendOffer ? (isEditingOffer ? 'Guardar promo' : freePostUsed ? 'Publicar extra' : 'Publicar promo gratis') : freePostUsed && !founderActive && !isEditingOffer ? 'Pedir plan fundador' : `Falta ${publishMissing[0]}`) : 'Completar local primero'}
+      </button>
+
+      <section className="publish-rules-card">
+        <span>Como funciona</span>
+        <strong>Tenes 1 publicacion gratis por semana.</strong>
+        <p>Dura 3 o 4 dias y se baja sola. Si queres publicar mas veces en el mes, el plan fundador suma 4 publicaciones extra, catalogo y pedidos por WhatsApp.</p>
+        {!founderActive && (
+          <button type="button" onClick={() => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer')}>
+            Consultar plan fundador
+          </button>
+        )}
+      </section>
+
       <div className="publish-checks">
         <span><Check size={15} /> 1 semanal gratis</span>
         <span><Check size={15} /> Precio opcional</span>
         <span><Check size={15} /> Baja automatica</span>
         <span><Check size={15} /> Sin comision</span>
       </div>
-
-      <button
-        className="primary-action"
-        type="button"
-        onClick={canPublish
-          ? (freePostUsed && !founderActive ? () => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer') : publishPreparedOffer)
-          : onMerchantPanel}
-      >
-        {canPublish ? (canSendOffer ? (isEditingOffer ? 'Guardar cambios' : freePostUsed ? 'Publicar extra fundador' : 'Publicar gratis') : freePostUsed && !founderActive && !isEditingOffer ? 'Pedir plan fundador' : `Completar ${publishMissing[0]}`) : 'Completar local primero'}
-      </button>
     </div>
   )
 }
@@ -2805,7 +2819,6 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         ? 'Ficha gratis activa'
         : 'Ficha completa'
     : 'Alta pendiente'
-  const planLabel = founderActive ? 'Plan fundador activo' : founderRequested ? 'Fundador pendiente' : 'Ficha gratis'
   const founderPlanUrl = makeWhatsAppUrl(
     '3517662142',
     `Hola Cristian, quiero activar el plan fundador Liceo para ${localDraft.name || account?.businessName || 'mi comercio'}. Me interesa catalogo, 4 publicaciones extra al mes y pedidos por WhatsApp.`
@@ -2948,8 +2961,8 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
 
         <section className="android-safe-card android-safe-progress-card">
           <span>Ficha gratis</span>
-          <h2>{pendingTasks.length ? 'Completa lo basico' : localIsPublic ? 'Lista para publicar promos' : 'Lista para guardar'}</h2>
-          <p>{completion}% completo. {pendingTasks.length ? `Falta: ${pendingTasks.map((task) => task.title.toLowerCase()).join(' y ')}.` : pendingQualityTasks.length ? 'Ya podes aparecer. Sumale foto cuando puedas para dar mas confianza.' : 'Tu ficha esta completa.'}</p>
+          <h2>{pendingTasks.length ? 'Primero publica tu ficha' : localIsPublic ? 'Lista para publicar promos' : 'Lista para guardar'}</h2>
+          <p>{pendingTasks.length ? `Falta ${pendingTasks[0].title.toLowerCase()}. Completalo y guarda.` : pendingQualityTasks.length ? 'Ya podes aparecer. Sumale foto cuando puedas para dar mas confianza.' : 'Tu ficha esta completa.'}</p>
           <i style={{ '--progress': `${completion}%` }}></i>
         </section>
 
@@ -2957,33 +2970,27 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <button className={`safe-action-edit ${openPanel === 'basic' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(openPanel === 'basic' ? '' : 'basic')}>
             <Store size={20} />
             <span>
-              <strong>Editar ficha</strong>
-              <small>Datos del local</small>
+              <strong>{pendingTasks.length || !localIsPublic ? 'Publicar ficha' : 'Editar ficha'}</strong>
+              <small>Gratis en la guia</small>
             </span>
           </button>
           <button className="safe-action-promo" type="button" onClick={handlePublishFromPanel}>
             <Flame size={20} />
             <span>
               <strong>Publicar promo</strong>
-              <small>1 gratis semanal</small>
+              <small>{pendingTasks.length || !localIsPublic ? 'Despues de la ficha' : '1 gratis semanal'}</small>
             </span>
           </button>
-          <button className={`safe-action-plan ${openPanel === 'plan' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(openPanel === 'plan' ? '' : 'plan')}>
-            <ShoppingBasket size={20} />
-            <span>
-              <strong>Plan</strong>
-              <small>Gratis o fundador</small>
-            </span>
-          </button>
-          <button className={`safe-action-menu ${openPanel === 'menu' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(openPanel === 'menu' ? '' : 'menu')}>
+          <button className={`safe-action-menu ${openPanel === 'menu' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(founderActive ? (openPanel === 'menu' ? '' : 'menu') : (openPanel === 'plan' ? '' : 'plan'))}>
             <List size={20} />
             <span>
-              <strong>Catalogo</strong>
-              <small>{founderActive ? 'Productos' : 'Con fundador'}</small>
+              <strong>{founderActive ? 'Catalogo' : 'Plan fundador'}</strong>
+              <small>Opcional</small>
             </span>
           </button>
         </section>
 
+        {localIsPublic && pendingTasks.length === 0 && (
         <section className="android-safe-actions android-safe-dashboard-actions android-safe-status-actions">
           <button type="button" onClick={() => saveLocalWithOverrides(
             { open: localDraft.open === false },
@@ -3000,6 +3007,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             <small>{localDraft.isPublic === false ? 'Mostrar en guia.' : 'Pausar sin borrar.'}</small>
           </button>
         </section>
+        )}
 
         {openPanel === 'basic' && (
         <section className="android-safe-form android-safe-business-form">
@@ -3350,27 +3358,23 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       </section>
 
       <section className="dashboard-actions dashboard-actions-large" aria-label="Acciones principales del comercio">
-        <button type="button" onClick={() => setOpenPanel(nextPanel)}>
+        <button className="dashboard-main-action" type="button" onClick={() => setOpenPanel(nextPanel)}>
           <Check size={18} />
-          <span>{pendingTasks.length ? 'Completar ficha' : 'Panel comercio'}</span>
+          <span>{pendingTasks.length || !localIsPublic ? 'Publicar ficha' : 'Editar ficha'}</span>
         </button>
-        <button type="button" onClick={handlePublishFromPanel}>
+        <button className="dashboard-promo-action" type="button" onClick={handlePublishFromPanel}>
           <Flame size={18} />
           <span>Publicar promo</span>
         </button>
-        <button type="button" onClick={() => setOpenPanel(founderActive ? 'menu' : 'plan')}>
-          <ShoppingBasket size={18} />
-          <span>{founderActive ? 'Catalogo' : 'Plan fundador'}</span>
-        </button>
       </section>
 
-      <section className="dashboard-status-card">
+      <section className={`dashboard-status-card ${localIsPublic && !pendingTasks.length ? 'is-published' : 'is-primary'}`}>
         <div>
-          <span>Estado actual</span>
-          <strong>{planLabel}</strong>
-          <p>{localIsPublic ? (pendingTasks.length ? `Falta completar ${pendingTasks.map((task) => task.title.toLowerCase()).join(' y ')}.` : founderActive ? `Ficha gratis activa y fundador habilitado${founderDaysLeft !== null ? ` por ${Math.max(founderDaysLeft, 0)} dias mas` : ''}.` : founderRequested ? 'Ficha gratis activa. El plan fundador queda pendiente hasta que el admin lo active.' : 'Ficha gratis activa: guia del barrio y 1 promo semanal que vence sola.') : 'Todavia no esta publicada. Guarda la ficha cuando completes lo basico.'}</p>
+          <span>{localIsPublic && !pendingTasks.length ? 'Ficha publicada' : 'Primer paso'}</span>
+          <strong>{localIsPublic && !pendingTasks.length ? 'Tu ficha ya aparece.' : 'Publica tu ficha gratis.'}</strong>
+          <p>{localIsPublic && !pendingTasks.length ? 'Ahora podes publicar una promo semanal gratis o editar tus datos cuando cambien.' : `Falta ${pendingTasks[0]?.title.toLowerCase() || 'guardar la ficha'}. Es lo primero para aparecer en la guia.`}</p>
         </div>
-        <button type="button" onClick={saveLocal}>{localIsPublic ? 'Actualizar' : 'Guardar'}</button>
+        <button type="button" onClick={saveLocal}>{localIsPublic && !pendingTasks.length ? 'Actualizar' : 'Publicar ficha'}</button>
       </section>
 
       {(expiringLocalOffers.length > 0 || isFounderExpiringSoon(localDraft)) && (
@@ -3390,6 +3394,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         </section>
       )}
 
+      {localIsPublic && pendingTasks.length === 0 && (
       <section className="merchant-quick-controls" aria-label="Controles rapidos del comercio">
         <button
           className={localDraft.open === false ? 'is-off' : 'is-on'}
@@ -3416,7 +3421,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <small>{localDraft.isPublic === false ? 'Mostrar de nuevo' : 'Pausar sin borrar'}</small>
         </button>
       </section>
+      )}
 
+      {localIsPublic && pendingTasks.length === 0 && (
       <section className="dashboard-metrics" aria-label="Resumen del comercio">
         <article>
           <strong>{activeLocalOffers.length}</strong>
@@ -3435,7 +3442,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <span>clics WhatsApp</span>
         </article>
       </section>
+      )}
 
+      {localIsPublic && pendingTasks.length === 0 && (
       <section className="dashboard-tip">
         <div>
           <Timer size={18} />
@@ -3443,6 +3452,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         </div>
         <p>Publica promos cerca de la hora de compra: comida entre 18 y 22, panaderia temprano y despensa al mediodia.</p>
       </section>
+      )}
 
       <section className="local-builder">
         <div className="merchant-hub-head">

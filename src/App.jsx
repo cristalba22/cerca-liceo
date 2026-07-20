@@ -824,6 +824,7 @@ function App() {
   const [query, setQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('Todas')
   const [selectedSection, setSelectedSection] = useState('Todos')
+  const [showOpenNowOnly, setShowOpenNowOnly] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
   const [featuredBusinessIndex, setFeaturedBusinessIndex] = useState(0)
   const [registerType, setRegisterType] = useState('neighbor')
@@ -1338,9 +1339,18 @@ function App() {
     })
   }, [feedBusinesses, feedOffers])
 
+  const openNowOffers = useMemo(() => (
+    publicFeedOffers.filter((offer) => getOfferOpenStatus(offer).open)
+  ), [publicFeedOffers])
+  const openNowBusinesses = useMemo(() => (
+    feedBusinesses.filter((business) => business.isPublic !== false && getOpenStatus(business).open)
+  ), [feedBusinesses])
+  const visibleFeedOffers = showOpenNowOnly ? openNowOffers : publicFeedOffers
+  const todayHighlights = visibleFeedOffers.slice(0, 3)
+
   const filteredOffers = useMemo(() => {
     const normalizedQuery = normalizeSearchText(query)
-    return publicFeedOffers.filter((offer) => {
+    return visibleFeedOffers.filter((offer) => {
       const byCategory = selectedCategory === 'Todas' || offer.category === selectedCategory
       const bySection = selectedSection === 'Todos' || offer.section === selectedSection
       const matchedBusiness = feedBusinesses.find((business) => business.id === offer.businessId || business.name === offer.business)
@@ -1364,7 +1374,7 @@ function App() {
 
       return byCategory && bySection && byQuery
     })
-  }, [feedBusinesses, publicFeedOffers, query, selectedCategory, selectedSection])
+  }, [feedBusinesses, query, selectedCategory, selectedSection, visibleFeedOffers])
 
   const instantHomeResults = useMemo(() => {
     const normalizedQuery = normalizeSearchText(query)
@@ -1393,7 +1403,6 @@ function App() {
     return { offers: offerResults, businesses: businessResults, categories: categoryResults }
   }, [feedBusinesses, publicFeedOffers, query])
 
-  const visibleFeedOffers = publicFeedOffers
   const heroOffers = visibleFeedOffers
   const heroOffer = heroOffers[featuredBusinessIndex % Math.max(heroOffers.length, 1)]
   const liveMapBusinesses = useMemo(() => mergeUniqueById([
@@ -1746,6 +1755,52 @@ function App() {
                 </section>
               )}
             </div>
+
+            <section className="today-panel" aria-label="Que hay hoy en Liceo">
+              <div className="today-panel-head">
+                <div>
+                  <span>Que hay hoy</span>
+                  <strong>{showOpenNowOnly ? 'Abierto ahora' : 'Promos y locales cerca'}</strong>
+                  <small>{openNowBusinesses.length} abiertos ahora · {visibleFeedOffers.length} promos vigentes</small>
+                </div>
+                <button
+                  className={showOpenNowOnly ? 'active' : ''}
+                  type="button"
+                  onClick={() => setShowOpenNowOnly((value) => !value)}
+                >
+                  <Clock3 size={16} />
+                  {showOpenNowOnly ? 'Ver todos' : 'Abierto ahora'}
+                </button>
+              </div>
+
+              {todayHighlights.length > 0 ? (
+                <div className="today-offer-strip">
+                  {todayHighlights.map((offer, index) => (
+                    <button
+                      className={`today-offer-card offer-${offer.tone || getOfferTone(offer.category, index)}`}
+                      type="button"
+                      key={offer.id || `${offer.business}-${offer.title}-${index}`}
+                      onClick={() => {
+                        trackInteraction({ type: 'offer_view', businessId: offer.businessId, offerId: offer.id })
+                        setSelectedOffer(offer)
+                        setScreen('detail')
+                      }}
+                    >
+                      <small>{getOfferOpenStatus(offer).label}</small>
+                      <strong>{offer.title}</strong>
+                      <span>{offer.business} · {offer.section}</span>
+                      <b>{offer.price || 'Consultar'}</b>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="today-empty">
+                  <Sparkles size={20} />
+                  <strong>{showOpenNowOnly ? 'No vemos abiertos ahora' : 'Todavia no hay promos vigentes'}</strong>
+                  <span>{showOpenNowOnly ? 'Toca "Ver todos" para mirar comercios aunque esten cerrados.' : 'Cuando carguen una promo, aparece aca arriba.'}</span>
+                </div>
+              )}
+            </section>
 
             <HomeAccessCard
               account={account}
@@ -2835,6 +2890,30 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   const pendingQualityTasks = qualityTasks.filter((task) => !task.done)
   const nextPanel = pendingTasks[0]?.id || 'preview'
   const localIsPublic = Boolean(local)
+  const fichaFirstMode = !localIsPublic || pendingTasks.length > 0
+  const essentialFichaSteps = [
+    {
+      id: 'basic',
+      title: 'Datos',
+      text: 'Nombre y WhatsApp',
+      done: requiredTasks[0].done,
+      icon: Store,
+    },
+    {
+      id: 'location',
+      title: 'Ubicacion',
+      text: localDraft.businessType === 'entrepreneur' ? 'Zona y horario' : 'Direccion y horario',
+      done: requiredTasks[1].done,
+      icon: MapPin,
+    },
+    {
+      id: 'photo',
+      title: 'Foto',
+      text: isUploadedImage(localDraft.image) ? 'Foto cargada' : 'Ayuda a vender mas',
+      done: qualityTasks[0].done,
+      icon: Camera,
+    },
+  ]
   const publicStateLabel = localIsPublic
     ? pendingTasks.length
       ? 'Visible con datos pendientes'
@@ -2886,6 +2965,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   const activeLocalOffers = localOffers.filter(isOfferActiveNow)
   const pausedLocalOffers = localOffers.filter((offer) => isOfferPaused(offer) && !isOfferExpired(offer))
   const expiredLocalOffers = localOffers.filter(isOfferExpired)
+  const quickRepostOffer = expiredLocalOffers[0] || pausedLocalOffers[0] || activeLocalOffers[0] || null
   const expiringLocalOffers = activeLocalOffers.filter((offer) => {
     const days = getOfferDaysLeft(offer)
     return days !== null && days <= 1
@@ -2988,6 +3068,26 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <p>{pendingTasks.length ? `Falta ${pendingTasks[0].title.toLowerCase()}. Completalo y guarda.` : pendingQualityTasks.length ? 'Ya podes aparecer. Sumale foto cuando puedas para dar mas confianza.' : 'Tu ficha esta completa.'}</p>
           <i style={{ '--progress': `${completion}%` }}></i>
         </section>
+
+        {localIsPublic && pendingTasks.length === 0 && (
+          <section className="android-safe-card android-safe-stats-card">
+            <span>Tus resultados</span>
+            <div>
+              <strong>{metrics.businessViews || 0}<small>vieron ficha</small></strong>
+              <strong>{metrics.offerViews || 0}<small>vieron promos</small></strong>
+              <strong>{metrics.whatsappClicks || 0}<small>WhatsApp</small></strong>
+            </div>
+          </section>
+        )}
+
+        {quickRepostOffer && (
+          <section className="android-safe-card android-safe-repost-card">
+            <span>Republicar facil</span>
+            <h2>{quickRepostOffer.title}</h2>
+            <p>Usa la misma promo y vuelve a aparecer arriba por 3 o 4 dias.</p>
+            <button type="button" onClick={() => onRepostOffer(quickRepostOffer)}>Republicar ahora</button>
+          </section>
+        )}
 
         <section className="android-safe-actions android-safe-main-actions" aria-label="Acciones principales">
           <button className={`safe-action-edit ${openPanel === 'basic' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(openPanel === 'basic' ? '' : 'basic')}>
@@ -3382,6 +3482,37 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         </div>
       </section>
 
+      {fichaFirstMode && (
+        <section className="merchant-ficha-priority" aria-label="Completar ficha del comercio">
+          <div className="merchant-ficha-priority-copy">
+            <span>Para aparecer en la guia</span>
+            <h2>Completa tu ficha.</h2>
+            <p>Nombre, WhatsApp, ubicacion y horario. Guardas y ya queda claro para el vecino.</p>
+          </div>
+          <div className="merchant-ficha-priority-steps">
+            {essentialFichaSteps.map((step) => {
+              const StepIcon = step.icon
+              return (
+                <button
+                  className={step.done ? 'done' : 'pending'}
+                  type="button"
+                  key={step.id}
+                  onClick={() => setOpenPanel(step.id)}
+                >
+                  <StepIcon size={18} />
+                  <strong>{step.title}</strong>
+                  <small>{step.done ? 'Listo' : step.text}</small>
+                </button>
+              )
+            })}
+          </div>
+          <button className="merchant-ficha-save" type="button" onClick={saveLocal}>
+            {pendingTasks.length ? 'Guardar ficha' : 'Publicar ficha'}
+          </button>
+        </section>
+      )}
+
+      {!fichaFirstMode && (
       <section className="dashboard-actions dashboard-actions-large" aria-label="Acciones principales del comercio">
         <button className="dashboard-main-action" type="button" onClick={() => setOpenPanel(nextPanel)}>
           <Check size={18} />
@@ -3392,7 +3523,9 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <span>Publicar promo</span>
         </button>
       </section>
+      )}
 
+      {!fichaFirstMode && (
       <section className={`dashboard-status-card ${localIsPublic && !pendingTasks.length ? 'is-published' : 'is-primary'}`}>
         <div>
           <span>{localIsPublic && !pendingTasks.length ? 'Ficha publicada' : 'Primer paso'}</span>
@@ -3401,6 +3534,39 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         </div>
         <button type="button" onClick={saveLocal}>{localIsPublic && !pendingTasks.length ? 'Actualizar' : 'Publicar ficha'}</button>
       </section>
+      )}
+
+      {localIsPublic && pendingTasks.length === 0 && (
+        <section className="merchant-simple-results" aria-label="Estadisticas simples del comercio">
+          <div>
+            <span>Tus resultados</span>
+            <strong>Asi se mueve tu comercio.</strong>
+          </div>
+          <article>
+            <b>{metrics.businessViews || 0}</b>
+            <small>vieron tu ficha</small>
+          </article>
+          <article>
+            <b>{metrics.offerViews || 0}</b>
+            <small>vieron promos</small>
+          </article>
+          <article>
+            <b>{metrics.whatsappClicks || 0}</b>
+            <small>tocaron WhatsApp</small>
+          </article>
+        </section>
+      )}
+
+      {quickRepostOffer && (
+        <section className="merchant-repost-panel" aria-label="Republicar promocion">
+          <div>
+            <span>Republicar facil</span>
+            <strong>{quickRepostOffer.title}</strong>
+            <small>{isOfferExpired(quickRepostOffer) ? 'Vencida' : isOfferPaused(quickRepostOffer) ? 'Pausada' : 'Activa'} · {quickRepostOffer.price || 'Sin precio'}</small>
+          </div>
+          <button type="button" onClick={() => onRepostOffer(quickRepostOffer)}>Republicar</button>
+        </section>
+      )}
 
       {(expiringLocalOffers.length > 0 || isFounderExpiringSoon(localDraft)) && (
         <section className="merchant-alert-strip" aria-label="Avisos importantes">
@@ -3479,12 +3645,12 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       </section>
       )}
 
-      <section className="local-builder">
+      <section className={`local-builder ${fichaFirstMode ? 'local-builder-first' : ''}`}>
         <div className="merchant-hub-head">
           <div>
-            <span>Editar ficha</span>
-            <h2>{localDraft.name || 'Tu comercio'}</h2>
-            <p>Toca una seccion, cambia el dato y guarda.</p>
+            <span>{fichaFirstMode ? 'Ficha gratis' : 'Editar ficha'}</span>
+            <h2>{fichaFirstMode ? 'Datos del comercio' : localDraft.name || 'Tu comercio'}</h2>
+            <p>{fichaFirstMode ? 'Toca el bloque que falta, completa y guarda.' : 'Toca una seccion, cambia el dato y guarda.'}</p>
           </div>
           <div className="merchant-hub-meter" style={{ '--progress': `${completion}%` }}>
             <strong>{completion}%</strong>
@@ -3787,8 +3953,8 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('menu', 'Catalogo', 'Productos o servicios', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} items` : founderRequested ? 'Pendiente' : 'Fundador', ShoppingBasket)}
-          {openPanel === 'menu' && (
+          {!fichaFirstMode && panelButton('menu', 'Catalogo', 'Productos o servicios', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} items` : founderRequested ? 'Pendiente' : 'Fundador', ShoppingBasket)}
+          {!fichaFirstMode && openPanel === 'menu' && (
             <div className="merchant-panel-body">
               {!founderActive ? (
                 <section className="paid-feature-preview locked-feature">
@@ -3886,8 +4052,8 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('plan', 'Plan', 'Gratis o fundador', founderActive ? 'Activo' : founderRequested ? 'Pendiente' : 'Gratis', ShoppingBasket)}
-          {openPanel === 'plan' && (
+          {!fichaFirstMode && panelButton('plan', 'Plan', 'Gratis o fundador', founderActive ? 'Activo' : founderRequested ? 'Pendiente' : 'Gratis', ShoppingBasket)}
+          {!fichaFirstMode && openPanel === 'plan' && (
             <div className="merchant-panel-body">
               <section className="local-plan-selector" aria-label="Plan del comercio">
                 <button
@@ -3971,8 +4137,8 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {panelButton('preview', 'Vista previa', 'Asi lo ve el vecino', 'Ver ficha', Eye)}
-          {openPanel === 'preview' && (
+          {!fichaFirstMode && panelButton('preview', 'Vista previa', 'Asi lo ve el vecino', 'Ver ficha', Eye)}
+          {!fichaFirstMode && openPanel === 'preview' && (
             <div className="merchant-panel-body">
               <section className="public-local-preview">
                 <div className="public-local-head">

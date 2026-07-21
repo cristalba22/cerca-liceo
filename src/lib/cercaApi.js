@@ -270,6 +270,25 @@ const summarizeEvents = (events, businessId) => {
   })
 }
 
+const sendAdminAlert = async (eventType, payload = {}) => {
+  if (!hasSupabaseConfig) return
+
+  try {
+    await supabase.functions.invoke('admin-alert', {
+      body: {
+        eventType,
+        payload: {
+          ...payload,
+          siteUrl,
+          sentFrom: 'cerca-liceo-web',
+        },
+      },
+    })
+  } catch (error) {
+    console.info('Admin alert skipped:', error?.message || error)
+  }
+}
+
 const summarizeAdminEvents = (events = []) => {
   const relevant = events.filter((event) => {
     const metadata = event.metadata || {}
@@ -738,6 +757,19 @@ export const cercaApi = {
     if (error) return { account: null, error }
 
     if (!data.session) {
+      if (safeForm.type === 'merchant') {
+        await sendAdminAlert('merchant_account_created', {
+          name: safeForm.name,
+          email,
+          whatsapp: safeForm.whatsapp,
+          businessName: safeForm.businessName,
+          businessType: safeForm.businessType,
+          category: safeForm.category,
+          section: safeForm.section || 'Liceo Procrear',
+          status: 'pending_email_confirmation',
+        })
+      }
+
       const merchantMessage = 'Cuenta de comercio creada. Te mandamos un email de Cerca Liceo para verificar el acceso antes de cargar tu local.'
       const neighborMessage = 'Cuenta creada. Te mandamos un email de Cerca Liceo para verificar el acceso antes de iniciar sesion.'
       return {
@@ -783,11 +815,37 @@ export const cercaApi = {
     }
 
     if (profileError) {
+      if (safeForm.type === 'merchant') {
+        await sendAdminAlert('merchant_account_created', {
+          name: safeForm.name,
+          email: data.user.email,
+          whatsapp: safeForm.whatsapp,
+          businessName: safeForm.businessName,
+          businessType: safeForm.businessType,
+          category: safeForm.category,
+          section: safeForm.section || 'Liceo Procrear',
+          status: 'profile_warning',
+        })
+      }
+
       return {
         account,
         error: null,
         warning: mergeWarnings(textWarning, `Cuenta creada. Si algun dato no aparece, inicia sesion de nuevo. (${authErrorMessage(profileError, 'perfil pendiente')})`),
       }
+    }
+
+    if (safeForm.type === 'merchant') {
+      await sendAdminAlert('merchant_account_created', {
+        name: safeForm.name,
+        email: data.user.email,
+        whatsapp: safeForm.whatsapp,
+        businessName: safeForm.businessName,
+        businessType: safeForm.businessType,
+        category: safeForm.category,
+        section: safeForm.section || 'Liceo Procrear',
+        status: 'confirmed_session_created',
+      })
     }
 
     return {
@@ -1255,7 +1313,7 @@ export const cercaApi = {
 
     const { data: existingBusiness } = await supabase
       .from('businesses')
-      .select('id, image_key')
+      .select('id, image_key, plan, plan_status, is_public')
       .eq('owner_id', auth.user.id)
       .maybeSingle()
 
@@ -1390,8 +1448,42 @@ export const cercaApi = {
       .eq('id', data.id)
       .single()
 
+    const savedBusiness = refreshed ? mapBusinessRow(refreshed) : mapBusinessRow(data)
+    const wasFounderRequested = existingBusiness?.plan === 'orders' && existingBusiness?.plan_status === 'manual_pending'
+    const isFounderRequestedNow = savedBusiness.plan === 'pedidos' && savedBusiness.planStatus === 'manual_pending'
+
+    await sendAdminAlert(existingBusiness?.id ? 'business_updated' : 'business_created', {
+      businessId: savedBusiness.id,
+      name: savedBusiness.name,
+      businessType: savedBusiness.businessType,
+      category: savedBusiness.category,
+      section: savedBusiness.section,
+      address: savedBusiness.address,
+      reference: savedBusiness.reference,
+      locationMode: savedBusiness.locationMode,
+      locationLat: savedBusiness.locationLat,
+      locationLng: savedBusiness.locationLng,
+      whatsapp: savedBusiness.whatsapp,
+      instagram: savedBusiness.instagram,
+      plan: savedBusiness.plan,
+      planStatus: savedBusiness.planStatus,
+      isPublic: savedBusiness.isPublic,
+      hasImage: isDataImage(savedBusiness.image) || /^https?:\/\//i.test(savedBusiness.image || ''),
+    })
+
+    if (isFounderRequestedNow && !wasFounderRequested) {
+      await sendAdminAlert('founder_plan_requested', {
+        businessId: savedBusiness.id,
+        name: savedBusiness.name,
+        category: savedBusiness.category,
+        section: savedBusiness.section,
+        whatsapp: savedBusiness.whatsapp,
+        instagram: savedBusiness.instagram,
+      })
+    }
+
     return {
-      business: refreshed ? mapBusinessRow(refreshed) : mapBusinessRow(data),
+      business: savedBusiness,
       error: refreshError,
       warning: mergeWarnings(
         textWarning,
@@ -1505,6 +1597,20 @@ export const cercaApi = {
       .insert(payload)
       .select('*')
       .single()
+
+    if (data) {
+      await sendAdminAlert('offer_created', {
+        offerId: data.id,
+        businessId: business.id,
+        businessName: business.name,
+        title: safeOffer.title,
+        category: business.category,
+        section: business.section,
+        priceLabel: safeOffer.priceLabel || 'Consultar',
+        expiresAt: payload.expires_at,
+        whatsapp: business.whatsapp,
+      })
+    }
 
     return {
       offer: data ? mapOfferRowWithBusiness(data, business) : null,

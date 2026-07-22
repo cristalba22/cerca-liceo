@@ -774,6 +774,74 @@ const buildLocalDraft = (local, account) => {
   })
 }
 
+const buildInitialBusinessDraftFromAccount = (account = {}) => {
+  const businessType = account.businessType || 'local'
+  const isEntrepreneur = businessType === 'entrepreneur'
+  const hasPin = !isEntrepreneur && hasBusinessPin(account)
+  const address = isEntrepreneur ? '' : (account.address || '')
+  const locationMode = isEntrepreneur
+    ? 'none'
+    : account.locationMode === 'pin' && hasPin
+      ? 'pin'
+      : address.trim()
+        ? 'address'
+        : 'none'
+  const openDays = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+  const openTime = '09:00'
+  const closeTime = '21:00'
+  const name = (account.businessName || account.name || 'Comercio del barrio').trim().replace(/\s+/g, ' ')
+
+  return {
+    name,
+    businessType,
+    hasPublicAddress: locationMode !== 'none',
+    category: account.category || 'Comida',
+    section: account.section || 'Liceo Procrear',
+    address,
+    reference: account.reference || '',
+    locationMode,
+    locationLat: locationMode === 'pin' ? account.locationLat || '' : '',
+    locationLng: locationMode === 'pin' ? account.locationLng || '' : '',
+    locationPrecision: locationMode === 'pin' ? account.locationPrecision || 'exact' : 'approximate',
+    locationNote: locationMode === 'pin' ? account.locationNote || account.reference || '' : account.reference || '',
+    hours: formatSchedule({ openDays, openTime, closeTime }),
+    openDays,
+    openTime,
+    closeTime,
+    splitHours: false,
+    splitOpenTime: '',
+    splitCloseTime: '',
+    weekendHours: false,
+    satOpenTime: '',
+    satCloseTime: '',
+    sunOpenTime: '',
+    sunCloseTime: '',
+    whatsapp: account.whatsapp || '',
+    instagram: account.instagram || '',
+    description: isEntrepreneur
+      ? 'Emprendimiento del barrio. Contacto directo por WhatsApp o Instagram.'
+      : 'Comercio del barrio. Contacto directo por WhatsApp.',
+    paymentMethods: '',
+    delivery: account.salesMode || (isEntrepreneur ? 'Coordinar por WhatsApp' : 'Retiro y delivery'),
+    plan: 'gratis',
+    planStatus: 'free',
+    paidUntil: '',
+    adminNotes: '',
+    isPublic: true,
+    open: true,
+    image: '',
+    imageZoom: 120,
+    imagePosition: 'center center',
+    menu: ensureMenuSlots([
+      { name: '', price: '' },
+      { name: '', price: '' },
+      { name: '', price: '' },
+      { name: '', price: '' },
+      { name: '', price: '' },
+    ]),
+  }
+}
+
 const noPhotoSurfaceClasses = new Set(['business-photo', 'detail-image', 'photo-tile', 'product-thumb'])
 
 const imageSurfaceProps = (image, baseClass, options = {}) => {
@@ -877,6 +945,32 @@ function App() {
     if (metrics) setMerchantMetrics(metrics)
   }
 
+  const createInitialMerchantBusiness = async (merchantAccount, { showNotice = true } = {}) => {
+    if (merchantAccount?.type !== 'merchant') return null
+    const draft = buildInitialBusinessDraftFromAccount(merchantAccount)
+    if (!draft.name || !draft.whatsapp) return null
+
+    const { business, error, warning } = await cercaApi.saveBusiness(draft)
+    if (error || !business) {
+      if (showNotice) {
+        setAuthNotice(error?.message || 'No pudimos crear la ficha inicial. Podes completarla desde Panel comercio.')
+      }
+      return null
+    }
+
+    setMerchantLocal(business)
+    setFeedBusinesses((current) => {
+      const without = current.filter((item) => item.id !== business.id)
+      return business.isPublic === false ? without : [business, ...without]
+    })
+    await loadMerchantOffers()
+    await loadMerchantMetrics(business.id)
+    if (showNotice) {
+      setAuthNotice(warning || 'Ficha basica creada. Ya apareces en la guia; podes sumar foto, horarios y promos.')
+    }
+    return business
+  }
+
   useEffect(() => {
     let ignore = false
 
@@ -892,12 +986,22 @@ function App() {
             await loadMerchantOffers()
             await loadMerchantMetrics(business.id)
           } else if (!ignore) {
-            setMerchantLocal(null)
-            setScreen((current) => (
-              current === 'home' || current === 'profile' || current === 'login'
-                ? 'merchant-start'
-                : current
-            ))
+            const createdBusiness = await createInitialMerchantBusiness(account, { showNotice: false })
+            if (createdBusiness) {
+              setAuthNotice('Listo. Con los datos del registro dejamos tu ficha basica creada. Ahora podes sumar foto u horarios.')
+              setScreen((current) => (
+                current === 'home' || current === 'profile' || current === 'login'
+                  ? 'my-posts'
+                  : current
+              ))
+            } else {
+              setMerchantLocal(null)
+              setScreen((current) => (
+                current === 'home' || current === 'profile' || current === 'login'
+                  ? 'merchant-start'
+                  : current
+              ))
+            }
           }
         }
       }
@@ -1087,6 +1191,12 @@ function App() {
         await loadMerchantOffers()
         await loadMerchantMetrics(business.id)
       } else {
+        const createdBusiness = await createInitialMerchantBusiness(account, { showNotice: false })
+        if (createdBusiness) {
+          setAuthNotice('Sesion iniciada. Tu ficha basica ya quedo creada con los datos del registro.')
+          setScreen('my-posts')
+          return
+        }
         setMerchantLocal(null)
       }
       setAuthNotice(businessError
@@ -1178,10 +1288,19 @@ function App() {
     if (account.type !== 'merchant') {
       setMerchantLocal(null)
     }
-    setAuthNotice(warning || message || (account.type === 'merchant' ? 'Cuenta comercio creada. Ya podes cargar tu ficha.' : 'Cuenta vecino creada.'))
     if (account.type === 'merchant') {
-      setScreen('merchant-start')
+      const createdBusiness = await createInitialMerchantBusiness(savedAccount, { showNotice: false })
+      setAuthNotice(
+        warning ||
+        message ||
+        (createdBusiness
+          ? 'Cuenta comercio creada. Ya dejamos tu ficha basica cargada. Ahora podes sumar foto, horarios o publicar una promo.'
+          : 'Cuenta comercio creada. Entra al panel para completar la ficha gratis.')
+      )
+      setScreen(createdBusiness ? 'my-posts' : 'merchant-start')
+      return true
     }
+    setAuthNotice(warning || message || 'Cuenta vecino creada.')
     return true
   }
 
@@ -1196,8 +1315,11 @@ function App() {
       return
     }
     setAccount(merchantAccount)
-    setAuthNotice('Listo. Tu cuenta ahora puede publicar como comercio. Carga tu ficha desde Panel comercio.')
-    setScreen('merchant-start')
+    const createdBusiness = await createInitialMerchantBusiness(merchantAccount, { showNotice: false })
+    setAuthNotice(createdBusiness
+      ? 'Listo. Tu cuenta ahora es comercio y ya tiene una ficha basica creada.'
+      : 'Listo. Tu cuenta ahora puede publicar como comercio. Completa tu ficha desde Panel comercio.')
+    setScreen(createdBusiness ? 'my-posts' : 'merchant-start')
   }
 
   const publishOffer = async (offerDraft) => {
@@ -5930,7 +6052,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
           <section className="android-safe-card android-safe-intro">
             <span>{isMerchant ? 'Comercio registrado' : 'Cuenta creada'}</span>
             <h1>Revisa tu email.</h1>
-            <p>Te va a llegar un correo de Cerca Liceo. Abrilo y toca confirmar cuenta. Despues volve e inicia sesion.</p>
+            <p>Te va a llegar un correo de Cerca Liceo. Abrilo y toca confirmar cuenta. Despues entra y seguimos con tu ficha basica.</p>
           </section>
 
           <section className="android-safe-actions">
@@ -5956,8 +6078,8 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
 
           <section className="android-safe-card android-safe-intro">
             <span>{isMerchant ? 'Comercio listo' : 'Vecino listo'}</span>
-            <h1>{isMerchant ? 'Ahora carga tu local.' : 'Ya podes usar tu cuenta.'}</h1>
-            <p>{isMerchant ? 'Desde el panel comercio completas foto, zona, horarios y publicaciones.' : 'La cuenta sirve para favoritos y avisos.'}</p>
+            <h1>{isMerchant ? 'Tu ficha basica ya esta.' : 'Ya podes usar tu cuenta.'}</h1>
+            <p>{isMerchant ? 'Ahora podes sumar foto, horarios y publicar tu primera promo gratis.' : 'La cuenta sirve para favoritos y avisos.'}</p>
           </section>
 
           <section className="android-safe-actions">
@@ -5983,7 +6105,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
         <section className="android-safe-card android-safe-intro">
           <span>{isMerchant ? 'Comerciante' : 'Vecino'}</span>
           <h1>{isMerchant ? 'Registrar comercio.' : 'Crear cuenta vecino.'}</h1>
-          <p>{isMerchant ? 'Primero creas la cuenta. Despues cargas el local, foto, horarios y publicaciones desde el panel.' : 'La cuenta es opcional y sirve para guardar favoritos y recibir avisos.'}</p>
+          <p>{isMerchant ? 'Con estos datos ya armamos tu ficha basica. Despues podes sumar foto, horarios y promos.' : 'La cuenta es opcional y sirve para guardar favoritos y recibir avisos.'}</p>
         </section>
 
         <section className="android-safe-actions android-safe-toggle">
@@ -6137,7 +6259,7 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
           <h1>{isMerchant ? 'Confirma el mail para activar tu comercio.' : 'Confirma el mail para activar tu cuenta.'}</h1>
           <p>
             Entra a <strong>{form.email || 'tu email'}</strong>, abri el correo de <strong>Cerca Liceo</strong> y toca el boton de confirmacion.
-            Despues volve a la pagina e inicia sesion con tu email y clave.
+            Despues volve a la pagina e inicia sesion con tu email y clave. Si sos comercio, con esos datos ya armamos tu ficha basica.
           </p>
           <p className="mail-trust-note">
             Este paso protege tu cuenta y evita que otra persona publique usando el nombre de tu local.
@@ -6177,10 +6299,10 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
 
         <section className="register-success">
           <span>{isMerchant ? 'Comercio listo' : 'Vecino listo'}</span>
-          <h1>{isMerchant ? 'Ahora carga tu local desde el panel.' : 'Ya podes guardar favoritos.'}</h1>
+          <h1>{isMerchant ? 'Tu ficha basica ya esta.' : 'Ya podes guardar favoritos.'}</h1>
           <p>
             {isMerchant
-              ? 'El registro queda simple. El local, horarios, fotos, publicaciones y catalogo se agregan despues desde el panel comercio.'
+              ? 'Con los datos del registro ya dejamos el local creado. Desde el panel podes sumar foto, horarios y tu primera promo gratis.'
               : 'Recorda que Cerca Liceo se puede usar igual sin cuenta. La cuenta solo suma preferencias y avisos.'}
           </p>
           <button type="button" onClick={onBack}>
@@ -6196,8 +6318,8 @@ function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, onLogin,
             </article>
             <article>
               <b>2</b>
-              <strong>Cargar local</strong>
-              <span>Foto, direccion y horario</span>
+              <strong>Completar ficha</strong>
+              <span>Foto y horarios</span>
             </article>
             <article>
               <b>3</b>

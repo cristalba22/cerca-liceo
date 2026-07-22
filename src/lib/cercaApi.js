@@ -770,7 +770,7 @@ export const cercaApi = {
         })
       }
 
-      const merchantMessage = 'Cuenta de comercio creada. Te mandamos un email de Cerca Liceo para verificar el acceso antes de cargar tu local.'
+      const merchantMessage = 'Cuenta de comercio creada. Te mandamos un email de Cerca Liceo para verificar el acceso. Cuando entres, dejamos tu ficha basica cargada con estos datos.'
       const neighborMessage = 'Cuenta creada. Te mandamos un email de Cerca Liceo para verificar el acceso antes de iniciar sesion.'
       return {
         account: null,
@@ -851,7 +851,7 @@ export const cercaApi = {
     return {
       account,
       message: safeForm.type === 'merchant'
-        ? 'Cuenta comercio creada. Ya podes cargar tu ficha.'
+        ? 'Cuenta comercio creada. Ya podemos armar tu ficha basica.'
         : 'Cuenta creada. Ya podes usar favoritos y avisos.',
       error: null,
       warning: textWarning,

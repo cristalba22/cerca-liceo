@@ -2607,12 +2607,6 @@ function PublishScreen({ account, local, template, offers = [], onBack, onHome, 
         </section>
       )}
 
-      <section className="publish-steps-strip" aria-label="Pasos para publicar">
-        <span className={isUploadedImage(offerDraft.image) ? 'done' : ''}>1 Foto</span>
-        <span className={String(offerDraft.title || '').trim() ? 'done' : ''}>2 Titulo</span>
-        <span className={publishMissing.length === 0 ? 'done' : ''}>3 Publicar</span>
-      </section>
-
       <section className="upload-stage upload-stage-simple">
         <div>
           <Camera size={24} />
@@ -2627,11 +2621,11 @@ function PublishScreen({ account, local, template, offers = [], onBack, onHome, 
 
       <section className="publish-grid publish-grid-simple">
         <div className={`publish-fast-card wide ${publishMissing.length === 0 ? 'ready' : ''}`}>
-          <span>Datos de la promo</span>
-          <strong>{publishMissing.length === 0 ? 'Ya esta lista.' : 'Completa lo basico.'}</strong>
-          <p>{publishMissing.length === 0 ? 'Revisa la vista previa y toca publicar.' : 'Con titulo, precio o consulta, y descripcion corta alcanza.'}</p>
+          <span>{publishMissing.length === 0 ? 'Lista para publicar' : 'Falta poco'}</span>
+          <strong>{publishMissing.length === 0 ? 'Toca publicar.' : `Falta ${publishMissing[0]}.`}</strong>
+          <p>{publishMissing.length === 0 ? 'La promo aparece en inicio y vence sola.' : 'Completa solo lo necesario. La foto es opcional.'}</p>
           {!offerDraft.title && !offerDraft.description && (
-            <button type="button" onClick={applySuggestion}>Usar texto simple</button>
+            <button type="button" onClick={applySuggestion}>Completar ejemplo</button>
           )}
         </div>
         <label className="publish-field wide">
@@ -4002,37 +3996,6 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <span>{localDraft.isPublic === false ? 'Ficha pausada' : 'Ficha visible'}</span>
           <small>{localDraft.isPublic === false ? 'Mostrar de nuevo' : 'Pausar sin borrar'}</small>
         </button>
-      </section>
-      )}
-
-      {localIsPublic && pendingTasks.length === 0 && (
-      <section className="dashboard-metrics" aria-label="Resumen del comercio">
-        <article>
-          <strong>{activeLocalOffers.length}</strong>
-          <span>promos activas</span>
-        </article>
-        <article>
-          <strong>{expiredLocalOffers.length}</strong>
-          <span>vencidas</span>
-        </article>
-        <article>
-          <strong>{metrics.offerViews || 0}</strong>
-          <span>vistas promos</span>
-        </article>
-        <article>
-          <strong>{metrics.whatsappClicks || 0}</strong>
-          <span>clics WhatsApp</span>
-        </article>
-      </section>
-      )}
-
-      {localIsPublic && pendingTasks.length === 0 && (
-      <section className="dashboard-tip">
-        <div>
-          <Timer size={18} />
-          <strong>Consejo para vender mas</strong>
-        </div>
-        <p>Publica promos cerca de la hora de compra: comida entre 18 y 22, panaderia temprano y despensa al mediodia.</p>
       </section>
       )}
 

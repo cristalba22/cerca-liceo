@@ -3276,6 +3276,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   const nextPanel = pendingTasks[0]?.id || 'preview'
   const localIsPublic = Boolean(local)
   const fichaFirstMode = !localIsPublic || pendingTasks.length > 0
+  const showFounderTrial = localIsPublic && pendingTasks.length === 0 && !founderActive
   const essentialFichaSteps = [
     {
       id: 'basic',
@@ -3919,6 +3920,27 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         </div>
         <button type="button" onClick={saveLocal}>{localIsPublic && !pendingTasks.length ? 'Actualizar' : 'Publicar ficha'}</button>
       </section>
+      )}
+
+      {showFounderTrial && (
+        <section className={`founder-trial-card ${founderRequested ? 'is-requested' : ''}`} aria-label="Probar plan fundador gratis">
+          <div>
+            <span>{founderRequested ? 'Solicitud enviada' : 'Primeros 30 comercios'}</span>
+            <strong>{founderRequested ? 'Fundador pendiente.' : 'Proba Fundador gratis x 2 meses.'}</strong>
+            <p>{founderRequested ? 'Cristian te contacta para activarlo. No tenes que pagar nada ahora.' : 'Mini carta, pedidos por WhatsApp y 4 promos extra. Sin costo, sin tarjeta y sin compromiso.'}</p>
+          </div>
+          {!founderRequested && (
+            <div className="founder-trial-chips" aria-label="Incluye">
+              <b>Mini carta</b>
+              <b>Pedidos WhatsApp</b>
+              <b>4 promos extra</b>
+            </div>
+          )}
+          <button type="button" onClick={() => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer')}>
+            {founderRequested ? 'Escribir a Cristian' : 'Quiero probar gratis'}
+          </button>
+          {!founderRequested && <small>Despues de 2 meses vuelve a plan gratis si no queres seguir.</small>}
+        </section>
       )}
 
       {localIsPublic && pendingTasks.length === 0 && (

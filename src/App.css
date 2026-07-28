@@ -5151,6 +5151,15 @@ select:focus-visible {
   box-shadow: 0 16px 30px rgba(156, 241, 18, 0.16);
 }
 
+.night-mode .founder-trial-card {
+  color: #fffbea;
+  background:
+    radial-gradient(circle at 95% 8%, rgba(112, 223, 210, 0.2), transparent 35%),
+    linear-gradient(145deg, #10150f, #202b17);
+  border-color: rgba(255, 251, 234, 0.1);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.18);
+}
+
 .night-mode .local-photo-actions strong,
 .night-mode .local-map-copy h3,
 .night-mode .paid-feature-preview h3,
@@ -5196,6 +5205,11 @@ select:focus-visible {
 .night-mode .merchant-empty-posts p,
 .night-mode .merchant-panel-trigger small {
   color: rgba(255, 251, 234, 0.68);
+}
+
+.night-mode .founder-trial-card p,
+.night-mode .founder-trial-card small {
+  color: rgba(255, 251, 234, 0.72);
 }
 
 .night-mode .admin-plan-line span {
@@ -6312,6 +6326,88 @@ select:focus-visible {
   background: #10150f;
   border: 0;
   border-radius: 999px;
+}
+
+.founder-trial-card {
+  display: grid;
+  gap: 14px;
+  margin: 0 20px 12px;
+  padding: 18px;
+  color: #fffbea;
+  background:
+    radial-gradient(circle at 95% 8%, rgba(112, 223, 210, 0.34), transparent 35%),
+    linear-gradient(145deg, #10150f, #263f18);
+  border: 1px solid rgba(167, 233, 42, 0.26);
+  border-radius: 26px;
+  box-shadow: 0 16px 30px rgba(31, 30, 22, 0.12);
+}
+
+.founder-trial-card.is-requested {
+  background:
+    radial-gradient(circle at 95% 8%, rgba(167, 233, 42, 0.28), transparent 34%),
+    linear-gradient(145deg, #172112, #2d3423);
+}
+
+.founder-trial-card span {
+  display: inline-flex;
+  width: fit-content;
+  padding: 9px 12px;
+  color: #172112;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background: #a7e92a;
+  border-radius: 999px;
+}
+
+.founder-trial-card strong {
+  display: block;
+  margin: 14px 0 8px;
+  color: #fffbea;
+  font-size: 28px;
+  line-height: 0.96;
+}
+
+.founder-trial-card p {
+  max-width: 31rem;
+  margin: 0;
+  color: rgba(255, 251, 234, 0.8);
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.founder-trial-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.founder-trial-chips b {
+  padding: 9px 10px;
+  color: #172112;
+  font-size: 11px;
+  font-weight: 1000;
+  background: rgba(255, 251, 234, 0.9);
+  border-radius: 999px;
+}
+
+.founder-trial-card button {
+  width: 100%;
+  min-height: 54px;
+  color: #172112;
+  font-size: 15px;
+  font-weight: 1000;
+  background: linear-gradient(135deg, #a7e92a, #70dfd2);
+  border: 0;
+  border-radius: 18px;
+}
+
+.founder-trial-card small {
+  color: rgba(255, 251, 234, 0.68);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
 }
 
 .dashboard-checklist {
@@ -12544,6 +12640,7 @@ select:focus-visible {
   .dashboard-onboarding,
   .merchant-dashboard-hero,
   .dashboard-status-card,
+  .founder-trial-card,
   .dashboard-tip,
   .merchant-timeline,
   .posts-summary,

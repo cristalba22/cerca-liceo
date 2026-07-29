@@ -1127,15 +1127,24 @@ select:focus-visible {
 
 .today-lead-offer {
   display: grid;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: 12px;
   min-height: 156px;
   padding: 16px;
+  align-items: stretch;
   text-align: left;
   color: #172112;
   background: var(--offer, linear-gradient(135deg, #ff7a3d, #ffca38));
   border: 0;
   border-radius: 22px;
   box-shadow: 0 14px 24px rgba(31, 30, 22, 0.12);
+}
+
+.today-lead-copy {
+  display: grid;
+  min-width: 0;
+  align-content: space-between;
+  gap: 7px;
 }
 
 .today-lead-badge {
@@ -1151,7 +1160,7 @@ select:focus-visible {
   border-radius: 999px;
 }
 
-.today-lead-offer > strong {
+.today-lead-copy > strong {
   max-width: 14ch;
   color: #10150f;
   font-size: 30px;
@@ -1159,14 +1168,14 @@ select:focus-visible {
   overflow-wrap: anywhere;
 }
 
-.today-lead-offer > small {
+.today-lead-copy > small {
   color: rgba(16, 21, 15, 0.72);
   font-size: 11px;
   font-weight: 1000;
   text-transform: uppercase;
 }
 
-.today-lead-offer > div:last-child {
+.today-lead-copy > div:last-child {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1174,7 +1183,7 @@ select:focus-visible {
   margin-top: 4px;
 }
 
-.today-lead-offer b {
+.today-lead-copy b {
   flex: 0 0 auto;
   padding: 10px 13px;
   color: #10150f;
@@ -1184,7 +1193,7 @@ select:focus-visible {
   border-radius: 999px;
 }
 
-.today-lead-offer > div:last-child span {
+.today-lead-copy > div:last-child span {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -1196,6 +1205,76 @@ select:focus-visible {
   font-weight: 1000;
   background: #10150f;
   border-radius: 999px;
+}
+
+.today-lead-image {
+  position: relative;
+  display: block;
+  min-height: 124px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 247, 0.72), rgba(255, 253, 247, 0.28)),
+    rgba(255, 253, 247, 0.36);
+  border: 5px solid rgba(255, 253, 247, 0.82);
+  border-radius: 24px;
+  box-shadow: 0 12px 18px rgba(30, 23, 12, 0.12);
+}
+
+.today-lead-image::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/offer-sprite.png');
+  background-size: 300% 200%;
+  background-position: 0% 0%;
+}
+
+.today-lead-image.image-bread::before {
+  background-position: 0% 0%;
+}
+
+.today-lead-image.image-milanesa::before {
+  background-position: 50% 0%;
+}
+
+.today-lead-image.image-veggie::before {
+  background-position: 100% 0%;
+}
+
+.today-lead-image.image-meat::before {
+  background-position: 0% 100%;
+}
+
+.today-lead-image.image-pantry::before {
+  background-position: 50% 100%;
+}
+
+.today-lead-image.image-tools::before {
+  background-position: 100% 100%;
+}
+
+.today-lead-image.image-beauty::before {
+  background:
+    radial-gradient(circle at 45% 35%, #fff 0 16%, transparent 17%),
+    radial-gradient(circle at 60% 55%, #ffe7ef 0 22%, transparent 23%),
+    linear-gradient(145deg, #ffc5dc, #e75f93);
+}
+
+.today-lead-image.image-generic::before {
+  background:
+    linear-gradient(135deg, rgba(167, 233, 42, 0.9), rgba(112, 223, 210, 0.92)),
+    #e8f6bd;
+}
+
+.today-lead-image.image-generic::after {
+  content: 'PROMO';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #172112;
+  font-size: 14px;
+  font-weight: 1000;
 }
 
 .today-fast-actions {

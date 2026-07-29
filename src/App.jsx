@@ -1936,16 +1936,19 @@ function App() {
                       setScreen('detail')
                     }}
                   >
-                    <div className="today-lead-badge">
-                      <Flame size={16} />
-                      <span>{getOfferOpenStatus(todayLeadOffer).label}</span>
+                    <div className="today-lead-copy">
+                      <div className="today-lead-badge">
+                        <Flame size={16} />
+                        <span>{getOfferOpenStatus(todayLeadOffer).label}</span>
+                      </div>
+                      <strong>{todayLeadOffer.title}</strong>
+                      <small>{todayLeadOffer.business} · {todayLeadOffer.section}</small>
+                      <div>
+                        <b>{todayLeadOffer.price || 'Consultar'}</b>
+                        <span>Ver detalle <ChevronRight size={15} /></span>
+                      </div>
                     </div>
-                    <strong>{todayLeadOffer.title}</strong>
-                    <small>{todayLeadOffer.business} · {todayLeadOffer.section}</small>
-                    <div>
-                      <b>{todayLeadOffer.price || 'Consultar'}</b>
-                      <span>Ver detalle <ChevronRight size={15} /></span>
-                    </div>
+                    <i {...imageSurfaceProps(todayLeadOffer.image, 'today-lead-image')}></i>
                   </button>
 
                   <div className="today-fast-actions" aria-label="Accesos rapidos">

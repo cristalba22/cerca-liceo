@@ -3276,7 +3276,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
   const nextPanel = pendingTasks[0]?.id || 'preview'
   const localIsPublic = Boolean(local)
   const fichaFirstMode = !localIsPublic || pendingTasks.length > 0
-  const showFounderTrial = localIsPublic && pendingTasks.length === 0 && !founderActive
+  const showFounderTrial = localIsPublic && !founderActive
   const essentialFichaSteps = [
     {
       id: 'basic',

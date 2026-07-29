@@ -5523,6 +5523,13 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
   const isLogged = Boolean(account)
   const isMerchant = account?.type === 'merchant'
   const isAdmin = account?.role === 'admin' || !cercaApi.isSupabaseEnabled()
+  const founderActive = isMerchant && local ? isFounderPlanActive(local) : false
+  const founderRequested = isMerchant && local ? isFounderPlanRequested(local) : false
+  const showProfileFounderTrial = isMerchant && local && !founderActive
+  const profileFounderUrl = makeWhatsAppUrl(
+    '3517662142',
+    `Hola Cristian, quiero probar gratis el plan fundador por 2 meses para ${local?.name || account?.businessName || 'mi comercio'}.`
+  )
 
   if (isAndroidCompatMode()) {
     return (
@@ -5620,6 +5627,17 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
                 <small>Volver a navegar como visitante.</small>
               </button>
             </section>
+
+            {showProfileFounderTrial && (
+              <section className="android-safe-card android-founder-teaser">
+                <span>{founderRequested ? 'Solicitud enviada' : 'Gratis 2 meses'}</span>
+                <h2>{founderRequested ? 'Fundador pendiente.' : 'Proba plan fundador.'}</h2>
+                <p>{founderRequested ? 'Cristian te contacta para activarlo.' : 'Mini carta, pedidos por WhatsApp y 4 promos extra para probar sin pagar.'}</p>
+                <button type="button" onClick={() => window.open(profileFounderUrl, '_blank', 'noopener,noreferrer')}>
+                  {founderRequested ? 'Escribir a Cristian' : 'Quiero probar gratis'}
+                </button>
+              </section>
+            )}
           </>
         )}
 
@@ -5742,6 +5760,19 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
               Administrar
             </button>
           )}
+        </section>
+      )}
+
+      {showProfileFounderTrial && (
+        <section className={`profile-founder-teaser ${founderRequested ? 'is-requested' : ''}`} aria-label="Probar plan fundador gratis">
+          <div>
+            <span>{founderRequested ? 'Solicitud enviada' : 'Gratis 2 meses'}</span>
+            <h2>{founderRequested ? 'Fundador pendiente.' : 'Proba plan fundador.'}</h2>
+            <p>{founderRequested ? 'Cristian te contacta para activarlo.' : 'Mini carta, pedidos por WhatsApp y 4 promos extra. Sin costo y sin compromiso.'}</p>
+          </div>
+          <button type="button" onClick={() => window.open(profileFounderUrl, '_blank', 'noopener,noreferrer')}>
+            {founderRequested ? 'Escribir' : 'Quiero probar'}
+          </button>
         </section>
       )}
 

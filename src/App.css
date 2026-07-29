@@ -5212,6 +5212,19 @@ select:focus-visible {
   color: rgba(255, 251, 234, 0.72);
 }
 
+.night-mode .profile-founder-teaser {
+  color: #10150f;
+  background:
+    radial-gradient(circle at 96% 10%, rgba(112, 223, 210, 0.5), transparent 35%),
+    linear-gradient(135deg, #ff7a2f 0%, #ffd027 48%, #a7e92a 100%);
+  border-color: rgba(255, 251, 234, 0.1);
+}
+
+.night-mode .profile-founder-teaser h2,
+.night-mode .profile-founder-teaser p {
+  color: #10150f;
+}
+
 .night-mode .admin-plan-line span {
   color: rgba(255, 251, 234, 0.72);
   background: rgba(255, 251, 234, 0.08);
@@ -11522,6 +11535,68 @@ select:focus-visible {
   background: #10150f;
 }
 
+.profile-founder-teaser {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin: 0 20px 14px;
+  padding: 17px;
+  color: #10150f;
+  background:
+    radial-gradient(circle at 96% 10%, rgba(112, 223, 210, 0.55), transparent 35%),
+    linear-gradient(135deg, #ff7a2f 0%, #ffd027 48%, #a7e92a 100%);
+  border: 1px solid rgba(16, 21, 15, 0.08);
+  border-radius: 26px;
+  box-shadow: 0 16px 30px rgba(42, 31, 16, 0.14);
+}
+
+.profile-founder-teaser.is-requested {
+  background:
+    radial-gradient(circle at 96% 10%, rgba(255, 251, 234, 0.62), transparent 36%),
+    linear-gradient(135deg, #8fee23, #70dfd2);
+}
+
+.profile-founder-teaser span {
+  display: inline-flex;
+  width: fit-content;
+  padding: 8px 10px;
+  color: #10150f;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+  background: rgba(255, 251, 234, 0.82);
+  border-radius: 999px;
+}
+
+.profile-founder-teaser h2 {
+  margin: 11px 0 5px;
+  color: #10150f;
+  font-size: 25px;
+  line-height: 0.96;
+}
+
+.profile-founder-teaser p {
+  max-width: 24rem;
+  margin: 0;
+  color: rgba(16, 21, 15, 0.74);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.28;
+}
+
+.profile-founder-teaser button {
+  min-height: 50px;
+  padding: 0 18px;
+  color: #fffbea;
+  font-size: 13px;
+  font-weight: 1000;
+  white-space: nowrap;
+  background: #10150f;
+  border: 0;
+  border-radius: 999px;
+}
+
 .merchant-entry-card {
   margin: 0 20px 14px;
   padding: 18px;
@@ -14060,6 +14135,29 @@ html.android-compat .contact-footer {
   color: #172112 !important;
   background: #fffdf7 !important;
   border: 1px solid rgba(16, 21, 15, 0.1) !important;
+}
+
+html.android-compat .android-founder-teaser {
+  color: #10150f !important;
+  background: #a7e92a !important;
+  border: 1px solid rgba(16, 21, 15, 0.1) !important;
+}
+
+html.android-compat .android-founder-teaser h2,
+html.android-compat .android-founder-teaser p,
+html.android-compat .android-founder-teaser span {
+  color: #10150f !important;
+}
+
+html.android-compat .android-founder-teaser button {
+  min-height: 50px;
+  width: 100%;
+  color: #fffbea !important;
+  font-size: 15px;
+  font-weight: 1000;
+  background: #10150f !important;
+  border: 0;
+  border-radius: 16px;
 }
 
 html.android-compat .account-start-card {

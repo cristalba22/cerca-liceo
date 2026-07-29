@@ -1515,6 +1515,16 @@ function App() {
       return byCategory && bySection && byQuery
     })
   }, [feedBusinesses, query, selectedCategory, selectedSection, visibleFeedOffers])
+  const homeListOffers = useMemo(() => {
+    if (query.trim()) return filteredOffers
+    if (!todayLeadOffer) return []
+    const leadKey = todayLeadOffer.id || `${todayLeadOffer.business}-${todayLeadOffer.title}-${todayLeadOffer.price}`
+    return visibleFeedOffers.filter((offer) => {
+      if (selectedSection !== 'Todos' && offer.section !== selectedSection) return false
+      const key = offer.id || `${offer.business}-${offer.title}-${offer.price}`
+      return key !== leadKey
+    })
+  }, [filteredOffers, query, selectedSection, todayLeadOffer, visibleFeedOffers])
 
   const instantHomeResults = useMemo(() => {
     const normalizedQuery = normalizeSearchText(query)
@@ -1543,8 +1553,6 @@ function App() {
     return { offers: offerResults, businesses: businessResults, categories: categoryResults }
   }, [feedBusinesses, publicFeedOffers, query])
 
-  const heroOffers = visibleFeedOffers
-  const heroOffer = heroOffers[featuredBusinessIndex % Math.max(heroOffers.length, 1)]
   const liveMapBusinesses = useMemo(() => mergeUniqueById([
     ...feedBusinesses,
     ...visibleFeedOffers.map((offer) => ({
@@ -1835,19 +1843,19 @@ function App() {
               {query.trim().length < 2 && (
                 <div className="home-search-chips" aria-label="Busquedas rapidas">
                   <button type="button" onClick={() => {
-                    setSelectedCategory('Comida')
+                    setSelectedCategory('Todas')
                     setQuery('comida')
                   }}>
                     Comida
                   </button>
                   <button type="button" onClick={() => {
-                    setSelectedCategory('Despensa')
+                    setSelectedCategory('Todas')
                     setQuery('despensa')
                   }}>
                     Despensa
                   </button>
                   <button type="button" onClick={() => {
-                    setSelectedCategory('Servicios')
+                    setSelectedCategory('Todas')
                     setQuery('servicios')
                   }}>
                     Servicios
@@ -1887,8 +1895,8 @@ function App() {
                     title: category.name,
                     meta: 'Ver ofertas y locales',
                     action: () => {
-                      setSelectedCategory(category.name)
-                      setQuery('')
+                      setSelectedCategory('Todas')
+                      setQuery(category.name)
                     },
                   }))].slice(0, 5).map((result) => (
                     <button type="button" key={`${result.type}-${result.id}`} onClick={result.action}>
@@ -1956,7 +1964,7 @@ function App() {
                       <Store size={16} />
                       Ver locales
                     </button>
-                    <button type="button" onClick={() => setScreen('map')}>
+                    <button type="button" onClick={() => setScreen('directory')}>
                       <MapPin size={16} />
                       Mapa
                     </button>
@@ -1987,76 +1995,11 @@ function App() {
               ) : (
                 <div className="today-empty">
                   <Sparkles size={20} />
-                  <strong>{showOpenNowOnly ? 'No vemos abiertos ahora' : 'Todavia no hay promos vigentes'}</strong>
-                  <span>{showOpenNowOnly ? 'Toca "Ver todos" para mirar comercios aunque esten cerrados.' : 'Cuando carguen una promo, aparece aca arriba.'}</span>
+                  <strong>{offersLoading ? 'Cargando promos del barrio' : showOpenNowOnly ? 'No vemos abiertos ahora' : 'Todavia no hay promos vigentes'}</strong>
+                  <span>{offersLoading ? 'En unos segundos aparecen las ofertas publicadas.' : showOpenNowOnly ? 'Toca "Ver todos" para mirar comercios aunque esten cerrados.' : 'Cuando carguen una promo, aparece aca arriba.'}</span>
                 </div>
               )}
             </section>
-
-            <HomeAccessCard
-              account={account}
-              local={merchantLocal}
-              onLogin={() => setScreen('login')}
-              onRegisterNeighbor={() => {
-                setRegisterType('neighbor')
-                setScreen('register')
-              }}
-              onRegisterMerchant={() => {
-                setRegisterType('merchant')
-                setScreen('register')
-              }}
-              onUpgradeMerchant={() => upgradeAccountToMerchant()}
-              onMerchantPanel={() => setScreen(merchantLocal ? 'my-posts' : 'merchant-start')}
-              onPublish={() => openPublish()}
-            />
-
-            <nav className="category-dock" aria-label="Categorias">
-              {categories.map(({ name, icon: Icon, tone }) => (
-                <button
-                  className={`cat-${tone} ${selectedCategory === name ? 'active' : ''}`}
-                  type="button"
-                  onClick={() => setSelectedCategory(name)}
-                  key={name}
-                >
-                  <span>
-                    <Icon size={20} />
-                  </span>
-                  <small>{name}</small>
-                </button>
-              ))}
-            </nav>
-            <ScrollCue label="Desliza categorias" />
-
-            <div className="home-section-title">
-              <div>
-                <Flame size={17} />
-                <strong>Ofertas publicadas</strong>
-              </div>
-              <button type="button" onClick={() => setScreen('directory')}>Ver guia</button>
-            </div>
-
-            {heroOffer ? (
-              <HeroDeal
-                offer={heroOffer}
-                onOpen={() => {
-                  setSelectedOffer(heroOffer)
-                  setScreen('detail')
-                }}
-              />
-            ) : offersLoading ? (
-              <section className="empty-state home-empty-real is-loading">
-                <Sparkles size={22} />
-                <strong>Cargando ofertas del barrio</strong>
-                <span>Estamos buscando las promos vigentes de los comercios.</span>
-              </section>
-            ) : (
-              <section className="empty-state home-empty-real">
-                <Sparkles size={22} />
-                <strong>Todavia no hay ofertas activas</strong>
-                <span>Cuando un comercio publique una promo, aparece aca y se baja sola a los 3 o 4 dias.</span>
-                <button type="button" onClick={() => setScreen('directory')}>Ver locales cargados</button>
-              </section>
-            )}
 
             <NeighborhoodLiveMap
               businesses={liveMapBusinesses}
@@ -2121,19 +2064,36 @@ function App() {
               </div>
             </section>
 
-            {(filteredOffers.length > 0 || query.trim()) && (
+            <HomeAccessCard
+              account={account}
+              local={merchantLocal}
+              onLogin={() => setScreen('login')}
+              onRegisterNeighbor={() => {
+                setRegisterType('neighbor')
+                setScreen('register')
+              }}
+              onRegisterMerchant={() => {
+                setRegisterType('merchant')
+                setScreen('register')
+              }}
+              onUpgradeMerchant={() => upgradeAccountToMerchant()}
+              onMerchantPanel={() => setScreen(merchantLocal ? 'my-posts' : 'merchant-start')}
+              onPublish={() => openPublish()}
+            />
+
+            {(homeListOffers.length > 0 || query.trim()) && (
               <>
                 <div className="feed-head">
                   <div>
                     <MapPin size={17} />
-                    <strong>{query.trim() ? `Resultados para "${query.trim()}"` : 'Ofertas activas'}</strong>
+                    <strong>{query.trim() ? `Resultados para "${query.trim()}"` : 'Mas ofertas'}</strong>
                   </div>
-                  <button type="button" onClick={() => setScreen('directory')}>{filteredOffers.length} ahora</button>
+                  <button type="button" onClick={() => setScreen('directory')}>{homeListOffers.length} ahora</button>
                 </div>
 
                 <section className="offer-list">
-                  {filteredOffers.length > 0 ? (
-                filteredOffers.map((offer, index) => (
+                  {homeListOffers.length > 0 ? (
+                homeListOffers.map((offer, index) => (
                   <OfferCard
                     offer={offer}
                     key={offer.id || `${offer.title}-${index}`}
@@ -2244,29 +2204,6 @@ function HomeAccessCard({ account, local, onLogin, onRegisterMerchant, onUpgrade
             Iniciar sesion
           </button>
         )}
-      </div>
-    </section>
-  )
-}
-
-function HeroDeal({ offer, onOpen }) {
-  return (
-    <section className={`hero-deal offer-${offer.tone}`} onClick={onOpen}>
-      <div {...imageSurfaceProps(offer.image, 'hero-deal-image')}></div>
-      <div className="hero-deal-copy">
-        <span>Oferta protagonista</span>
-        <small>{offer.business} - {offer.section}</small>
-        <h2>{offer.title}</h2>
-        <div>
-          <b>{offer.price}</b>
-          <button type="button" onClick={(event) => {
-            event.stopPropagation()
-            onOpen()
-          }}>
-            Ver detalle
-            <ChevronRight size={16} />
-          </button>
-        </div>
       </div>
     </section>
   )

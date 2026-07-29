@@ -1485,6 +1485,8 @@ function App() {
   ), [feedBusinesses])
   const visibleFeedOffers = showOpenNowOnly ? openNowOffers : publicFeedOffers
   const todayHighlights = visibleFeedOffers.slice(0, 3)
+  const todayLeadOffer = todayHighlights[0]
+  const todayPromoLabel = `${visibleFeedOffers.length} ${visibleFeedOffers.length === 1 ? 'promo vigente' : 'promos vigentes'}`
 
   const filteredOffers = useMemo(() => {
     const normalizedQuery = normalizeSearchText(query)
@@ -1906,12 +1908,12 @@ function App() {
               )}
             </div>
 
-            <section className="today-panel" aria-label="Que hay hoy en Liceo">
+            <section className="today-panel today-panel-featured" aria-label="Que hay hoy en Liceo">
               <div className="today-panel-head">
                 <div>
-                  <span>Que hay hoy</span>
-                  <strong>{showOpenNowOnly ? 'Abierto ahora' : 'Promos y locales cerca'}</strong>
-                  <small>{openNowBusinesses.length} abiertos ahora · {visibleFeedOffers.length} promos vigentes</small>
+                  <span>Que hay ahora</span>
+                  <strong>{showOpenNowOnly ? 'Locales abiertos' : 'Promos cerca tuyo'}</strong>
+                  <small>{openNowBusinesses.length} abiertos ahora · {todayPromoLabel}</small>
                 </div>
                 <button
                   className={showOpenNowOnly ? 'active' : ''}
@@ -1924,8 +1926,42 @@ function App() {
               </div>
 
               {todayHighlights.length > 0 ? (
-                <div className="today-offer-strip">
-                  {todayHighlights.map((offer, index) => (
+                <>
+                  <button
+                    className={`today-lead-offer offer-${todayLeadOffer.tone || getOfferTone(todayLeadOffer.category, 0)}`}
+                    type="button"
+                    onClick={() => {
+                      trackInteraction({ type: 'offer_view', businessId: todayLeadOffer.businessId, offerId: todayLeadOffer.id })
+                      setSelectedOffer(todayLeadOffer)
+                      setScreen('detail')
+                    }}
+                  >
+                    <div className="today-lead-badge">
+                      <Flame size={16} />
+                      <span>{getOfferOpenStatus(todayLeadOffer).label}</span>
+                    </div>
+                    <strong>{todayLeadOffer.title}</strong>
+                    <small>{todayLeadOffer.business} · {todayLeadOffer.section}</small>
+                    <div>
+                      <b>{todayLeadOffer.price || 'Consultar'}</b>
+                      <span>Ver detalle <ChevronRight size={15} /></span>
+                    </div>
+                  </button>
+
+                  <div className="today-fast-actions" aria-label="Accesos rapidos">
+                    <button type="button" onClick={() => setScreen('directory')}>
+                      <Store size={16} />
+                      Ver locales
+                    </button>
+                    <button type="button" onClick={() => setScreen('map')}>
+                      <MapPin size={16} />
+                      Mapa
+                    </button>
+                  </div>
+
+                  {todayHighlights.length > 1 && (
+                    <div className="today-offer-strip">
+                      {todayHighlights.slice(1).map((offer, index) => (
                     <button
                       className={`today-offer-card offer-${offer.tone || getOfferTone(offer.category, index)}`}
                       type="button"
@@ -1941,8 +1977,10 @@ function App() {
                       <span>{offer.business} · {offer.section}</span>
                       <b>{offer.price || 'Consultar'}</b>
                     </button>
-                  ))}
-                </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="today-empty">
                   <Sparkles size={20} />

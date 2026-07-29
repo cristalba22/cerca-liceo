@@ -1916,6 +1916,23 @@ function App() {
               )}
             </div>
 
+            <HomeAccessCard
+              account={account}
+              local={merchantLocal}
+              onLogin={() => setScreen('login')}
+              onRegisterNeighbor={() => {
+                setRegisterType('neighbor')
+                setScreen('register')
+              }}
+              onRegisterMerchant={() => {
+                setRegisterType('merchant')
+                setScreen('register')
+              }}
+              onUpgradeMerchant={() => upgradeAccountToMerchant()}
+              onMerchantPanel={() => setScreen(merchantLocal ? 'my-posts' : 'merchant-start')}
+              onPublish={() => openPublish()}
+            />
+
             <section className="today-panel today-panel-featured" aria-label="Que hay hoy en Liceo">
               <div className="today-panel-head">
                 <div>
@@ -2063,23 +2080,6 @@ function App() {
                 )}
               </div>
             </section>
-
-            <HomeAccessCard
-              account={account}
-              local={merchantLocal}
-              onLogin={() => setScreen('login')}
-              onRegisterNeighbor={() => {
-                setRegisterType('neighbor')
-                setScreen('register')
-              }}
-              onRegisterMerchant={() => {
-                setRegisterType('merchant')
-                setScreen('register')
-              }}
-              onUpgradeMerchant={() => upgradeAccountToMerchant()}
-              onMerchantPanel={() => setScreen(merchantLocal ? 'my-posts' : 'merchant-start')}
-              onPublish={() => openPublish()}
-            />
 
             {(homeListOffers.length > 0 || query.trim()) && (
               <>

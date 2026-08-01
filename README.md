@@ -2,7 +2,25 @@
 
 Guia barrial para que vecinos de Liceo encuentren ofertas vigentes, locales, emprendimientos, horarios, ubicacion y contacto directo por WhatsApp.
 
-Sitio en produccion: [cercaliceo.com.ar](https://www.cercaliceo.com.ar/)
+[![Produccion](https://img.shields.io/badge/produccion-cercaliceo.com.ar-9bea16)](https://www.cercaliceo.com.ar/)
+[![Quality](https://github.com/cristalba22/cerca-liceo/actions/workflows/quality.yml/badge.svg)](https://github.com/cristalba22/cerca-liceo/actions/workflows/quality.yml)
+[![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev/)
+[![Supabase](https://img.shields.io/badge/backend-Supabase-3ecf8e)](https://supabase.com/)
+
+## Producto En Uso
+
+La aplicacion esta publicada, usa datos reales y fue pensada mobile first para vecinos y comerciantes con distintos niveles de experiencia digital.
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/home-produccion.png" alt="Inicio de Cerca Liceo" width="250"></td>
+    <td><img src="docs/screenshots/guia-produccion.png" alt="Guia de comercios de Cerca Liceo" width="250"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/acceso-produccion.png" alt="Acceso opcional para vecinos y comercios" width="250"></td>
+    <td><img src="docs/screenshots/registro-produccion.png" alt="Registro de comercio" width="250"></td>
+  </tr>
+</table>
 
 ## Por Que Existe
 
@@ -33,14 +51,14 @@ Cerca Liceo centraliza esa informacion en una experiencia simple:
 - Publicar 1 promo semanal gratis con vencimiento automatico.
 - Republicar promos vencidas.
 - Ver metricas simples: vistas de ficha, vistas de promos y clicks en WhatsApp.
-- Solicitar plan fundador para catalogo, pedidos por WhatsApp y publicaciones extra.
+- Probar Impulso Liceo por 2 meses para catalogo, pedidos por WhatsApp y publicaciones extra.
 
 ### Administrador
 
 - Ver locales registrados y estado de cada ficha.
 - Revisar comercios incompletos.
 - Ocultar locales o publicaciones.
-- Activar plan fundador manualmente.
+- Activar Impulso Liceo manualmente.
 - Recibir alertas por email cuando un comercio actualiza o crea una ficha.
 - Consultar metricas de visitas y actividad.
 
@@ -72,7 +90,7 @@ flowchart LR
 - Use Supabase para avanzar rapido con un backend real, Auth, RLS, Storage y Postgres sin montar un servidor propio desde cero.
 - Modele comercios, ofertas, productos y perfiles como entidades separadas porque el dominio no es un CRUD plano.
 - Las promos tienen fecha de vencimiento: el feed publico filtra lo vigente para que el vecino no vea ofertas viejas.
-- El plan fundador se maneja manualmente porque el proyecto arranca barrial, sin pasarela de pago ni comisiones.
+- Impulso Liceo se activa manualmente durante el lanzamiento porque el proyecto arranca barrial, sin pasarela de pago ni comisiones.
 - Se agrego modo compatible Android para evitar problemas de renderizado en celulares de gama baja o navegadores viejos.
 - El mapa del home se mantiene liviano; el mapa real aparece donde suma valor: al cargar o abrir la ubicacion de un comercio.
 
@@ -83,7 +101,7 @@ flowchart LR
 3. Comerciante completa foto, ubicacion y horarios.
 4. Comerciante publica una promo gratis.
 5. Admin recibe aviso por email y revisa calidad.
-6. Si el comercio pide plan fundador, el admin lo activa manualmente.
+6. Si el comercio pide Impulso Liceo, el admin activa la prueba gratuita por 2 meses.
 
 ## Seguridad Y Privacidad
 
@@ -122,9 +140,20 @@ VITE_SUPABASE_ANON_KEY=TU_ANON_KEY_PUBLICA
 
 ```bash
 npm run lint
+npm test
 npm run build
 npm run preview
 ```
+
+## Calidad Automatizada
+
+GitHub Actions ejecuta en cada push y pull request:
+
+- Lint del frontend.
+- 12 pruebas de reglas de negocio y seguridad.
+- Build de produccion.
+
+Las pruebas cubren formato de WhatsApp argentino, vencimiento y pausa de promociones, horarios cortados y especiales de fin de semana, proteccion de notas administrativas y limite semanal del lado servidor.
 
 ## Produccion
 
@@ -132,7 +161,6 @@ Ver [DEPLOY.md](./DEPLOY.md) y [BACKEND.md](./BACKEND.md).
 
 ## Roadmap Corto
 
-- Sumar tests automatizados para vencimiento de promos, permisos y limites semanales.
 - Separar mejor modulos de UI y logica de negocio.
 - Migrar partes sensibles del core a TypeScript.
 - Mejorar SEO con prerender o migracion gradual a SSR/SSG.

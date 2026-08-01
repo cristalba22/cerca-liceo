@@ -1,5 +1,4 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react'
-import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
   ArrowLeft,
@@ -195,6 +194,7 @@ function RealLocationPicker({ location = {}, onPick, mapUrl }) {
   const mapRef = useRef(null)
   const markerRef = useRef(null)
   const onPickRef = useRef(onPick)
+  const [mapReady, setMapReady] = useState(false)
   const selectedLat = hasBusinessPin(location) ? Number(location.locationLat ?? location.location_lat) : null
   const selectedLng = hasBusinessPin(location) ? Number(location.locationLng ?? location.location_lng) : null
   const initialMapStateRef = useRef({
@@ -210,30 +210,40 @@ function RealLocationPicker({ location = {}, onPick, mapUrl }) {
 
   useEffect(() => {
     if (!mapNodeRef.current || mapRef.current) return undefined
-    const initialCenter = initialMapStateRef.current.center
-    const map = L.map(mapNodeRef.current, {
-      attributionControl: false,
-      zoomControl: true,
-      scrollWheelZoom: false,
-      tap: true,
-    }).setView([initialCenter.lat, initialCenter.lng], initialMapStateRef.current.zoom)
+    let cancelled = false
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      crossOrigin: true,
-    }).addTo(map)
+    const initializeMap = async () => {
+      const { default: L } = await import('leaflet')
+      if (cancelled || !mapNodeRef.current || mapRef.current) return
+      const initialCenter = initialMapStateRef.current.center
+      const map = L.map(mapNodeRef.current, {
+        attributionControl: false,
+        zoomControl: true,
+        scrollWheelZoom: false,
+        tap: true,
+      }).setView([initialCenter.lat, initialCenter.lng], initialMapStateRef.current.zoom)
 
-    map.on('click', (event) => {
-      const lat = Number(event.latlng.lat.toFixed(6))
-      const lng = Number(event.latlng.lng.toFixed(6))
-      onPickRef.current?.({ lat, lng })
-    })
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        crossOrigin: true,
+      }).addTo(map)
 
-    mapRef.current = map
-    window.setTimeout(() => map.invalidateSize(), 160)
+      map.on('click', (event) => {
+        const lat = Number(event.latlng.lat.toFixed(6))
+        const lng = Number(event.latlng.lng.toFixed(6))
+        onPickRef.current?.({ lat, lng })
+      })
+
+      mapRef.current = map
+      setMapReady(true)
+      window.setTimeout(() => map.invalidateSize(), 160)
+    }
+
+    initializeMap().catch(() => setMapReady(false))
 
     return () => {
-      map.remove()
+      cancelled = true
+      mapRef.current?.remove()
       mapRef.current = null
       markerRef.current = null
     }
@@ -264,7 +274,7 @@ function RealLocationPicker({ location = {}, onPick, mapUrl }) {
       markerRef.current.setLatLng(latLng)
     }
     map.setView(latLng, Math.max(map.getZoom(), 17), { animate: true })
-  }, [selectedLat, selectedLng])
+  }, [mapReady, selectedLat, selectedLng])
 
   return (
     <div className="real-map-picker">
@@ -377,7 +387,8 @@ const formatSchedule = (schedule = {}) => {
 
 const cleanPhoneDigits = (phone = '') => String(phone).replace(/\D/g, '')
 
-const normalizeArgentineWhatsapp = (phone = '') => {
+// oxlint-disable-next-line react/only-export-components -- Exported for contract tests.
+export const normalizeArgentineWhatsapp = (phone = '') => {
   const digits = cleanPhoneDigits(phone)
   if (!digits) return ''
   if (digits.startsWith('549') && digits.length === 13) return digits.slice(3)
@@ -386,7 +397,8 @@ const normalizeArgentineWhatsapp = (phone = '') => {
   return digits
 }
 
-const isValidArgentineWhatsapp = (phone = '') => {
+// oxlint-disable-next-line react/only-export-components -- Exported for contract tests.
+export const isValidArgentineWhatsapp = (phone = '') => {
   const local = normalizeArgentineWhatsapp(phone)
   return local.length === 10
 }
@@ -499,18 +511,21 @@ const isFounderExpiringSoon = (business = {}) => {
   return isFounderPlanActive(business) && days !== null && days <= 5
 }
 
-const isOfferExpired = (offer = {}) => {
+// oxlint-disable-next-line react/only-export-components -- Exported for contract tests.
+export const isOfferExpired = (offer = {}) => {
   const days = getDaysLeft(offer.expiresAt)
   return days !== null && days <= 0
 }
 
-const isOfferPaused = (offer = {}) => (
+// oxlint-disable-next-line react/only-export-components -- Exported for contract tests.
+export const isOfferPaused = (offer = {}) => (
   offer.paused === true
   || offer.isActive === false
   || offer.active === false
 )
 
-const isOfferActiveNow = (offer = {}) => !isOfferExpired(offer) && !isOfferPaused(offer)
+// oxlint-disable-next-line react/only-export-components -- Exported for contract tests.
+export const isOfferActiveNow = (offer = {}) => !isOfferExpired(offer) && !isOfferPaused(offer)
 
 const getOfferDaysLeft = (offer = {}) => getDaysLeft(offer.expiresAt)
 
@@ -543,7 +558,8 @@ const buildCercaWhatsAppMessage = ({ business, offer, orderLines = '', total = '
   return parts.join('\n')
 }
 
-const getOpenStatus = (business = {}) => {
+// oxlint-disable-next-line react/only-export-components -- Exported for contract tests.
+export const getOpenStatus = (business = {}) => {
   const safeBusiness = business || {}
   const days = safeBusiness.openDays || safeBusiness.open_days || []
   const openTime = safeBusiness.openTime || safeBusiness.open_time

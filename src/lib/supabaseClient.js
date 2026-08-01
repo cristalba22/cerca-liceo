@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-export const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin
+export const siteUrl = import.meta.env.VITE_SITE_URL
+  || (typeof window !== 'undefined' ? window.location.origin : 'https://www.cercaliceo.com.ar')
 
 export const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey)
 

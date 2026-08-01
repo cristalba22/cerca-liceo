@@ -1518,7 +1518,7 @@ export const cercaApi = {
           new Date(offer.createdAt || Date.now()).getTime() >= weekStart
         ))
         if (weeklyOffers.length >= 1) {
-          return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi el plan fundador.') }
+          return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi Impulso Liceo gratis por 2 meses.') }
         }
       }
       const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString()
@@ -1559,7 +1559,7 @@ export const cercaApi = {
     if (!founderActive) {
       const rpcCheck = await supabase.rpc('can_create_weekly_free_offer', { target_business_id: business.id })
       if (!rpcCheck.error && rpcCheck.data === false) {
-        return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi el plan fundador.') }
+        return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi Impulso Liceo gratis por 2 meses.') }
       }
       if (rpcCheck.error) {
         const weekStart = new Date(Date.now() - 7 * 86400000).toISOString()
@@ -1569,7 +1569,7 @@ export const cercaApi = {
           .eq('business_id', business.id)
           .gte('created_at', weekStart)
         if (!countError && count >= 1) {
-          return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi el plan fundador.') }
+          return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi Impulso Liceo gratis por 2 meses.') }
         }
       }
     }

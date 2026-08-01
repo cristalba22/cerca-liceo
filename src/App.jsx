@@ -475,7 +475,9 @@ const isFounderPlanExpired = (business = {}) => {
   return !Number.isNaN(paidUntil.getTime()) && paidUntil.getTime() < Date.now()
 }
 
-const getFounderPaidUntil = (days = 30) => {
+const IMPULSO_TRIAL_DAYS = 60
+
+const getFounderPaidUntil = (days = IMPULSO_TRIAL_DAYS) => {
   const date = new Date()
   date.setDate(date.getDate() + days)
   return date.toISOString().slice(0, 10)
@@ -1693,13 +1695,13 @@ function App() {
               business,
               isFounderPlanActive(business)
                 ? { plan: 'gratis', planStatus: 'free', paidUntil: '' }
-                : { plan: 'pedidos', planStatus: 'active', paidUntil: getFounderPaidUntil(30) },
-              isFounderPlanActive(business) ? 'Plan fundador desactivado.' : 'Plan fundador activado por 30 dias.',
+                : { plan: 'pedidos', planStatus: 'active', paidUntil: getFounderPaidUntil() },
+              isFounderPlanActive(business) ? 'Impulso Liceo desactivado.' : 'Impulso Liceo activado gratis por 2 meses.',
             )}
             onRenewFounder={(business) => updateAdminBusiness(
               business,
-              { plan: 'pedidos', planStatus: 'active', paidUntil: getFounderPaidUntil(30) },
-              'Plan fundador renovado por 30 dias.',
+              { plan: 'pedidos', planStatus: 'active', paidUntil: getFounderPaidUntil() },
+              'Impulso Liceo renovado gratis por 2 meses.',
             )}
             onSaveNote={(business, adminNotes) => updateAdminBusiness(
               business,
@@ -2492,7 +2494,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onHome, 
   const canUseExtraPost = isEditingOffer || !freePostUsed || founderActive
   const founderPlanUrl = makeWhatsAppUrl(
     '3517662142',
-    `Hola Cristian, quiero pedir el plan fundador Liceo para ${local?.name || account?.businessName || 'mi comercio'}. Necesito catalogo, 4 publicaciones extra al mes y pedidos por WhatsApp.`,
+    `Hola Cristian, quiero activar Impulso Liceo gratis por 2 meses para ${local?.name || account?.businessName || 'mi comercio'}. Entiendo que se baja solo y no se cobra nada si no decido seguir.`,
   )
   const [publishStatus, setPublishStatus] = useState('')
   const publishMissing = [
@@ -2554,7 +2556,7 @@ function PublishScreen({ account, local, template, offers = [], onBack, onHome, 
       <HomeReturnStrip onHome={onHome} />
 
       <section className={`publish-hero publish-hero-simple ${founderActive ? 'founder' : ''}`}>
-        <span>{isEditingOffer ? 'Editar promo' : founderActive ? 'Fundador activo' : canPublish ? 'Promo gratis' : 'Falta local'}</span>
+        <span>{isEditingOffer ? 'Editar promo' : founderActive ? 'Impulso activo' : canPublish ? 'Promo gratis' : 'Falta local'}</span>
         <h1>{isEditingOffer ? 'Edita la promo.' : 'Nueva promo.'}</h1>
         <p>{canPublish ? 'Subi una foto, escribi que ofreces y publicala. Corta, clara y por WhatsApp.' : 'Primero completa tu ficha gratis para aparecer en la guia.'}</p>
       </section>
@@ -2571,14 +2573,14 @@ function PublishScreen({ account, local, template, offers = [], onBack, onHome, 
       </section>
 
       {founderActive && (
-        <section className="publish-quota publish-quota-simple founder-publish-quota" aria-label="Cupo de publicaciones fundador">
+        <section className="publish-quota publish-quota-simple founder-publish-quota" aria-label="Cupo de publicaciones Impulso Liceo">
           <article className={freePostUsed ? '' : 'is-free'}>
             <span>Gratis semanal</span>
             <strong>{freePostUsed ? 'Usada' : 'Disponible'}</strong>
             <small>{freePostUsed ? 'Esta promo sale extra.' : 'Usala primero.'}</small>
           </article>
           <article className={isFounderExtraPost ? 'is-free' : ''}>
-            <span>Extras fundador</span>
+            <span>Extras Impulso</span>
             <strong>{founderExtraLeft}/{founderExtraLimit}</strong>
             <small>Mes actual.</small>
           </article>
@@ -2706,16 +2708,16 @@ function PublishScreen({ account, local, template, offers = [], onBack, onHome, 
           ? (freePostUsed && !founderActive ? () => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer') : publishPreparedOffer)
           : onMerchantPanel}
       >
-        {canPublish ? (canSendOffer ? (isEditingOffer ? 'Guardar promo' : freePostUsed ? 'Publicar extra' : 'Publicar promo gratis') : freePostUsed && !founderActive && !isEditingOffer ? 'Pedir plan fundador' : `Falta ${publishMissing[0]}`) : 'Completar local primero'}
+        {canPublish ? (canSendOffer ? (isEditingOffer ? 'Guardar promo' : freePostUsed ? 'Publicar extra' : 'Publicar promo gratis') : freePostUsed && !founderActive && !isEditingOffer ? 'Probar Impulso gratis' : `Falta ${publishMissing[0]}`) : 'Completar local primero'}
       </button>
 
       <section className="publish-rules-card">
         <span>Como funciona</span>
         <strong>Tenes 1 publicacion gratis por semana.</strong>
-        <p>Dura 3 o 4 dias y se baja sola. Si queres publicar mas veces en el mes, el plan fundador suma 4 publicaciones extra, catalogo y pedidos por WhatsApp.</p>
+        <p>Dura 3 o 4 dias y se baja sola. Si queres probar mas herramientas, Impulso Liceo suma 4 promos extra, catalogo y pedidos por WhatsApp gratis por 2 meses.</p>
         {!founderActive && (
           <button type="button" onClick={() => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer')}>
-            Consultar plan fundador
+            Probar Impulso gratis
           </button>
         )}
       </section>
@@ -3237,14 +3239,14 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       id: 'menu',
       done: founderActive,
       title: 'Catalogo opcional',
-      meta: founderActive ? 'Plan fundador activo' : founderRequested ? 'Solicitud pendiente' : 'Extra del fundador',
+      meta: founderActive ? 'Impulso activo' : founderRequested ? 'Solicitud pendiente' : 'Impulso gratis',
       optional: true,
     },
     {
       id: 'plan',
       done: Boolean(localDraft.plan),
-      title: 'Plan fundador opcional',
-      meta: founderActive ? 'Fundador activo' : founderRequested ? 'Fundador pendiente' : 'Ficha gratis',
+      title: 'Impulso opcional',
+      meta: founderActive ? 'Impulso activo' : founderRequested ? 'Impulso pendiente' : 'Ficha gratis',
       optional: true,
     },
   ]
@@ -3287,7 +3289,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
     : 'Alta pendiente'
   const founderPlanUrl = makeWhatsAppUrl(
     '3517662142',
-    `Hola Cristian, quiero activar el plan fundador Liceo para ${localDraft.name || account?.businessName || 'mi comercio'}. Me interesa catalogo, 4 publicaciones extra al mes y pedidos por WhatsApp.`
+    `Hola Cristian, quiero activar Impulso Liceo gratis por 2 meses para ${localDraft.name || account?.businessName || 'mi comercio'}. Entiendo que se baja solo y no se cobra nada si no decido seguir.`
   )
   const menuSlots = ensureMenuSlots(localDraft.menu)
   const filledMenuItems = menuSlots
@@ -3388,7 +3390,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         menu: ensureMenuSlots(localDraft.menu),
       }
       setLocalDraft(nextDraft)
-      setSaveStatus('Guardando solicitud de plan fundador...')
+      setSaveStatus('Guardando solicitud de Impulso Liceo...')
       const result = await onSaveLocal({
         ...nextDraft,
         name: nextDraft.name || 'Nombre del comercio',
@@ -3397,7 +3399,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       })
       setSaveStatus(result?.ok === false
         ? (result.error?.message || 'No se pudo guardar la solicitud.')
-        : 'Solicitud guardada. Cristian la activa cuando coordinen el pago por fuera.')
+        : 'Solicitud enviada. Cristian activa Impulso gratis por 2 meses. No se cobra nada.')
       window.open(founderPlanUrl, '_blank', 'noopener,noreferrer')
     }
 
@@ -3415,7 +3417,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <span>{publicStateLabel}</span>
           <h1>{localDraft.name || 'Tu comercio'}</h1>
           <p>
-            Carga lo basico para aparecer gratis en la guia. El plan fundador se activa solo si lo pedis y el admin lo habilita.
+            Carga lo basico para aparecer gratis en la guia. Impulso Liceo suma extras gratis por 2 meses y se baja solo.
           </p>
         </section>
 
@@ -3471,7 +3473,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <button className={`safe-action-menu ${openPanel === 'menu' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(founderActive ? (openPanel === 'menu' ? '' : 'menu') : (openPanel === 'plan' ? '' : 'plan'))}>
             <List size={20} />
             <span>
-              <strong>{founderActive ? 'Catalogo' : 'Plan fundador'}</strong>
+              <strong>{founderActive ? 'Catalogo' : 'Impulso Liceo'}</strong>
               <small>Opcional</small>
             </span>
           </button>
@@ -3679,15 +3681,15 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         <section className="android-safe-card android-safe-plan-card">
           <span>Plan gratis</span>
           <h2>Ficha + 1 promo semanal.</h2>
-          <p>La publicacion gratis dura 3 dias y se vence sola. No necesitas el plan fundador para aparecer en la guia.</p>
+          <p>La publicacion gratis dura 3 dias y se vence sola. No necesitas Impulso para aparecer en la guia.</p>
         </section>
 
         <section className="android-safe-card android-safe-plan-card">
-          <span>Plan fundador</span>
+          <span>Impulso Liceo</span>
           <h2>Catalogo + pedidos.</h2>
-          <p>Extra opcional: catalogo de productos o servicios, 4 publicaciones extra por mes y consulta armada para enviar por WhatsApp. Precio fundador Liceo: $8.000.</p>
+          <p>Gratis por 2 meses: catalogo, pedidos por WhatsApp y 4 publicaciones extra. Se baja solo y no se cobra nada si no queres seguir.</p>
           <button type="button" onClick={requestFounderPlan}>
-            {founderRequested || founderActive ? 'Consultar por WhatsApp' : 'Quiero plan fundador'}
+            {founderRequested || founderActive ? 'Consultar por WhatsApp' : 'Probar gratis 2 meses'}
           </button>
         </section>
         </>
@@ -3696,7 +3698,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
         {openPanel === 'menu' && founderActive ? (
           <section className="android-safe-form android-safe-menu-form">
             <div className="android-safe-field-title">
-              <span>Plan fundador activo</span>
+              <span>Impulso activo</span>
               <strong>Catalogo del comercio</strong>
             </div>
             <div className="android-safe-menu-summary">
@@ -3749,7 +3751,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           <section className="android-safe-card android-safe-plan-card">
             <span>{founderRequested ? 'Solicitud pendiente' : 'Catalogo bloqueado'}</span>
             <h2>{founderRequested ? 'Cristian debe activar el plan.' : 'Primero va la ficha gratis.'}</h2>
-            <p>{founderRequested ? 'Cuando el admin active fundador, aca vas a poder cargar catalogo y pedidos.' : 'El catalogo, pedidos y 4 extras del mes se habilitan solo con plan fundador activo.'}</p>
+            <p>{founderRequested ? 'Cuando Cristian active Impulso, aca vas a poder cargar catalogo y pedidos.' : 'El catalogo, pedidos y 4 extras se habilitan con Impulso Liceo.'}</p>
           </section>
         ) : null}
 
@@ -3901,23 +3903,23 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
       )}
 
       {showFounderTrial && (
-        <section className={`founder-trial-card ${founderRequested ? 'is-requested' : ''}`} aria-label="Probar plan fundador gratis">
+        <section className={`founder-trial-card ${founderRequested ? 'is-requested' : ''}`} aria-label="Probar Impulso Liceo gratis">
           <div>
-            <span>{founderRequested ? 'Solicitud enviada' : 'Primeros 30 comercios'}</span>
-            <strong>{founderRequested ? 'Fundador pendiente.' : 'Proba Fundador gratis x 2 meses.'}</strong>
-            <p>{founderRequested ? 'Cristian te contacta para activarlo. No tenes que pagar nada ahora.' : 'Mini carta, pedidos por WhatsApp y 4 promos extra. Sin costo, sin tarjeta y sin compromiso.'}</p>
+            <span>{founderRequested ? 'Solicitud enviada' : 'Gratis 2 meses'}</span>
+            <strong>{founderRequested ? 'Impulso pendiente.' : 'Proba Impulso Liceo.'}</strong>
+            <p>{founderRequested ? 'Cristian lo activa y despues se baja solo. No se cobra nada.' : 'Catalogo, pedidos por WhatsApp y 4 promos extra. Se baja solo: no se cobra nada si no decidis seguir.'}</p>
           </div>
           {!founderRequested && (
             <div className="founder-trial-chips" aria-label="Incluye">
-              <b>Mini carta</b>
-              <b>Pedidos WhatsApp</b>
-              <b>4 promos extra</b>
+              <b>Sin tarjeta</b>
+              <b>Se baja solo</b>
+              <b>Sin cobro automatico</b>
             </div>
           )}
           <button type="button" onClick={() => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer')}>
-            {founderRequested ? 'Escribir a Cristian' : 'Quiero probar gratis'}
+            {founderRequested ? 'Escribir a Cristian' : 'Activar gratis 2 meses'}
           </button>
-          {!founderRequested && <small>Despues de 2 meses vuelve a plan gratis si no queres seguir.</small>}
+          {!founderRequested && <small>Cuando termina, vuelve a ficha gratis. Cristian te consulta si queres seguir.</small>}
         </section>
       )}
 
@@ -3958,7 +3960,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
           {isFounderExpiringSoon(localDraft) && (
             <article>
               <Timer size={17} />
-              <span>Fundador vence en {Math.max(founderDaysLeft, 0)} dias. Escribile a Cristian para renovarlo.</span>
+              <span>Impulso vence en {Math.max(founderDaysLeft, 0)} dias. Si no queres seguir, vuelve solo a ficha gratis.</span>
             </article>
           )}
           {expiringLocalOffers.length > 0 && (
@@ -4307,17 +4309,17 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {!fichaFirstMode && panelButton('menu', 'Catalogo', 'Productos o servicios', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} items` : founderRequested ? 'Pendiente' : 'Fundador', ShoppingBasket)}
+          {!fichaFirstMode && panelButton('menu', 'Catalogo', 'Productos o servicios', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} items` : founderRequested ? 'Pendiente' : 'Impulso', ShoppingBasket)}
           {!fichaFirstMode && openPanel === 'menu' && (
             <div className="merchant-panel-body">
               {!founderActive ? (
                 <section className="paid-feature-preview locked-feature">
                   <div>
-                    <span>{founderRequested ? 'Solicitud pendiente' : 'Plan fundador'}</span>
+                    <span>{founderRequested ? 'Solicitud pendiente' : 'Impulso Liceo'}</span>
                     <h3>El catalogo se activa cuando el admin habilita el plan.</h3>
                     <p>
                       Tu ficha gratis puede aparecer igual con foto, WhatsApp, horario y 1 promo semanal.
-                      El catalogo, pedidos por WhatsApp y 4 publicaciones extra quedan reservados para el plan fundador.
+                      El catalogo, pedidos por WhatsApp y 4 publicaciones extra se prueban gratis 2 meses con Impulso.
                     </p>
                   </div>
                   <ul>
@@ -4326,7 +4328,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                     <li><Check size={14} /> 4 publicaciones extra por mes</li>
                   </ul>
                   <button type="button" onClick={() => setOpenPanel('plan')}>
-                    {founderRequested ? 'Ver solicitud' : 'Pedir plan fundador'}
+                    {founderRequested ? 'Ver solicitud' : 'Probar Impulso gratis'}
                   </button>
                 </section>
               ) : (
@@ -4406,7 +4408,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
             </div>
           )}
 
-          {!fichaFirstMode && panelButton('plan', 'Plan', 'Gratis o fundador', founderActive ? 'Activo' : founderRequested ? 'Pendiente' : 'Gratis', ShoppingBasket)}
+          {!fichaFirstMode && panelButton('plan', 'Impulso', 'Gratis 2 meses', founderActive ? 'Activo' : founderRequested ? 'Pendiente' : 'Disponible', ShoppingBasket)}
           {!fichaFirstMode && openPanel === 'plan' && (
             <div className="merchant-panel-body">
               <section className="local-plan-selector" aria-label="Plan del comercio">
@@ -4433,16 +4435,16 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                     }
                   }}
                 >
-                  <span>{founderActive ? 'Activo por admin' : founderRequested ? 'Pendiente de admin' : 'Pago opcional'}</span>
-                  <strong>Plan fundador Liceo</strong>
-                  <small>Catalogo, 4 publicaciones extra al mes y pedido armado para mandar por WhatsApp.</small>
-                  <b>$8.000 fundador Liceo</b>
+                  <span>{founderActive ? 'Activo por admin' : founderRequested ? 'Pendiente de admin' : 'Prueba gratis'}</span>
+                  <strong>Impulso Liceo</strong>
+                  <small>Catalogo, 4 publicaciones extra al mes y pedido armado por WhatsApp. Gratis 2 meses.</small>
+                  <b>Sin cobro automatico</b>
                 </button>
               </section>
 
               <section className={`paid-feature-preview ${founderActive ? 'is-active' : ''}`}>
                 <div>
-                  <span>{founderActive ? 'Activo en plan fundador' : founderRequested ? 'Solicitud pendiente' : 'Disponible al pedir plan'}</span>
+                  <span>{founderActive ? 'Impulso activo' : founderRequested ? 'Solicitud pendiente' : 'Disponible gratis'}</span>
                   <h3>Catalogo y pedido por WhatsApp</h3>
                   <p>{founderActive ? 'El vecino elige productos o servicios, suma la consulta y la manda lista al comercio.' : founderRequested ? 'Tu solicitud queda pendiente hasta que Cristian active el plan desde administracion.' : 'En el plan gratis la ficha aparece igual, con 1 publicacion semanal que dura 3 dias.'}</p>
                 </div>
@@ -4465,7 +4467,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   }}
                 >
                   <MessageCircle size={16} />
-                  {founderRequested ? 'Avisar por WhatsApp' : founderActive ? 'Consultar plan' : 'Quiero plan fundador'}
+                  {founderRequested ? 'Avisar por WhatsApp' : founderActive ? 'Consultar Impulso' : 'Probar gratis 2 meses'}
                 </a>
                 {founderRequested && !founderActive && (
                   <button className="founder-plan-cta secondary" type="button" onClick={saveLocal}>
@@ -4482,10 +4484,10 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                   <b>Siempre $0</b>
                 </article>
                 <article className={founderActive || founderRequested ? 'active paid' : 'paid'}>
-                  <span>Plan fundador Liceo</span>
+                  <span>Impulso Liceo</span>
                   <strong>Catalogo + pedidos + extras</strong>
-                  <p>Incluye catalogo, 4 publicaciones extra al mes y pedido armado que llega directo por WhatsApp.</p>
-                  <b>$8.000 / mes</b>
+                  <p>Gratis por 2 meses. Incluye catalogo, 4 publicaciones extra al mes y pedido armado por WhatsApp.</p>
+                  <b>Vuelve solo a ficha gratis</b>
                 </article>
               </section>
             </div>
@@ -4539,7 +4541,7 @@ function MyPostsScreen({ account, local, offers = [], metrics = {}, onSaveLocal,
                     ) : (
                       <div className="public-menu-locked">
                         <ShieldCheck size={14} />
-                        <span>Catalogo y pedidos se muestran cuando el admin activa el plan fundador.</span>
+                        <span>Catalogo y pedidos se muestran cuando el admin activa Impulso Liceo.</span>
                       </div>
                     )}
                   </div>
@@ -4805,17 +4807,17 @@ function AdminScreen({
   const getStatusLabel = (business) => {
     if (business.isPublic === false) return 'Oculto'
     if (getBusinessQuality(business).length) return 'Revisar'
-    if (isFounderPlanActive(business)) return 'Fundador activo'
-    if (isFounderPlanExpired(business)) return 'Fundador vencido'
-    if (isFounderPlanRequested(business)) return 'Fundador pendiente'
+    if (isFounderPlanActive(business)) return 'Impulso activo'
+    if (isFounderPlanExpired(business)) return 'Impulso vencido'
+    if (isFounderPlanRequested(business)) return 'Impulso pendiente'
     return 'Publicado'
   }
 
   const getPlanActionLabel = (business) => {
-    if (isFounderPlanActive(business)) return 'Quitar fundador'
-    if (isFounderPlanExpired(business)) return 'Renovar fundador'
-    if (isFounderPlanRequested(business)) return 'Activar fundador'
-    return 'Activar fundador'
+    if (isFounderPlanActive(business)) return 'Quitar Impulso'
+    if (isFounderPlanExpired(business)) return 'Renovar Impulso'
+    if (isFounderPlanRequested(business)) return 'Activar Impulso'
+    return 'Activar Impulso'
   }
 
   const saveNote = (business) => {
@@ -4857,7 +4859,7 @@ function AdminScreen({
     { label: '3 promos vigentes', ok: activeOffers.length >= 3, value: `${activeOffers.length}/3` },
     { label: 'Fotos reconocibles', ok: withoutPhoto.length === 0 || visibleBusinesses.length - withoutPhoto.length >= 5, value: `${Math.max(visibleBusinesses.length - withoutPhoto.length, 0)}` },
     { label: 'WhatsApp cargado', ok: withoutWhatsapp.length === 0, value: withoutWhatsapp.length ? `${withoutWhatsapp.length} faltan` : 'ok' },
-    { label: 'Fundador controlado', ok: pendingOrders.length === 0, value: pendingOrders.length ? `${pendingOrders.length} pendientes` : 'ok' },
+    { label: 'Impulso controlado', ok: pendingOrders.length === 0, value: pendingOrders.length ? `${pendingOrders.length} pendientes` : 'ok' },
   ]
 
   return (
@@ -4873,7 +4875,7 @@ function AdminScreen({
       <section className="admin-hero">
         <span>Control interno</span>
         <h1>Operacion clara para Cerca Liceo.</h1>
-        <p>Revisa altas, activa fundador solo cuando lo coordinaste, controla promos y limpia datos raros sin entrar a la base.</p>
+        <p>Revisa altas, activa Impulso gratis por 2 meses, controla promos y limpia datos raros sin entrar a la base.</p>
       </section>
 
       <section className="admin-stats">
@@ -4895,7 +4897,7 @@ function AdminScreen({
         </article>
         <article className={pendingOrders.length ? 'needs' : ''}>
           <strong>{pendingOrders.length}</strong>
-          <span>fundador pendiente</span>
+          <span>Impulso pendiente</span>
         </article>
         <article>
           <strong>{activeOffers.length}</strong>
@@ -4907,7 +4909,7 @@ function AdminScreen({
         </article>
         <article className={founderExpiringSoon.length ? 'needs' : ''}>
           <strong>{founderExpiringSoon.length}</strong>
-          <span>fundador por vencer</span>
+          <span>Impulso por vencer</span>
         </article>
         <article>
           <strong>{adminMetrics?.pageViews || 0}</strong>
@@ -4933,7 +4935,7 @@ function AdminScreen({
       <section className="admin-tabs" aria-label="Vistas de administracion">
         {[
           ['pendientes', `Pendientes ${needsReview.length}`],
-          ['planes', `Fundador ${pendingOrders.length}`],
+          ['planes', `Impulso ${pendingOrders.length}`],
           ['por-vencer', `Por vencer ${founderExpiringSoon.length}`],
           ['sin-foto', `Sin foto ${withoutPhoto.length}`],
           ['sin-whatsapp', `Sin WhatsApp ${withoutWhatsapp.length}`],
@@ -4962,8 +4964,8 @@ function AdminScreen({
         </article>
         <article>
           <span>Planes</span>
-          <strong>Planes manuales</strong>
-          <p>{pendingOrders.length ? `${pendingOrders.length} comercio(s) pidieron fundador y esperan tu activacion.` : 'No hay solicitudes de fundador pendientes.'}</p>
+          <strong>Impulso manual</strong>
+          <p>{pendingOrders.length ? `${pendingOrders.length} comercio(s) pidieron Impulso y esperan tu activacion.` : 'No hay solicitudes de Impulso pendientes.'}</p>
         </article>
       </section>
 
@@ -4972,7 +4974,7 @@ function AdminScreen({
           <BadgeCheck size={18} />
           <strong>Regla de calidad</strong>
         </div>
-        <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, horario claro y promos vigentes. El catalogo solo cuenta si tienen fundador activo.</p>
+        <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, horario claro y promos vigentes. El catalogo solo cuenta si tienen Impulso activo.</p>
       </section>
 
       {!offerViews.includes(adminView) && (
@@ -4980,14 +4982,14 @@ function AdminScreen({
         <div className="feed-head compact">
           <div>
             <Store size={17} />
-            <strong>{adminView === 'planes' ? 'Solicitudes y planes' : adminView === 'por-vencer' ? 'Fundador por vencer' : adminView === 'sin-foto' ? 'Locales sin foto real' : adminView === 'sin-whatsapp' ? 'Locales sin WhatsApp' : adminView === 'nuevos' ? 'Nuevos esta semana' : adminView === 'locales' ? 'Todos los locales' : 'Locales para revisar'}</strong>
+            <strong>{adminView === 'planes' ? 'Solicitudes Impulso' : adminView === 'por-vencer' ? 'Impulso por vencer' : adminView === 'sin-foto' ? 'Locales sin foto real' : adminView === 'sin-whatsapp' ? 'Locales sin WhatsApp' : adminView === 'nuevos' ? 'Nuevos esta semana' : adminView === 'locales' ? 'Todos los locales' : 'Locales para revisar'}</strong>
           </div>
           <span>{visibleAdminBusinesses.length ? `${visibleAdminBusinesses.length} items` : 'Todo bien'}</span>
         </div>
         {visibleAdminBusinesses.length === 0 && (
           <article className="admin-empty-state">
             <strong>No hay nada urgente aca.</strong>
-            <p>Cuando un comercio quede incompleto, pida fundador o se cargue algo nuevo, va a aparecer en esta vista.</p>
+            <p>Cuando un comercio quede incompleto, pida Impulso o se cargue algo nuevo, va a aparecer en esta vista.</p>
           </article>
         )}
         {visibleAdminBusinesses.slice(0, 40).map((business) => {
@@ -5017,7 +5019,7 @@ function AdminScreen({
               </div>
             )}
             <div className="admin-plan-line">
-              <span>{isFounderPlanActive(business) ? 'Plan fundador activo' : isFounderPlanExpired(business) ? 'Plan fundador vencido' : isFounderPlanRequested(business) ? 'Pidio plan fundador' : 'Ficha gratis'}</span>
+              <span>{isFounderPlanActive(business) ? 'Impulso activo' : isFounderPlanExpired(business) ? 'Impulso vencido' : isFounderPlanRequested(business) ? 'Pidio Impulso' : 'Ficha gratis'}</span>
               <span>{business.planStatus === 'active' ? (isFounderPlanExpired(business) ? 'Vencido' : 'Activo por admin') : business.planStatus === 'manual_pending' ? 'Pendiente de activar' : 'Gratis'}</span>
               {business.paidUntil && <span>Vence {new Date(`${business.paidUntil}T00:00:00`).toLocaleDateString('es-AR')}</span>}
               <span>{business.open ? 'Abierto segun ficha' : 'Marcado cerrado'}</span>
@@ -5034,7 +5036,7 @@ function AdminScreen({
               <button type="button" onClick={() => onTogglePublic(business)}>{business.isPublic === false ? 'Mostrar' : 'Ocultar'}</button>
               <button type="button" onClick={() => onActivateOrders(business)}>{getPlanActionLabel(business)}</button>
               {(isFounderPlanActive(business) || isFounderPlanExpired(business)) && (
-                <button type="button" onClick={() => onRenewFounder(business)}>Renovar 30 dias</button>
+                <button type="button" onClick={() => onRenewFounder(business)}>Renovar 2 meses</button>
               )}
               <button className="danger" type="button" onClick={() => onDeleteBusiness(business)}>Eliminar local</button>
             </div>
@@ -5506,7 +5508,7 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
   const showProfileFounderTrial = isMerchant && local && !founderActive
   const profileFounderUrl = makeWhatsAppUrl(
     '3517662142',
-    `Hola Cristian, quiero probar gratis el plan fundador por 2 meses para ${local?.name || account?.businessName || 'mi comercio'}.`
+    `Hola Cristian, quiero activar Impulso Liceo gratis por 2 meses para ${local?.name || account?.businessName || 'mi comercio'}. Entiendo que se baja solo y no se cobra nada si no decido seguir.`
   )
 
   if (isAndroidCompatMode()) {
@@ -5609,8 +5611,8 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
             {showProfileFounderTrial && (
               <section className="android-safe-card android-founder-teaser">
                 <span>{founderRequested ? 'Solicitud enviada' : 'Gratis 2 meses'}</span>
-                <h2>{founderRequested ? 'Fundador pendiente.' : 'Proba plan fundador.'}</h2>
-                <p>{founderRequested ? 'Cristian te contacta para activarlo.' : 'Mini carta, pedidos por WhatsApp y 4 promos extra para probar sin pagar.'}</p>
+                <h2>{founderRequested ? 'Impulso pendiente.' : 'Proba Impulso Liceo.'}</h2>
+                <p>{founderRequested ? 'Cristian te contacta para activarlo.' : 'Catalogo, pedidos por WhatsApp y 4 promos extra. Gratis por 2 meses y se baja solo.'}</p>
                 <button type="button" onClick={() => window.open(profileFounderUrl, '_blank', 'noopener,noreferrer')}>
                   {founderRequested ? 'Escribir a Cristian' : 'Quiero probar gratis'}
                 </button>
@@ -5742,11 +5744,11 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
       )}
 
       {showProfileFounderTrial && (
-        <section className={`profile-founder-teaser ${founderRequested ? 'is-requested' : ''}`} aria-label="Probar plan fundador gratis">
+        <section className={`profile-founder-teaser ${founderRequested ? 'is-requested' : ''}`} aria-label="Probar Impulso Liceo gratis">
           <div>
             <span>{founderRequested ? 'Solicitud enviada' : 'Gratis 2 meses'}</span>
-            <h2>{founderRequested ? 'Fundador pendiente.' : 'Proba plan fundador.'}</h2>
-            <p>{founderRequested ? 'Cristian te contacta para activarlo.' : 'Mini carta, pedidos por WhatsApp y 4 promos extra. Sin costo y sin compromiso.'}</p>
+            <h2>{founderRequested ? 'Impulso pendiente.' : 'Proba Impulso Liceo.'}</h2>
+            <p>{founderRequested ? 'Cristian te contacta para activarlo.' : 'Catalogo, pedidos por WhatsApp y 4 promos extra. Gratis por 2 meses, sin tarjeta y sin cobro automatico.'}</p>
           </div>
           <button type="button" onClick={() => window.open(profileFounderUrl, '_blank', 'noopener,noreferrer')}>
             {founderRequested ? 'Escribir' : 'Quiero probar'}
@@ -5793,23 +5795,23 @@ function ProfileScreen({ account, local, onBack, onLogin, onRegister, onMerchant
             <Flame size={18} />
             <strong>4 publicaciones extra</strong>
             <p>Para subir mas promos en el mes cuando hay combos, cambios de precio o ventas puntuales.</p>
-            <span>Incluido en el plan fundador Liceo</span>
+            <span>Incluido en Impulso Liceo</span>
           </article>
           <article>
             <ShoppingBasket size={18} />
             <strong>Catalogo + pedidos</strong>
             <p>El vecino elige productos o servicios, suma la consulta y la envia armada al WhatsApp del comercio.</p>
-            <span>$8.000 / mes precio fundador</span>
+            <span>Gratis 2 meses en lanzamiento</span>
           </article>
         </div>
         <a
           className="founder-plan-cta merchant-plan-cta"
-          href={makeWhatsAppUrl('3517662142', 'Hola Cristian, quiero consultar por el plan fundador Liceo de Cerca Liceo.')}
+          href={makeWhatsAppUrl('3517662142', 'Hola Cristian, quiero activar Impulso Liceo gratis por 2 meses para mi comercio. Entiendo que se baja solo y no se cobra nada si no decido seguir.')}
           target="_blank"
           rel="noreferrer"
         >
           <MessageCircle size={16} />
-          Quiero activar el plan fundador
+          Probar Impulso gratis
         </a>
       </section>
 

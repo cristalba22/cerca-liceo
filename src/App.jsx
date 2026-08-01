@@ -558,14 +558,38 @@ const buildCercaWhatsAppMessage = ({ business, offer, orderLines = '', total = '
   return parts.join('\n')
 }
 
+const getCordobaClock = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Argentina/Cordoba',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date).reduce((result, part) => ({ ...result, [part.type]: part.value }), {})
+  const dayByEnglishLabel = {
+    Mon: 'Lun',
+    Tue: 'Mar',
+    Wed: 'Mie',
+    Thu: 'Jue',
+    Fri: 'Vie',
+    Sat: 'Sab',
+    Sun: 'Dom',
+  }
+  return {
+    day: dayByEnglishLabel[parts.weekday],
+    hours: Number(parts.hour),
+    minutes: Number(parts.minute),
+  }
+}
+
 // oxlint-disable-next-line react/only-export-components -- Exported for contract tests.
 export const getOpenStatus = (business = {}) => {
   const safeBusiness = business || {}
   const days = safeBusiness.openDays || safeBusiness.open_days || []
   const openTime = safeBusiness.openTime || safeBusiness.open_time
   const closeTime = safeBusiness.closeTime || safeBusiness.close_time
-  const now = new Date()
-  const day = weekDays[(now.getDay() + 6) % 7]
+  const clock = getCordobaClock()
+  const day = clock.day
   const scheduleSlots = {
     ...buildScheduleSlots({
       ...safeBusiness,
@@ -594,7 +618,7 @@ export const getOpenStatus = (business = {}) => {
     }
   }
 
-  const minutesNow = now.getHours() * 60 + now.getMinutes()
+  const minutesNow = clock.hours * 60 + clock.minutes
   let closesLabel = ''
   const isOpen = todaySlots.some((slot) => {
     const opensAt = parseTimeToMinutes(slot.open)

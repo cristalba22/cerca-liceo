@@ -6,7 +6,7 @@ import {
   isOfferPaused,
   isValidArgentineWhatsapp,
   normalizeArgentineWhatsapp,
-} from '../src/App.jsx'
+} from '../src/lib/businessRules.js'
 
 describe('WhatsApp argentino', () => {
   it('acepta un numero local de Cordoba', () => {

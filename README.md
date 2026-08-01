@@ -85,6 +85,13 @@ flowchart LR
   Web --> Cloudflare["Cloudflare Pages + dominio propio"]
 ```
 
+El frontend mantiene la navegacion y el estado compartido en `src/App.jsx`, mientras que las pantallas estan separadas por dominio:
+
+- `src/screens/PublicScreens.jsx`: guia, ofertas, comercios y detalle publico.
+- `src/screens/AuthScreens.jsx`: acceso, registro, recuperacion y perfil.
+- `src/screens/MerchantScreens.jsx`: ficha, publicaciones y catalogo del comercio.
+- `src/screens/AdminScreen.jsx`: operacion y moderacion administrativa.
+
 ## Decisiones Tecnicas
 
 - Use Supabase para avanzar rapido con un backend real, Auth, RLS, Storage y Postgres sin montar un servidor propio desde cero.

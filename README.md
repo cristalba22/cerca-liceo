@@ -131,6 +131,8 @@ Estas metricas sirven tanto para mejorar el producto como para mostrar impacto r
 
 ## Desarrollo Local
 
+> Los cambios visuales deben respetar el sistema adaptativo documentado en [`docs/MOTION.md`](docs/MOTION.md). Las reglas obligatorias para asistentes y colaboradores estan en [`AGENTS.md`](AGENTS.md).
+
 ```bash
 npm install
 npm run dev

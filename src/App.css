@@ -13201,6 +13201,16 @@ button:active,
   align-content: center;
 }
 
+.search-panel.is-searching .home-radar-art {
+  display: none;
+}
+
+.search-panel.is-searching > .search-intro {
+  width: 100%;
+  min-height: 0;
+  margin-bottom: 8px;
+}
+
 .home-radar-fallback {
   position: absolute;
   inset: 0;

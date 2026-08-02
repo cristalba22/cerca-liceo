@@ -995,7 +995,7 @@ function App() {
               </div>
             </header>
 
-            <div className={`search-panel ${query.trim().length >= 2 ? 'is-searching' : ''}`} data-motion-reveal style={{ '--motion-order': 1 }}>
+            <div className={`search-panel is-motion-visible ${query.trim().length >= 2 ? 'is-searching' : ''}`} data-motion-reveal style={{ '--motion-order': 1 }}>
               <WelcomeHeroArt variant="home-radar" />
               <div className="search-intro">
                 <strong>Busca ofertas, locales o rubros.</strong>

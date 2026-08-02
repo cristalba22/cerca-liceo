@@ -976,7 +976,7 @@ function App() {
 
         {screen === 'home' && (
           <>
-            <header className="app-header">
+            <header className="app-header" data-motion-reveal style={{ '--motion-order': 0 }}>
               <div className="brand-lockup">
                 <span className="app-logo">C</span>
                 <div>
@@ -994,7 +994,7 @@ function App() {
               </div>
             </header>
 
-            <div className="search-panel">
+            <div className={`search-panel ${query.trim().length >= 2 ? 'is-searching' : ''}`} data-motion-reveal style={{ '--motion-order': 1 }}>
               <div className="search-intro">
                 <strong>Busca ofertas, locales o rubros.</strong>
                 <span>Ej: milanesa, despensa, peluqueria, Mr Food.</span>
@@ -1077,8 +1077,8 @@ function App() {
                       setSelectedCategory('Todas')
                       setQuery(category.name)
                     },
-                  }))].slice(0, 5).map((result) => (
-                    <button type="button" key={`${result.type}-${result.id}`} onClick={result.action}>
+                  }))].slice(0, 5).map((result, index) => (
+                    <button type="button" key={`${result.type}-${result.id}`} onClick={result.action} style={{ '--result-order': index }}>
                       <small>{result.type}</small>
                       <strong>{result.title}</strong>
                       <span>{result.meta}</span>
@@ -1112,7 +1112,7 @@ function App() {
               onPublish={() => openPublish()}
             />
 
-            <section className="today-panel today-panel-featured" aria-label="Que hay hoy en Liceo">
+            <section className="today-panel today-panel-featured" aria-label="Que hay hoy en Liceo" data-motion-reveal style={{ '--motion-order': 3 }}>
               <div className="today-panel-head">
                 <div>
                   <span>Que hay ahora</span>
@@ -1197,17 +1197,19 @@ function App() {
               )}
             </section>
 
-            <NeighborhoodLiveMap
-              businesses={liveMapBusinesses}
-              loading={businessesLoading}
-              onOpen={(business) => {
-                setSelectedBusiness(business)
-                setScreen('business-detail')
-              }}
-              onDirectory={() => setScreen('directory')}
-            />
+            <div data-motion-reveal style={{ '--motion-order': 4 }}>
+              <NeighborhoodLiveMap
+                businesses={liveMapBusinesses}
+                loading={businessesLoading}
+                onOpen={(business) => {
+                  setSelectedBusiness(business)
+                  setScreen('business-detail')
+                }}
+                onDirectory={() => setScreen('directory')}
+              />
+            </div>
 
-            <section className="business-strip top compact-home">
+            <section className="business-strip top compact-home" data-motion-reveal style={{ '--motion-order': 5 }}>
               <div className="feed-head compact">
                 <div>
                   <Store size={17} />
@@ -1270,7 +1272,7 @@ function App() {
                   <button type="button" onClick={() => setScreen('directory')}>{homeListOffers.length} ahora</button>
                 </div>
 
-                <section className="offer-list">
+                <section className="offer-list" data-motion-reveal style={{ '--motion-order': 6 }}>
                   {homeListOffers.length > 0 ? (
                 homeListOffers.map((offer, index) => (
                   <OfferCard
@@ -1307,7 +1309,9 @@ function App() {
               </>
             )}
 
-            <ContactFooter onPrivacy={() => setScreen('privacy')} />
+            <div data-motion-reveal style={{ '--motion-order': 7 }}>
+              <ContactFooter onPrivacy={() => setScreen('privacy')} />
+            </div>
 
             <nav className="bottom-nav" aria-label="Navegacion inferior">
               <button className="active" type="button">
@@ -1345,7 +1349,7 @@ function HomeAccessCard({ account, local, onLogin, onRegisterMerchant, onUpgrade
 
   if (isMerchant) {
     return (
-      <section className="home-access-card merchant">
+      <section className="home-access-card merchant" data-motion-reveal style={{ '--motion-order': 2 }}>
         <div>
           <span>Tu comercio</span>
           <strong>{local?.name || account.businessName || 'Completa tu ficha'}</strong>
@@ -1366,7 +1370,7 @@ function HomeAccessCard({ account, local, onLogin, onRegisterMerchant, onUpgrade
   }
 
   return (
-    <section className="home-access-card">
+    <section className="home-access-card" data-motion-reveal style={{ '--motion-order': 2 }}>
       <div>
         <span>{account ? 'Cuenta activa' : 'Acceso'}</span>
         <strong>{account ? 'Queres publicar como comercio?' : 'Entrar o registrarte.'}</strong>

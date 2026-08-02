@@ -60,7 +60,7 @@
       }
 
       body {
-        min-width: 320px;
+        min-width: 300px;
         margin: 0;
         background:
           radial-gradient(circle at 18% 12%, rgba(156, 241, 18, 0.42), transparent 28rem),
@@ -283,7 +283,7 @@
         height: 100%;
         border-radius: inherit;
         background: linear-gradient(90deg, #9cf112, #72dfd3);
-        animation: initial-load 1.15s ease-in-out infinite alternate;
+        animation: initial-load 900ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
       }
 
       .initial-noscript {
@@ -311,6 +311,11 @@
           animation: none;
           width: 100%;
         }
+      }
+
+      html.android-compat .initial-progress::before {
+        width: 76%;
+        animation: none;
       }
 
       @media (prefers-color-scheme: dark) {

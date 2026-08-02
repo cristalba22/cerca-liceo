@@ -15866,3 +15866,212 @@ html.android-compat .merchant-first-type button {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* Progressive motion: compositor-only and disabled on compatibility devices. */
+@keyframes cercaReveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cercaResultReveal {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes cercaSearchSignal {
+  0% {
+    opacity: 0;
+    transform: translateX(-105%) scaleX(0.35);
+  }
+
+  35% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(105%) scaleX(1);
+  }
+}
+
+@keyframes cercaImageReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.9) rotate(2deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes cercaCueOnce {
+  0% {
+    opacity: 0.22;
+    transform: translateX(0);
+  }
+
+  55% {
+    opacity: 0.72;
+    transform: translateX(10px);
+  }
+
+  100% {
+    opacity: 0.36;
+    transform: translateX(0);
+  }
+}
+
+html.motion-rich [data-motion-reveal] {
+  animation: cercaReveal 540ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+  animation-delay: calc(var(--motion-order, 0) * 58ms);
+}
+
+html.motion-lite [data-motion-reveal] {
+  animation: none;
+}
+
+html.motion-rich .search-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+html.motion-rich .search-panel::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, #ff7a3d 18%, #a7e92a 52%, #70dfd2 82%, transparent);
+  transform-origin: center;
+  animation: cercaSearchSignal 760ms 340ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+}
+
+.search-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.search-row,
+.home-search-chips button,
+.today-panel-head button,
+.today-fast-actions button,
+.home-access-actions button,
+.today-lead-offer,
+.today-offer-card,
+.home-live-search > button {
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+html.motion-rich .search-row:focus-within {
+  transform: translateY(-2px);
+}
+
+html.motion-rich .search-panel.is-searching .search-row {
+  transform: translateY(-1px) scale(1.005);
+}
+
+html.motion-rich .home-live-search {
+  animation: cercaReveal 260ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+}
+
+html.motion-rich .home-live-search > button {
+  animation: cercaResultReveal 300ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+  animation-delay: calc(var(--result-order, 0) * 42ms);
+}
+
+html.motion-rich .today-lead-image {
+  animation: cercaImageReveal 520ms 280ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+}
+
+html.motion-rich .scroll-cue i,
+html.motion-rich .carousel-footer div::after {
+  animation: cercaCueOnce 920ms 650ms ease both;
+}
+
+html.motion-rich .radar-map button::before,
+html.motion-rich .radar-pin,
+html.motion-rich .phone-dot {
+  animation-iteration-count: 2;
+}
+
+html.motion-lite .scroll-cue i,
+html.motion-lite .carousel-footer div::after,
+html.motion-lite .radar-map button::before,
+html.motion-lite .radar-pin,
+html.motion-lite .phone-dot,
+html.motion-lite .welcome-phone,
+html.motion-lite .welcome-orbit,
+html.motion-lite .welcome-main-cta,
+html.motion-lite .floating-cart {
+  animation: none !important;
+}
+
+.action-toast {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: #fffdf7;
+}
+
+.night-mode .action-toast {
+  background: #22261d;
+}
+
+.search-row:active,
+.home-search-chips button:active,
+.today-panel-head button:active,
+.today-fast-actions button:active,
+.home-access-actions button:active,
+.today-lead-offer:active,
+.today-offer-card:active,
+.home-live-search > button:active {
+  transform: scale(0.975);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.motion-rich .today-lead-offer:hover,
+  html.motion-rich .today-offer-card:hover,
+  html.motion-rich .home-live-search > button:hover {
+    transform: translateY(-3px);
+  }
+}
+
+html.motion-reduced [data-motion-reveal],
+html.motion-reduced .search-panel::after,
+html.motion-reduced .home-live-search,
+html.motion-reduced .home-live-search > button,
+html.motion-reduced .today-lead-image,
+html.android-compat [data-motion-reveal],
+html.android-compat .search-panel::after,
+html.android-compat .home-live-search,
+html.android-compat .home-live-search > button,
+html.android-compat .today-lead-image {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+@media (max-width: 520px) {
+  html.motion-rich [data-motion-reveal] {
+    animation-duration: 420ms;
+    animation-delay: calc(var(--motion-order, 0) * 42ms);
+  }
+}

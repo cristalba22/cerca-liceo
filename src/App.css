@@ -15937,9 +15937,48 @@ html.android-compat .merchant-first-type button {
   }
 }
 
-html.motion-rich [data-motion-reveal] {
-  animation: cercaReveal 540ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
-  animation-delay: calc(var(--motion-order, 0) * 58ms);
+@keyframes cercaLogoSnap {
+  0% {
+    transform: scale(0.72) rotate(-9deg);
+  }
+
+  62% {
+    transform: scale(1.08) rotate(2deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes cercaPanelSweep {
+  from {
+    opacity: 0;
+    transform: translateX(-115%) rotate(-8deg);
+  }
+
+  38% {
+    opacity: 0.5;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(125%) rotate(-8deg);
+  }
+}
+
+html.motion-rich.motion-observer-ready [data-motion-reveal] {
+  opacity: 0;
+  transform: translateY(24px) scale(0.975);
+  transition:
+    opacity 560ms cubic-bezier(0.2, 0.82, 0.25, 1),
+    transform 560ms cubic-bezier(0.2, 0.82, 0.25, 1);
+  transition-delay: calc(var(--motion-order, 0) * 46ms);
+}
+
+html.motion-rich.motion-observer-ready [data-motion-reveal].is-motion-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 html.motion-lite [data-motion-reveal] {
@@ -15951,7 +15990,7 @@ html.motion-rich .search-panel {
   overflow: hidden;
 }
 
-html.motion-rich .search-panel::after {
+html.motion-rich .search-panel.is-motion-visible::after {
   content: '';
   position: absolute;
   z-index: 0;
@@ -15963,6 +16002,51 @@ html.motion-rich .search-panel::after {
   background: linear-gradient(90deg, transparent, #ff7a3d 18%, #a7e92a 52%, #70dfd2 82%, transparent);
   transform-origin: center;
   animation: cercaSearchSignal 760ms 340ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+}
+
+html.motion-rich .app-header.is-motion-visible .app-logo {
+  animation: cercaLogoSnap 580ms 90ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+}
+
+html.motion-rich .search-panel.is-motion-visible .home-search-chips button {
+  animation: cercaResultReveal 360ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+}
+
+html.motion-rich .search-panel.is-motion-visible .home-search-chips button:nth-child(2) {
+  animation-delay: 55ms;
+}
+
+html.motion-rich .search-panel.is-motion-visible .home-search-chips button:nth-child(3) {
+  animation-delay: 110ms;
+}
+
+html.motion-rich .search-panel.is-motion-visible .home-search-chips button:nth-child(4) {
+  animation-delay: 165ms;
+}
+
+.today-panel-featured {
+  position: relative;
+  isolation: isolate;
+}
+
+.today-panel-featured > * {
+  position: relative;
+  z-index: 1;
+}
+
+html.motion-rich .today-panel-featured::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: -35% auto -35% -28%;
+  width: 34%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.82), transparent);
+  opacity: 0;
+}
+
+html.motion-rich .today-panel-featured.is-motion-visible::before {
+  animation: cercaPanelSweep 880ms 180ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
 }
 
 .search-panel > * {
@@ -16070,8 +16154,8 @@ html.android-compat .today-lead-image {
 }
 
 @media (max-width: 520px) {
-  html.motion-rich [data-motion-reveal] {
-    animation-duration: 420ms;
-    animation-delay: calc(var(--motion-order, 0) * 42ms);
+  html.motion-rich.motion-observer-ready [data-motion-reveal] {
+    transition-duration: 460ms;
+    transition-delay: calc(var(--motion-order, 0) * 34ms);
   }
 }

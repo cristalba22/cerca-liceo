@@ -37,6 +37,7 @@ import { PublishScreen } from './screens/merchant/PublishScreen'
 import { MerchantFirstLocalScreen } from './screens/merchant/MerchantFirstLocalScreen'
 import { MyPostsScreen } from './screens/merchant/MyPostsScreen'
 import { DirectoryScreen, BusinessCard, BusinessDetailScreen, WelcomeScreen, DetailScreen, OfferCard } from './screens/PublicScreens'
+import { WelcomeHeroArt } from './components/welcome/WelcomeHeroArt'
 
 const isAndroidCompatMode = () => document.documentElement.classList.contains('android-compat')
 
@@ -995,6 +996,7 @@ function App() {
             </header>
 
             <div className={`search-panel ${query.trim().length >= 2 ? 'is-searching' : ''}`} data-motion-reveal style={{ '--motion-order': 1 }}>
+              <WelcomeHeroArt variant="home-radar" />
               <div className="search-intro">
                 <strong>Busca ofertas, locales o rubros.</strong>
                 <span>Ej: milanesa, despensa, peluqueria, Mr Food.</span>

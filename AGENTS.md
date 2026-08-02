@@ -65,6 +65,24 @@ html.android-compat .example-card {
 
 Use the current `search-panel`, `home-search-chips`, and `today-panel-featured` rules in `src/App.css` as the visual reference. Copy their architecture, not necessarily every effect.
 
+## Rich Decorative Layer
+
+This is a narrow exception for an optional decorative 3D layer. It does not relax any rule for `motion-lite`, `motion-reduced`, or `android-compat`.
+
+- CSS 3D transforms (`perspective`, `rotateX`, `rotateY`, `rotateZ`, and `translateZ`) are allowed only inside `html.motion-rich` and only for sections marked with `data-decorative-3d`.
+- A `data-decorative-3d` section may contain multiple transformed decorative elements because they still animate only `transform` and `opacity`.
+- WebGL/Three.js is optional and must be loaded through a dynamic import only when all of these conditions are true:
+  - `<html>` currently has `motion-rich`.
+  - `window.WebGLRenderingContext` exists.
+  - The decorative section is close enough to the viewport to be useful.
+- Prefer `React.lazy` and `Suspense` so Three.js and React Three Fiber remain in a separate chunk.
+- The static skeleton/fallback is the default render. It must remain complete and attractive for `motion-lite`, `motion-reduced`, `android-compat`, browsers without WebGL, and failed dynamic imports.
+- Never download or mount the 3D bundle in `motion-lite`, `motion-reduced`, or `android-compat`.
+- Pause the WebGL render loop when the decorative section leaves the viewport.
+- If the shared motion policy downgrades the page from `motion-rich`, unmount the WebGL layer and return to the static fallback without reloading.
+- The 3D layer is decorative only: headings, calls to action, navigation, and product information must remain normal accessible HTML outside the canvas.
+- Do not modify the existing safety rules for `motion-lite`, `motion-reduced`, or `android-compat` while implementing this exception.
+
 ## Mobile Compatibility
 
 - Cerca Liceo is mobile-first and must remain usable on older Xiaomi and Samsung Android phones.
@@ -92,4 +110,3 @@ For motion or responsive changes, also verify:
 5. Production deployment serves the new asset hashes before reporting completion.
 
 If tier logic changes, update `tests/motion.test.js` in the same change.
-

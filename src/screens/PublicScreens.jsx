@@ -8,6 +8,7 @@ import {
 } from '../lib/businessRules'
 import { imageSurfaceProps } from '../lib/media'
 import { ThemeToggle } from '../components/AppChrome'
+import { WelcomeHeroArt } from '../components/welcome/WelcomeHeroArt'
 
 export function DirectoryScreen({ businesses, onBack, onOpen, onToggleTheme }) {
   const [businessQuery, setBusinessQuery] = useState('')
@@ -512,28 +513,7 @@ export function WelcomeScreen({ onEnter }) {
           <small>Liceo</small>
         </div>
       </div>
-      <div className="welcome-art">
-        <div className="welcome-phone">
-          <div className="phone-topline">
-            <span>Cerca Liceo</span>
-            <b>Barrio</b>
-          </div>
-          <div className="phone-search">Buscar comida, ferreteria, belleza</div>
-          <div className="phone-offer offer-orange">
-            <i className="image-milanesa"></i>
-            <strong>Que hay hoy</strong>
-            <b>Cerca</b>
-          </div>
-          <div className="phone-offer offer-green compact">
-            <i className="image-veggie"></i>
-            <strong>Locales abiertos</strong>
-            <b>Maps</b>
-          </div>
-        </div>
-        <div className="welcome-orbit orbit-a">Comercios cerca</div>
-        <div className="welcome-orbit orbit-b">Info actualizada</div>
-        <div className="welcome-orbit orbit-c">Contacto directo</div>
-      </div>
+      <WelcomeHeroArt />
       <div className="welcome-copy">
         <span>Guia simple para moverte por Liceo</span>
         <h1>Encontra rapido lo que hay cerca.</h1>

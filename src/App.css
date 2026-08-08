@@ -56,11 +56,10 @@ select:focus-visible {
   min-height: 64px;
   padding: 10px;
   color: #172112;
-  background: rgba(255, 253, 247, 0.94);
+  background: #fffdf7;
   border: 1px solid rgba(16, 21, 15, 0.1);
   border-radius: 22px;
   box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(18px);
   transform: translateX(-50%);
   animation: toastIn 260ms ease both;
 }

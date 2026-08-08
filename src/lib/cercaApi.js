@@ -1324,8 +1324,10 @@ export const cercaApi = {
       .maybeSingle()
 
     const { url: imageUrl, error: imageError } = await uploadPublicImage(safeDraft.image, 'locals')
+    // Never persist a base64 image if Storage fails: Postgres rows stay small and the local
+    // can still be saved with its previous photo (or the neutral placeholder).
     const safeImageKey = imageError
-      ? (isDataImage(safeDraft.image) ? safeDraft.image : existingBusiness?.image_key || safeDraft.image || 'generic')
+      ? (existingBusiness?.image_key || (isDataImage(safeDraft.image) ? 'generic' : safeDraft.image || 'generic'))
       : imageUrl || safeDraft.image || existingBusiness?.image_key || 'generic'
 
     const payload = {

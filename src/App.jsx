@@ -521,11 +521,25 @@ function App() {
 
   const publishOffer = async (offerDraft) => {
     const isEditing = Boolean(offerDraft.offerId)
-    const { offer, error, warning } = isEditing
-      ? await cercaApi.updateOffer(offerDraft)
-      : await cercaApi.createOffer(offerDraft)
+    let result
+    try {
+      result = isEditing
+        ? await cercaApi.updateOffer(offerDraft)
+        : await cercaApi.createOffer(offerDraft)
+    } catch (caughtError) {
+      const message = caughtError?.message || 'No se pudo guardar la promo. Revisa tu conexion e intenta otra vez.'
+      setAuthNotice(message)
+      return { ok: false, message }
+    }
+
+    const { offer, error, warning } = result || {}
     if (error) {
       const message = error.message || (isEditing ? 'No se pudo editar la promo.' : 'No se pudo publicar la promo.')
+      setAuthNotice(message)
+      return { ok: false, message }
+    }
+    if (!offer?.id) {
+      const message = 'No pudimos confirmar que la promo se haya guardado. No se publico nada; intenta nuevamente en unos segundos.'
       setAuthNotice(message)
       return { ok: false, message }
     }

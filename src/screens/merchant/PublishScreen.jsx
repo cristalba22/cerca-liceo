@@ -123,16 +123,21 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
       setPublishStatus(canPublish ? `Falta completar: ${publishMissing.join(', ')}.` : 'Primero carga la ficha del local.')
       return
     }
-    const result = await onPublishOffer({
-      offerId: isEditingOffer ? template.id : null,
-      business: local,
-      title: previewOffer.title,
-      description: previewOffer.description,
-      priceLabel: previewOffer.price,
-      imageKey: previewOffer.image,
-      expiresInDays: offerDraft.expiresInDays,
-    })
-    setPublishStatus(result.message)
+    setPublishStatus('Guardando la promo...')
+    try {
+      const result = await onPublishOffer({
+        offerId: isEditingOffer ? template.id : null,
+        business: local,
+        title: previewOffer.title,
+        description: previewOffer.description,
+        priceLabel: previewOffer.price,
+        imageKey: previewOffer.image,
+        expiresInDays: offerDraft.expiresInDays,
+      })
+      setPublishStatus(result?.message || 'No pudimos confirmar la publicacion. Intenta nuevamente.')
+    } catch (error) {
+      setPublishStatus(error?.message || 'No se pudo guardar la promo. Intenta nuevamente.')
+    }
   }
 
   return (

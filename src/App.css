@@ -16190,3 +16190,25 @@ html.android-compat .today-lead-image {
     transition-delay: calc(var(--motion-order, 0) * 34ms);
   }
 }
+
+/* Small Android screens need the full viewport for the app surface. */
+@media (max-width: 360px) {
+  .app-shell {
+    width: 100vw;
+    padding: 0;
+    overflow-x: clip;
+  }
+
+  .app-screen {
+    width: 100%;
+    max-width: none;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .home-access-actions button,
+  .today-fast-actions button {
+    min-width: 0;
+    padding-inline: 10px;
+  }
+}

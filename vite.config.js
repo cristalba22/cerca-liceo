@@ -9,6 +9,11 @@ export default defineConfig({
     cssTarget: 'chrome80',
     rollupOptions: {
       output: {
+        // Keep release assets on fresh URLs so a previously cached failed module
+        // response cannot strand the app on the static loading shell.
+        entryFileNames: 'assets/[name]-[hash]-r3.js',
+        chunkFileNames: 'assets/[name]-[hash]-r3.js',
+        assetFileNames: 'assets/[name]-[hash]-r3[extname]',
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined
           if (id.includes('/react/') || id.includes('/react-dom/')) return 'react'

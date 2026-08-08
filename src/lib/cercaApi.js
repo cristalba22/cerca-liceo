@@ -75,22 +75,26 @@ const dataUrlToBlob = async (dataUrl) => {
 const uploadPublicImage = async (dataUrl, folder = 'general') => {
   if (!hasSupabaseConfig || !isDataImage(dataUrl)) return { url: dataUrl, error: null }
 
-  const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) return { url: dataUrl, error: new Error('Necesitas iniciar sesion para subir fotos.') }
+  try {
+    const { data: auth } = await supabase.auth.getUser()
+    if (!auth.user) return { url: '', error: new Error('Necesitas iniciar sesion para subir fotos.') }
 
-  const blob = await dataUrlToBlob(dataUrl)
-  const path = `${auth.user.id}/${folder}/${createClientId()}.jpg`
-  const { error } = await supabase.storage
-    .from(PHOTO_BUCKET)
-    .upload(path, blob, {
-      contentType: blob.type || 'image/jpeg',
-      upsert: false,
-    })
+    const blob = await dataUrlToBlob(dataUrl)
+    const path = `${auth.user.id}/${folder}/${createClientId()}.jpg`
+    const { error } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .upload(path, blob, {
+        contentType: blob.type || 'image/jpeg',
+        upsert: false,
+      })
 
-  if (error) return { url: dataUrl, error }
+    if (error) return { url: '', error }
 
-  const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path)
-  return { url: data.publicUrl, error: null }
+    const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path)
+    return { url: data.publicUrl, error: null }
+  } catch {
+    return { url: '', error: new Error('No pudimos subir la foto. La promo se puede publicar sin foto.') }
+  }
 }
 
 const parseArgentinePrice = (value) => {
@@ -397,6 +401,8 @@ const mapBusinessRow = (row) => ({
   closeTime: row.close_time || '',
   whatsapp: row.whatsapp,
   instagram: row.instagram,
+  description: cleanText(row.description),
+  paymentMethods: cleanText(row.payment_methods),
   tone: row.tone || 'orange',
   image: row.image_key || 'generic',
   imageZoom: row.image_zoom || 120,
@@ -1584,7 +1590,7 @@ export const cercaApi = {
       section: business.section,
       price_label: safeOffer.priceLabel,
       image_key: imageError
-        ? (isDataImage(imageKey) ? imageKey : business.image || imageKey || 'generic')
+        ? (business.image || 'generic')
         : offerImageUrl || imageKey || business.image || 'generic',
       tone: business.tone || 'orange',
       highlight: 'Nueva promo',
@@ -1659,7 +1665,7 @@ export const cercaApi = {
       description: safeOffer.description,
       price_label: safeOffer.priceLabel || 'Consultar',
       image_key: imageError
-        ? (isDataImage(imageKey) ? imageKey : imageKey || business?.image || 'generic')
+        ? (business?.image || 'generic')
         : offerImageUrl || imageKey || business?.image || 'generic',
       expires_at: new Date(Date.now() + expiresInDays * 86400000).toISOString(),
       updated_at: new Date().toISOString(),

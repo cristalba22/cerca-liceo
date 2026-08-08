@@ -93,8 +93,15 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
   const handleLocalPhoto = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const image = await readCompressedImage(file)
-    updateLocalDraft('image', image)
+    try {
+      const image = await readCompressedImage(file)
+      updateLocalDraft('image', image)
+      setSaveStatus('Foto lista. Guarda la ficha para publicarla.')
+    } catch (error) {
+      setSaveStatus(error.message || 'No pudimos usar esa foto. Podes guardar la ficha igual y agregarla despues.')
+    } finally {
+      event.target.value = ''
+    }
   }
 
   const toggleOpenDay = (day) => {
@@ -663,7 +670,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
 
           <label>
             <span>Foto del comercio o producto</span>
-            <input type="file" accept="image/*" onChange={handleLocalPhoto} />
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLocalPhoto} />
           </label>
 
           <div className="android-safe-photo-preview">
@@ -1114,7 +1121,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
                   <strong>{isUploadedImage(localDraft.image) ? 'Foto propia cargada' : localDraft.category || 'Rubro'}</strong>
                   <p>La foto puede ser del frente, mostrador o producto estrella. Tiene que ayudar al vecino a reconocer el local rapido.</p>
                   <label className="file-pill wide-file">
-                    <input type="file" accept="image/*" onChange={handleLocalPhoto} />
+                    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLocalPhoto} />
                     {isUploadedImage(localDraft.image) ? 'Cambiar foto del local' : 'Cargar foto del local'}
                   </label>
                   {isUploadedImage(localDraft.image) && (

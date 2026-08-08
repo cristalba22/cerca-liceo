@@ -2253,6 +2253,7 @@ select:focus-visible {
   display: grid;
   gap: 12px;
   padding: 0 20px 18px;
+  perspective: 900px;
 }
 
 .offer-card {
@@ -2266,14 +2267,7 @@ select:focus-visible {
   border-radius: 26px;
   box-shadow: 0 18px 34px rgba(31, 30, 22, 0.17);
   cursor: pointer;
-  animation: riseIn 420ms ease both;
-  transition: transform 180ms ease, box-shadow 180ms ease;
-}
-
-.offer-card:hover,
-.business-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 32px rgba(31, 30, 22, 0.18);
+  transition: none;
 }
 
 .offer-card::after {
@@ -2895,6 +2889,7 @@ select:focus-visible {
 
 .business-strip {
   padding: 0 0 16px;
+  perspective: 900px;
 }
 
 .business-strip.top {
@@ -3362,8 +3357,7 @@ select:focus-visible {
   box-shadow: 0 12px 24px rgba(31, 30, 22, 0.1);
   scroll-snap-align: start;
   cursor: pointer;
-  animation: riseIn 420ms ease both;
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  transition: none;
 }
 
 .quick-offer-card:active,
@@ -13073,8 +13067,6 @@ select:focus-visible {
 }
 
 button:active,
-.offer-card:active,
-.business-card:active,
 .hero-deal:active,
 .smart-card:active,
 .managed-card:active {
@@ -13083,18 +13075,6 @@ button:active,
 
 .hero-deal-image {
   animation: floatProduct 4s ease-in-out infinite;
-}
-
-.offer-list .offer-card:nth-child(2),
-.directory-list .business-card:nth-child(2),
-.managed-list .managed-card:nth-child(2) {
-  animation-delay: 80ms;
-}
-
-.offer-list .offer-card:nth-child(3),
-.directory-list .business-card:nth-child(3),
-.managed-list .managed-card:nth-child(3) {
-  animation-delay: 150ms;
 }
 
 @keyframes floatProduct {
@@ -13175,34 +13155,10 @@ button:active,
   display: none;
 }
 
-.welcome-art-3d {
-  isolation: isolate;
-}
-
-.home-radar-art {
-  position: absolute !important;
-  z-index: 0 !important;
-  top: 12px;
-  right: 12px;
-  width: 148px;
-  height: 104px;
-  overflow: hidden;
-  pointer-events: none;
-  background: #10150f;
-  border: 1px solid rgba(23, 33, 18, 0.14);
-  border-radius: 18px;
-  opacity: 1;
-  transform: perspective(480px) rotateY(-7deg) rotateX(2deg);
-}
-
 .search-panel > .search-intro {
-  width: 52%;
-  min-height: 88px;
+  width: 100%;
+  min-height: 0;
   align-content: center;
-}
-
-.search-panel.is-searching .home-radar-art {
-  display: none;
 }
 
 .search-panel.is-searching > .search-intro {
@@ -13210,149 +13166,17 @@ button:active,
   min-height: 0;
   margin-bottom: 8px;
 }
-
-.home-radar-fallback {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(31deg, transparent 45%, rgba(255, 255, 255, 0.72) 46%, rgba(255, 255, 255, 0.72) 49%, transparent 50%),
-    linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.58) 43%, rgba(255, 255, 255, 0.58) 46%, transparent 47%);
-  opacity: 0.82;
-}
-
-.home-radar-label {
-  position: absolute;
-  z-index: 3;
-  right: 8px;
-  bottom: 8px;
-  padding: 5px 7px;
-  color: #10150f;
-  font-size: 8px;
-  font-weight: 1000;
-  text-transform: uppercase;
-  background: #a7e92a;
-  border-radius: 999px;
-}
-
-.home-radar-fallback i {
-  position: absolute;
-  width: 28px;
-  aspect-ratio: 1;
-  border: 8px solid rgba(255, 255, 255, 0.72);
-  border-radius: 50%;
-  background: #ff6a3d;
-}
-
-.home-radar-fallback i:nth-child(1) { top: 62px; left: 72px; }
-.home-radar-fallback i:nth-child(2) { top: 112px; left: 154px; background: #a7e92a; }
-.home-radar-fallback i:nth-child(3) { top: 46px; left: 220px; background: #70dfd2; }
-
-.welcome-art-static,
-.welcome-3d-stage,
-.home-radar-art .welcome-3d-stage {
+.welcome-art-static {
   position: absolute;
   inset: 0;
 }
 
 .welcome-art-static {
   z-index: 1;
-  opacity: 1;
-  transition: opacity 260ms ease;
-}
-
-.welcome-3d-stage {
-  z-index: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  opacity: 0;
-  transform: scale(0.985);
-  transition:
-    opacity 320ms ease,
-    transform 320ms cubic-bezier(0.2, 0.82, 0.25, 1);
-}
-
-.welcome-3d-stage canvas {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.welcome-3d-caption {
-  position: absolute;
-  z-index: 2;
-  left: 18px;
-  bottom: 18px;
-  display: grid;
-  gap: 3px;
-  max-width: 190px;
-  padding: 10px 12px;
-  color: #fffbea;
-  background: #10150f;
-  border: 1px solid rgba(167, 233, 42, 0.42);
-  border-radius: 14px;
-  opacity: 0;
-  transform: translateY(8px);
-}
-
-.welcome-3d-caption span {
-  color: #a7e92a;
-  font-size: 10px;
-  font-weight: 1000;
-  text-transform: uppercase;
-}
-
-.welcome-3d-caption strong {
-  font-size: 13px;
-  line-height: 1.05;
-}
-
-html.motion-rich [data-decorative-3d].is-3d-ready .welcome-art-static {
-  opacity: 0;
-  pointer-events: none;
-}
-
-html.motion-rich .home-radar-art.is-3d-ready .home-radar-fallback {
-  opacity: 0;
-}
-
-html.motion-rich [data-decorative-3d].is-3d-ready .welcome-3d-stage {
-  z-index: 1;
-  opacity: 1;
-  transform: scale(1);
-}
-
-html.motion-rich .home-radar-art.is-3d-ready {
-  opacity: 1;
-  transform: perspective(480px) rotateY(-2deg) rotateX(0) scale(1.02);
-  transition: opacity 320ms ease, transform 320ms cubic-bezier(0.2, 0.82, 0.25, 1);
-}
-
-html.motion-lite .home-radar-art,
-html.motion-reduced .home-radar-art,
-html.android-compat .home-radar-art {
-  opacity: 1;
-  transform: none;
-}
-
-html.motion-rich [data-decorative-3d].is-3d-ready .welcome-3d-caption {
-  opacity: 1;
-  transform: translateY(0);
-  transition:
-    opacity 280ms 120ms ease,
-    transform 280ms 120ms cubic-bezier(0.2, 0.82, 0.25, 1);
-}
-
-html.motion-lite [data-decorative-3d] .welcome-3d-stage,
-html.motion-reduced [data-decorative-3d] .welcome-3d-stage,
-html.android-compat [data-decorative-3d] .welcome-3d-stage,
-html.motion-lite [data-decorative-3d] .welcome-3d-caption,
-html.motion-reduced [data-decorative-3d] .welcome-3d-caption,
-html.android-compat [data-decorative-3d] .welcome-3d-caption {
-  display: none;
 }
 
 .welcome-art-static .welcome-phone,
-.welcome-art-3d .welcome-orbit,
+.welcome-art .welcome-orbit,
 .welcome-main-cta {
   animation: none;
 }
@@ -16161,6 +15985,32 @@ html.motion-rich.motion-observer-ready [data-motion-reveal] {
 html.motion-rich.motion-observer-ready [data-motion-reveal].is-motion-visible {
   opacity: 1;
   transform: translateY(0) scale(1);
+}
+
+html.motion-rich.motion-observer-ready .offer-card[data-motion-reveal],
+html.motion-rich.motion-observer-ready .business-card[data-motion-reveal] {
+  transform: rotateX(8deg) translateY(16px);
+  transform-origin: center bottom;
+  transition:
+    opacity 260ms cubic-bezier(0.2, 0.82, 0.25, 1),
+    transform 260ms cubic-bezier(0.2, 0.82, 0.25, 1);
+}
+
+html.motion-rich.motion-observer-ready .offer-card[data-motion-reveal].is-motion-visible,
+html.motion-rich.motion-observer-ready .business-card[data-motion-reveal].is-motion-visible {
+  transform: rotateX(0) translateY(0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.motion-rich .offer-card.is-motion-visible:hover,
+  html.motion-rich .business-card.is-motion-visible:hover {
+    transform: rotateX(2deg) rotateY(-2deg) translateY(-2px);
+  }
+}
+
+html.motion-rich .offer-card.is-motion-visible:active,
+html.motion-rich .business-card.is-motion-visible:active {
+  transform: scale(0.985) rotateX(0) rotateY(0);
 }
 
 html.motion-lite [data-motion-reveal] {

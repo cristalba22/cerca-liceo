@@ -107,8 +107,15 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
   const handleOfferPhoto = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const image = await readCompressedImage(file)
-    updateOfferDraft('image', image)
+    try {
+      const image = await readCompressedImage(file)
+      updateOfferDraft('image', image)
+      setPublishStatus('Foto lista. Se va a ver en la publicacion.')
+    } catch (error) {
+      setPublishStatus(error.message || 'No pudimos usar esa foto. Podes publicar igual sin foto.')
+    } finally {
+      event.target.value = ''
+    }
   }
 
   const publishPreparedOffer = async () => {
@@ -178,7 +185,7 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
           <span>{isUploadedImage(offerDraft.image) ? 'Se va a ver en el inicio.' : 'Opcional, pero ayuda mucho.'}</span>
         </div>
         <label className="file-pill">
-          <input type="file" accept="image/*" onChange={handleOfferPhoto} />
+          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleOfferPhoto} />
           {isUploadedImage(offerDraft.image) ? 'Cambiar foto' : 'Agregar foto'}
         </label>
       </section>

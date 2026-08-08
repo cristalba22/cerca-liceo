@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import 'leaflet/dist/leaflet.css'
 import {
+  AlertCircle,
   Bell,
   Check,
   ChevronRight,
@@ -23,7 +24,7 @@ import {
 import {
   normalizeSearchText, getMapPointFromCoordinates, hasBusinessPin, getBusinessMapUrl,
   isFounderPlanActive, getFounderPaidUntil, isOfferPaused, isOfferActiveNow,
-  getOpenStatus, mergeUniqueById, buildInitialBusinessDraftFromAccount, toNoticeText,
+  getOpenStatus, getOfferOpenStatus, mergeUniqueById, buildInitialBusinessDraftFromAccount, toNoticeText,
   isUploadedImage,
 } from './lib/businessRules'
 import { imageSurfaceProps } from './lib/media'
@@ -37,7 +38,6 @@ import { PublishScreen } from './screens/merchant/PublishScreen'
 import { MerchantFirstLocalScreen } from './screens/merchant/MerchantFirstLocalScreen'
 import { MyPostsScreen } from './screens/merchant/MyPostsScreen'
 import { DirectoryScreen, BusinessCard, BusinessDetailScreen, WelcomeScreen, DetailScreen, OfferCard } from './screens/PublicScreens'
-import { WelcomeHeroArt } from './components/welcome/WelcomeHeroArt'
 
 const isAndroidCompatMode = () => document.documentElement.classList.contains('android-compat')
 
@@ -259,10 +259,27 @@ function App() {
     let ignore = false
 
     const loadBusinesses = async () => {
+      // Mostrar caché de session mientras carga para evitar pantalla vacía
+      const cacheKey = 'cerca-liceo-businesses-cache'
+      const cacheTtlMs = 2 * 60 * 1000 // 2 minutos
+      try {
+        const cached = window.sessionStorage.getItem(cacheKey)
+        if (cached) {
+          const { data, ts } = JSON.parse(cached)
+          if (Array.isArray(data) && data.length && Date.now() - ts < cacheTtlMs) {
+            setFeedBusinesses(data)
+            setBusinessesLoading(false)
+          }
+        }
+      } catch { /* sesión inaccesible, continuar */ }
+
       setBusinessesLoading(true)
       const { businesses: nextBusinesses, error } = await cercaApi.listBusinesses()
-      if (!ignore && !error) {
+      if (!ignore && !error && nextBusinesses?.length) {
         setFeedBusinesses(nextBusinesses)
+        try {
+          window.sessionStorage.setItem(cacheKey, JSON.stringify({ data: nextBusinesses, ts: Date.now() }))
+        } catch { /* storage lleno, no crítico */ }
       }
       if (!ignore) setBusinessesLoading(false)
     }
@@ -996,7 +1013,6 @@ function App() {
             </header>
 
             <div className={`search-panel is-motion-visible ${query.trim().length >= 2 ? 'is-searching' : ''}`} data-motion-reveal style={{ '--motion-order': 1 }}>
-              <WelcomeHeroArt variant="home-radar" />
               <div className="search-intro">
                 <strong>Busca ofertas, locales o rubros.</strong>
                 <span>Ej: milanesa, despensa, peluqueria, Mr Food.</span>
@@ -1280,6 +1296,7 @@ function App() {
                   <OfferCard
                     offer={offer}
                     key={offer.id || `${offer.title}-${index}`}
+                    motionOrder={Math.min(index, 2)}
                     onOpen={() => {
                       trackInteraction({ type: 'offer_view', businessId: offer.businessId, offerId: offer.id })
                       setSelectedOffer(offer)
@@ -1316,7 +1333,15 @@ function App() {
             </div>
 
             <nav className="bottom-nav" aria-label="Navegacion inferior">
-              <button className="active" type="button">
+              <button
+                className="active"
+                type="button"
+                onClick={() => {
+                  setSelectedOffer(null)
+                  setSelectedBusiness(null)
+                }}
+                aria-label="Inicio"
+              >
                 <Home size={21} />
                 Inicio
               </button>
@@ -1402,7 +1427,7 @@ function ActionToast({ notice, onClose }) {
   return (
     <aside className={`action-toast ${isError ? 'is-error' : 'is-success'}`} role="status" aria-live="polite">
       <div>
-        <Check size={17} />
+        {isError ? <AlertCircle size={17} /> : <Check size={17} />}
       </div>
       <p>{noticeText}</p>
       <button type="button" onClick={onClose} aria-label="Cerrar aviso">×</button>

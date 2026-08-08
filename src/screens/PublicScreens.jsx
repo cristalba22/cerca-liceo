@@ -130,7 +130,7 @@ export function DirectoryScreen({ businesses, onBack, onOpen, onToggleTheme }) {
   )
 }
 
-export function BusinessCard({ business, onOpen, large = false }) {
+export function BusinessCard({ business, onOpen, large = false, motionOrder = 0 }) {
   const openStatus = getOpenStatus(business)
   const publicAddress = hasBusinessPublicAddress(business)
   const locationText = hasBusinessPin(business)
@@ -149,7 +149,12 @@ export function BusinessCard({ business, onOpen, large = false }) {
   const instagramUrl = makeInstagramUrl(business.instagram)
 
   return (
-    <article className={`business-card business-${business.tone} ${large ? 'large' : ''}`} onClick={onOpen}>
+    <article
+      className={`business-card business-${business.tone} ${large ? 'large' : ''}`}
+      data-motion-reveal
+      style={{ '--motion-order': motionOrder }}
+      onClick={onOpen}
+    >
       <div {...imageSurfaceProps(business.image, 'business-photo', business)}></div>
       <div className="business-info">
         <small>{business.category} - {business.section}</small>
@@ -690,12 +695,17 @@ export function InfoItem({ icon, label, value }) {
   )
 }
 
-export function OfferCard({ offer, onOpen, onTrack }) {
+export function OfferCard({ offer, onOpen, onTrack, motionOrder = 0 }) {
   const whatsappUrl = getOfferWhatsappUrl(offer)
   const openStatus = getOfferOpenStatus(offer)
 
   return (
-    <article className={`offer-card offer-${offer.tone}`} onClick={onOpen}>
+    <article
+      className={`offer-card offer-${offer.tone}`}
+      data-motion-reveal
+      style={{ '--motion-order': motionOrder }}
+      onClick={onOpen}
+    >
       <div {...imageSurfaceProps(offer.image, 'offer-image')}>
         <span>{offer.category}</span>
       </div>

@@ -9,8 +9,9 @@ describe('contrato visual del buscador principal', () => {
     expect(appSource).toContain('search-panel is-motion-visible')
   })
 
-  it('retira el radar decorativo y compacta la introduccion durante la busqueda', () => {
-    expect(styles).toMatch(/\.search-panel\.is-searching \.home-radar-art\s*{[^}]*display:\s*none/s)
-    expect(styles).toMatch(/\.search-panel\.is-searching > \.search-intro\s*{[^}]*width:\s*100%[^}]*min-height:\s*0/s)
+  it('mantiene el buscador sin radar decorativo y con la introduccion compacta', () => {
+    expect(appSource).not.toContain('home-radar')
+    expect(styles).not.toContain('.home-radar-art')
+    expect(styles).toMatch(/\.search-panel > \.search-intro\s*{[^}]*width:\s*100%[^}]*min-height:\s*0/s)
   })
 })

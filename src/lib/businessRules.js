@@ -12,6 +12,8 @@ const normalizeSearchText = (value = '') => String(value)
   .normalize('NFD')
   .replace(/[\u0300-\u036f]/g, '')
   .replace(/ñ/g, 'n')
+  .replace(/[^a-z0-9]+/g, ' ')
+  .replace(/\s+/g, ' ')
   .trim()
 
 const clampPercent = (value, min = 8, max = 92) => Math.max(min, Math.min(max, value))

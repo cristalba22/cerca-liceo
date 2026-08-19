@@ -5,8 +5,17 @@ import {
   isOfferExpired,
   isOfferPaused,
   isValidArgentineWhatsapp,
+  normalizeSearchText,
   normalizeArgentineWhatsapp,
 } from '../src/lib/businessRules.js'
+
+describe('busqueda tolerante', () => {
+  it('ignora puntos, guiones y espacios repetidos', () => {
+    expect(normalizeSearchText('Mr. Food')).toBe('mr food')
+    expect(normalizeSearchText('Mr Food')).toBe('mr food')
+    expect(normalizeSearchText('Bien-Argentino   CBA')).toBe('bien argentino cba')
+  })
+})
 
 describe('WhatsApp argentino', () => {
   it('acepta un numero local de Cordoba', () => {

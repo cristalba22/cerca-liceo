@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, BadgeCheck, Check, Flame, Eye, Store } from 'lucide-react'
 import { sections, commerceCategories } from '../lib/appConfig.js'
 import {
-  makeWhatsAppUrl, hasBusinessPublicAddress, isFounderPlanActive, isFounderPlanRequested,
-  isFounderPlanExpired, isFounderExpiringSoon, isOfferExpired, isOfferPaused,
+  makeWhatsAppUrl, hasBusinessPublicAddress,
+  isOfferExpired, isOfferPaused,
   isOfferActiveNow, getOfferDaysLeft, hasRealBusinessPhoto, isRecentBusiness,
 } from '../lib/businessRules'
 import { ThemeToggle } from '../components/AppChrome'
@@ -19,8 +19,6 @@ export function AdminScreen({
   onOpenOffer,
   onTogglePublic,
   onToggleVerified,
-  onActivateOrders,
-  onRenewFounder,
   onRepostOffer,
   onSaveNote,
   onEditBusiness,
@@ -38,7 +36,6 @@ export function AdminScreen({
     !business.verified ||
     business.isPublic === false
   ))
-  const pendingOrders = businesses.filter((business) => business.plan === 'pedidos' && business.planStatus !== 'active')
   const visibleBusinesses = businesses.filter((business) => business.isPublic !== false)
   const activeOffers = offers.filter(isOfferActiveNow)
   const pausedOffers = offers.filter((offer) => isOfferPaused(offer) && !isOfferExpired(offer))
@@ -47,7 +44,6 @@ export function AdminScreen({
     const days = getOfferDaysLeft(offer)
     return days !== null && days <= 1
   })
-  const founderExpiringSoon = businesses.filter(isFounderExpiringSoon)
   const withoutPhoto = businesses.filter((business) => !hasRealBusinessPhoto(business))
   const withoutWhatsapp = businesses.filter((business) => !business.whatsapp)
   const recentBusinesses = businesses.filter(isRecentBusiness)
@@ -59,7 +55,6 @@ export function AdminScreen({
   ))
   const priorityBusinesses = [
     ...needsReview,
-    ...businesses.filter((business) => business.plan === 'pedidos'),
     ...businesses,
   ].filter((business, index, list) => (
     list.findIndex((item) => (item.id || item.name) === (business.id || business.name)) === index
@@ -111,7 +106,6 @@ export function AdminScreen({
     if (business.businessType !== 'entrepreneur' && !hasBusinessPublicAddress(business)) issues.push('direccion')
     if (!business.openDays?.length) issues.push('dias')
     if (!business.hours || business.hours.includes('completar')) issues.push('horario')
-    if (isFounderPlanActive(business) && !business.menu?.filter((item) => item.name).length) issues.push('catalogo')
     if (!business.verified) issues.push('verificar')
     if (business.isPublic === false) issues.push('oculto')
     return issues
@@ -120,17 +114,7 @@ export function AdminScreen({
   const getStatusLabel = (business) => {
     if (business.isPublic === false) return 'Oculto'
     if (getBusinessQuality(business).length) return 'Revisar'
-    if (isFounderPlanActive(business)) return 'Impulso activo'
-    if (isFounderPlanExpired(business)) return 'Impulso vencido'
-    if (isFounderPlanRequested(business)) return 'Impulso pendiente'
     return 'Publicado'
-  }
-
-  const getPlanActionLabel = (business) => {
-    if (isFounderPlanActive(business)) return 'Quitar Impulso'
-    if (isFounderPlanExpired(business)) return 'Renovar Impulso'
-    if (isFounderPlanRequested(business)) return 'Activar Impulso'
-    return 'Activar Impulso'
   }
 
   const saveNote = (business) => {
@@ -157,8 +141,6 @@ export function AdminScreen({
 
   const businessListByView = (() => {
     if (adminView === 'pendientes') return priorityBusinesses.filter((business) => getBusinessQuality(business).length)
-    if (adminView === 'planes') return priorityBusinesses.filter((business) => isFounderPlanRequested(business) || isFounderPlanActive(business) || isFounderPlanExpired(business))
-    if (adminView === 'por-vencer') return founderExpiringSoon
     if (adminView === 'sin-foto') return withoutPhoto
     if (adminView === 'sin-whatsapp') return withoutWhatsapp
     if (adminView === 'nuevos') return recentBusinesses
@@ -172,7 +154,6 @@ export function AdminScreen({
     { label: '3 promos vigentes', ok: activeOffers.length >= 3, value: `${activeOffers.length}/3` },
     { label: 'Fotos reconocibles', ok: withoutPhoto.length === 0 || visibleBusinesses.length - withoutPhoto.length >= 5, value: `${Math.max(visibleBusinesses.length - withoutPhoto.length, 0)}` },
     { label: 'WhatsApp cargado', ok: withoutWhatsapp.length === 0, value: withoutWhatsapp.length ? `${withoutWhatsapp.length} faltan` : 'ok' },
-    { label: 'Impulso controlado', ok: pendingOrders.length === 0, value: pendingOrders.length ? `${pendingOrders.length} pendientes` : 'ok' },
   ]
 
   return (
@@ -188,7 +169,7 @@ export function AdminScreen({
       <section className="admin-hero">
         <span>Control interno</span>
         <h1>Operacion clara para Cerca Liceo.</h1>
-        <p>Revisa altas, activa Impulso gratis por 2 meses, controla promos y limpia datos raros sin entrar a la base.</p>
+        <p>Revisa altas, controla ofertas y ayuda a los comercios a completar sus datos. Todas las herramientas son gratuitas.</p>
       </section>
 
       <section className="admin-stats">
@@ -208,10 +189,6 @@ export function AdminScreen({
           <strong>{needsReview.length}</strong>
           <span>para revisar</span>
         </article>
-        <article className={pendingOrders.length ? 'needs' : ''}>
-          <strong>{pendingOrders.length}</strong>
-          <span>Impulso pendiente</span>
-        </article>
         <article>
           <strong>{activeOffers.length}</strong>
           <span>promos activas</span>
@@ -219,10 +196,6 @@ export function AdminScreen({
         <article className={expiredOffers.length ? 'needs' : ''}>
           <strong>{expiredOffers.length}</strong>
           <span>promos vencidas</span>
-        </article>
-        <article className={founderExpiringSoon.length ? 'needs' : ''}>
-          <strong>{founderExpiringSoon.length}</strong>
-          <span>Impulso por vencer</span>
         </article>
         <article>
           <strong>{adminMetrics?.pageViews || 0}</strong>
@@ -248,8 +221,6 @@ export function AdminScreen({
       <section className="admin-tabs" aria-label="Vistas de administracion">
         {[
           ['pendientes', `Pendientes ${needsReview.length}`],
-          ['planes', `Impulso ${pendingOrders.length}`],
-          ['por-vencer', `Por vencer ${founderExpiringSoon.length}`],
           ['sin-foto', `Sin foto ${withoutPhoto.length}`],
           ['sin-whatsapp', `Sin WhatsApp ${withoutWhatsapp.length}`],
           ['nuevos', `Nuevos ${recentBusinesses.length}`],
@@ -275,11 +246,6 @@ export function AdminScreen({
           <strong>Verificar y publicar</strong>
           <p>{readyBusinesses.length} locales tienen datos suficientes para mostrarse con confianza.</p>
         </article>
-        <article>
-          <span>Planes</span>
-          <strong>Impulso manual</strong>
-          <p>{pendingOrders.length ? `${pendingOrders.length} comercio(s) pidieron Impulso y esperan tu activacion.` : 'No hay solicitudes de Impulso pendientes.'}</p>
-        </article>
       </section>
 
       <section className="admin-guidance">
@@ -287,7 +253,7 @@ export function AdminScreen({
           <BadgeCheck size={18} />
           <strong>Regla de calidad</strong>
         </div>
-        <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, horario claro y promos vigentes. El catalogo solo cuenta si tienen Impulso activo.</p>
+        <p>Antes de compartir fuerte el link, apunta a pocos comercios bien cargados: foto real, WhatsApp, horario claro y promos vigentes. El catalogo es opcional y gratuito para todos.</p>
       </section>
 
       {!offerViews.includes(adminView) && (
@@ -295,14 +261,14 @@ export function AdminScreen({
         <div className="feed-head compact">
           <div>
             <Store size={17} />
-            <strong>{adminView === 'planes' ? 'Solicitudes Impulso' : adminView === 'por-vencer' ? 'Impulso por vencer' : adminView === 'sin-foto' ? 'Locales sin foto real' : adminView === 'sin-whatsapp' ? 'Locales sin WhatsApp' : adminView === 'nuevos' ? 'Nuevos esta semana' : adminView === 'locales' ? 'Todos los locales' : 'Locales para revisar'}</strong>
+            <strong>{adminView === 'sin-foto' ? 'Locales sin foto real' : adminView === 'sin-whatsapp' ? 'Locales sin WhatsApp' : adminView === 'nuevos' ? 'Nuevos esta semana' : adminView === 'locales' ? 'Todos los locales' : 'Locales para revisar'}</strong>
           </div>
           <span>{visibleAdminBusinesses.length ? `${visibleAdminBusinesses.length} items` : 'Todo bien'}</span>
         </div>
         {visibleAdminBusinesses.length === 0 && (
           <article className="admin-empty-state">
             <strong>No hay nada urgente aca.</strong>
-            <p>Cuando un comercio quede incompleto, pida Impulso o se cargue algo nuevo, va a aparecer en esta vista.</p>
+            <p>Cuando un comercio quede incompleto o se cargue algo nuevo, va a aparecer en esta vista.</p>
           </article>
         )}
         {visibleAdminBusinesses.slice(0, 40).map((business) => {
@@ -332,9 +298,7 @@ export function AdminScreen({
               </div>
             )}
             <div className="admin-plan-line">
-              <span>{isFounderPlanActive(business) ? 'Impulso activo' : isFounderPlanExpired(business) ? 'Impulso vencido' : isFounderPlanRequested(business) ? 'Pidio Impulso' : 'Ficha gratis'}</span>
-              <span>{business.planStatus === 'active' ? (isFounderPlanExpired(business) ? 'Vencido' : 'Activo por admin') : business.planStatus === 'manual_pending' ? 'Pendiente de activar' : 'Gratis'}</span>
-              {business.paidUntil && <span>Vence {new Date(`${business.paidUntil}T00:00:00`).toLocaleDateString('es-AR')}</span>}
+              <span>Gratis hoy y siempre</span>
               <span>{business.open ? 'Abierto segun ficha' : 'Marcado cerrado'}</span>
               <span>{businessOffers.length} promos</span>
               <span>{businessMetrics.businessViews || 0} vistas ficha</span>
@@ -347,10 +311,6 @@ export function AdminScreen({
               )}
               <button type="button" onClick={() => onToggleVerified(business)}>{business.verified ? 'Quitar check' : 'Verificar'}</button>
               <button type="button" onClick={() => onTogglePublic(business)}>{business.isPublic === false ? 'Mostrar' : 'Ocultar'}</button>
-              <button type="button" onClick={() => onActivateOrders(business)}>{getPlanActionLabel(business)}</button>
-              {(isFounderPlanActive(business) || isFounderPlanExpired(business)) && (
-                <button type="button" onClick={() => onRenewFounder(business)}>Renovar 2 meses</button>
-              )}
               <button className="danger" type="button" onClick={() => onDeleteBusiness(business)}>Eliminar local</button>
             </div>
             <details className="admin-edit-box">

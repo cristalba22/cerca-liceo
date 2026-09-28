@@ -29,6 +29,10 @@ const labels: Record<string, { subject: string; title: string }> = {
     subject: 'Nueva promo publicada en Cerca Liceo',
     title: 'Nueva promo publicada',
   },
+  frontend_error: {
+    subject: 'Error detectado en Cerca Liceo',
+    title: 'Un celular encontro un problema',
+  },
 }
 
 const formatLines = (payload: AlertPayload) => {
@@ -51,6 +55,10 @@ const formatLines = (payload: AlertPayload) => {
     ['Precio', payload.priceLabel],
     ['Vence', payload.expiresAt],
     ['Estado', payload.status],
+    ['Pantalla', payload.page],
+    ['Error', payload.message],
+    ['Dispositivo', payload.viewport],
+    ['Version', payload.release],
   ]
 
   const seen = new Set<string>()

@@ -42,6 +42,30 @@ npm run build
 dist
 ```
 
+El repositorio tambien incluye despliegue automatico en `.github/workflows/quality.yml`.
+Para habilitarlo una sola vez, crear estos GitHub Actions Secrets:
+
+```text
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+```
+
+El token de Cloudflare necesita permiso `Cloudflare Pages: Edit` para la cuenta.
+Despues de eso cada push a `main` publica solamente si pasan lint, pruebas, build,
+accesibilidad y navegación de navegador.
+
+Para la prueba integral programada se agregan, ademas:
+
+```text
+E2E_MERCHANT_EMAIL
+E2E_MERCHANT_PASSWORD
+SUPABASE_SERVICE_ROLE_KEY
+```
+
+La cuenta se crea con un alias único, prueba ficha/foto/promo y se elimina al terminar.
+
 ## 4. Variables de entorno en Cloudflare
 
 Agregar en Pages > Settings > Environment variables:

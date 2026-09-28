@@ -8,11 +8,12 @@ describe('validacion de fotos', () => {
     expect(validateImageFile({ type: 'image/webp', size: 1_024 })).toBe('')
   })
 
-  it('explica por que una foto HEIC no puede procesarse', () => {
-    expect(validateImageFile({ type: 'image/heic', size: 1_024 })).toMatch(/JPG, PNG o WebP/)
+  it('acepta HEIC de iPhone por tipo MIME o extension', () => {
+    expect(validateImageFile({ type: 'image/heic', name: 'foto.heic', size: 1_024 })).toBe('')
+    expect(validateImageFile({ type: '', name: 'FOTO.HEIF', size: 1_024 })).toBe('')
   })
 
   it('rechaza archivos demasiado pesados antes de leerlos en memoria', () => {
-    expect(validateImageFile({ type: 'image/jpeg', size: 12 * 1024 * 1024 + 1 })).toMatch(/12 MB/)
+    expect(validateImageFile({ type: 'image/jpeg', size: 30 * 1024 * 1024 + 1 })).toMatch(/30 MB/)
   })
 })

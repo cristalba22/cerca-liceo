@@ -243,13 +243,6 @@ const mergeById = (items) => {
   })
 }
 
-const isOrdersPlanActive = (business = {}) => {
-  const plan = business.plan === 'orders' ? 'pedidos' : business.plan
-  if (plan !== 'pedidos' || business.planStatus !== 'active') return false
-  if (!business.paidUntil) return true
-  const paidUntil = new Date(`${business.paidUntil}T23:59:59`)
-  return Number.isNaN(paidUntil.getTime()) || paidUntil.getTime() >= Date.now()
-}
 
 const readLocalEvents = () => readStorage(LOCAL_EVENTS_KEY) || []
 
@@ -949,7 +942,7 @@ export const cercaApi = {
 
     if (error) {
       const cachedOffers = readStorage(PUBLIC_OFFERS_CACHE_KEY) || []
-      return { offers: cachedOffers, error: cachedOffers.length ? null : error }
+      return { offers: cachedOffers, error }
     }
 
     const offers = data?.map(mapPublicOfferRpcRow) || []
@@ -1099,7 +1092,7 @@ export const cercaApi = {
     }
     if (error) {
       const cachedBusinesses = readStorage(PUBLIC_BUSINESSES_CACHE_KEY) || []
-      return { businesses: cachedBusinesses.map(normalizeBusiness), error: cachedBusinesses.length ? null : error }
+      return { businesses: cachedBusinesses.map(normalizeBusiness), error }
     }
 
     const rows = data || []
@@ -1358,11 +1351,9 @@ export const cercaApi = {
       image_key: safeImageKey,
       image_zoom: safeDraft.imageZoom,
       image_position: safeDraft.imagePosition,
-      plan: safeDraft.plan === 'pedidos' ? 'orders' : 'free',
-      plan_status: safeDraft.plan === 'pedidos'
-        ? (safeDraft.planStatus === 'active' ? 'active' : 'manual_pending')
-        : 'free',
-      paid_until: safeDraft.paidUntil || null,
+      plan: 'free',
+      plan_status: 'free',
+      paid_until: null,
       is_public: safeDraft.isPublic ?? true,
       is_open: safeDraft.open !== false,
       updated_at: new Date().toISOString(),
@@ -1396,9 +1387,8 @@ export const cercaApi = {
 
     if (error || !data) return { business: null, error }
 
-    const planIsActive = isOrdersPlanActive(mapBusinessRow(data))
     const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
-    const menu = (planIsActive ? (safeDraft.menu || []) : [])
+    const menu = (safeDraft.menu || [])
       .slice(0, 15)
       .filter((item) => item.name?.trim())
       .map((item, index) => ({
@@ -1410,7 +1400,7 @@ export const cercaApi = {
         position: index,
       }))
 
-    if (planIsActive) {
+    if (Array.isArray(safeDraft.menu)) {
       const { data: currentProducts, error: currentProductsError } = await supabase
         .from('products')
         .select('id')
@@ -1457,9 +1447,6 @@ export const cercaApi = {
       .single()
 
     const savedBusiness = refreshed ? mapBusinessRow(refreshed) : mapBusinessRow(data)
-    const wasFounderRequested = existingBusiness?.plan === 'orders' && existingBusiness?.plan_status === 'manual_pending'
-    const isFounderRequestedNow = savedBusiness.plan === 'pedidos' && savedBusiness.planStatus === 'manual_pending'
-
     await sendAdminAlert(existingBusiness?.id ? 'business_updated' : 'business_created', {
       businessId: savedBusiness.id,
       name: savedBusiness.name,
@@ -1478,17 +1465,6 @@ export const cercaApi = {
       isPublic: savedBusiness.isPublic,
       hasImage: isDataImage(savedBusiness.image) || /^https?:\/\//i.test(savedBusiness.image || ''),
     })
-
-    if (isFounderRequestedNow && !wasFounderRequested) {
-      await sendAdminAlert('founder_plan_requested', {
-        businessId: savedBusiness.id,
-        name: savedBusiness.name,
-        category: savedBusiness.category,
-        section: savedBusiness.section,
-        whatsapp: savedBusiness.whatsapp,
-        instagram: savedBusiness.instagram,
-      })
-    }
 
     return {
       business: savedBusiness,
@@ -1516,19 +1492,7 @@ export const cercaApi = {
       return { offer: null, error: new Error('Guarda la ficha del local antes de publicar una promo.') }
     }
 
-    const founderActive = isOrdersPlanActive(business)
-
     if (!hasSupabaseConfig) {
-      if (!founderActive) {
-        const weekStart = Date.now() - 7 * 86400000
-        const weeklyOffers = readLocalOffers().filter((offer) => (
-          (offer.businessId === business.id || offer.business === business.name) &&
-          new Date(offer.createdAt || Date.now()).getTime() >= weekStart
-        ))
-        if (weeklyOffers.length >= 1) {
-          return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi Impulso Liceo gratis por 2 meses.') }
-        }
-      }
       const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString()
       const offer = {
         id: createClientId(),
@@ -1562,24 +1526,6 @@ export const cercaApi = {
       const savedOffers = readStorage(LOCAL_OFFERS_KEY) || []
       writeStorage(LOCAL_OFFERS_KEY, [offer, ...savedOffers].slice(0, 80))
       return { offer, error: null, warning: textWarning }
-    }
-
-    if (!founderActive) {
-      const rpcCheck = await supabase.rpc('can_create_weekly_free_offer', { target_business_id: business.id })
-      if (!rpcCheck.error && rpcCheck.data === false) {
-        return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi Impulso Liceo gratis por 2 meses.') }
-      }
-      if (rpcCheck.error) {
-        const weekStart = new Date(Date.now() - 7 * 86400000).toISOString()
-        const { count, error: countError } = await supabase
-          .from('offers')
-          .select('id', { count: 'exact', head: true })
-          .eq('business_id', business.id)
-          .gte('created_at', weekStart)
-        if (!countError && count >= 1) {
-          return { offer: null, error: new Error('Ya usaste la publicacion gratis de esta semana. Para extras, pedi Impulso Liceo gratis por 2 meses.') }
-        }
-      }
     }
 
     const { url: offerImageUrl, error: imageError } = await uploadPublicImage(imageKey, 'offers')

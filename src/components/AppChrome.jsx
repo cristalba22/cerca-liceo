@@ -10,7 +10,7 @@ export function ContactFooter({ onPrivacy }) {
       <div>
         <span>Proyecto local</span>
         <strong>Cerca Liceo</strong>
-        <p>Creado por Cristian Eduardo Alba para conectar vecinos, comercios y ofertas del barrio.</p>
+        <p>Gratis hoy y siempre. Creado por Cristian Eduardo Alba para que las ofertas del barrio no se pierdan entre mensajes de WhatsApp.</p>
       </div>
       <div className="contact-actions">
         <a href={whatsappUrl} target="_blank" rel="noreferrer">

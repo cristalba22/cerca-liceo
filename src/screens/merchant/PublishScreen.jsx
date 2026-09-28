@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { ArrowLeft, Camera, Check, ChevronRight, MapPin, MessageCircle, Sparkles } from 'lucide-react'
-import { isFounderPlanActive, isUploadedImage, makeWhatsAppUrl } from '../../lib/businessRules'
+import { hasCatalogAccess, isUploadedImage } from '../../lib/businessRules'
 import { imageSurfaceProps, readCompressedImage } from '../../lib/media'
 import { HomeReturnStrip, ThemeToggle } from '../../components/AppChrome'
 
-export function PublishScreen({ account, local, template, offers = [], onBack, onHome, onMerchantPanel, onPublishOffer, onToggleTheme }) {
+export function PublishScreen({ account, local, template, onBack, onHome, onMerchantPanel, onPublishOffer, onToggleTheme }) {
   const isEditingOffer = template?.editMode === 'edit' && template?.id
   const firstOfferTemplate = {
     title: '',
@@ -32,7 +32,7 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
     image: template?.image || 'generic',
     expiresInDays: 4,
     hasPrice: template ? template.price !== 'Consultar' : true,
-    ordersEnabled: isFounderPlanActive(local),
+    ordersEnabled: hasCatalogAccess(local),
     hasDelivery: String(local?.delivery || '').toLowerCase().includes('delivery'),
     orderHours: local?.hours || '20:00 a 00:30',
     deliveryZone: local?.section || 'Liceo Procrear',
@@ -54,41 +54,15 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
   }
   const hasMerchantAccount = account?.type === 'merchant'
   const canPublish = hasMerchantAccount && local
-  const weekStart = Date.now() - 7 * 86400000
-  const weeklyPosts = offers.filter((offer) => (
-    offer.id !== template?.id &&
-    (offer.businessId === local?.id || offer.business === local?.name) &&
-    new Date(offer.createdAt || Date.now()).getTime() >= weekStart
-  ))
-  const freePostUsed = weeklyPosts.length > 0 && !template
-  const founderActive = isFounderPlanActive(local)
-  const monthStart = new Date()
-  monthStart.setDate(1)
-  monthStart.setHours(0, 0, 0, 0)
-  const monthlyPosts = offers.filter((offer) => (
-    offer.id !== template?.id &&
-    (offer.businessId === local?.id || offer.business === local?.name) &&
-    new Date(offer.createdAt || Date.now()).getTime() >= monthStart.getTime()
-  ))
-  const founderExtraLimit = 4
-  const founderExtraUsed = founderActive ? Math.max(0, monthlyPosts.length - 1) : 0
-  const founderExtraLeft = founderActive ? Math.max(0, founderExtraLimit - founderExtraUsed) : 0
-  const isFounderExtraPost = founderActive && freePostUsed && !isEditingOffer
-  const founderMonthlyLimitReached = isFounderExtraPost && founderExtraLeft <= 0
-  const canUseExtraPost = isEditingOffer || !freePostUsed || founderActive
-  const founderPlanUrl = makeWhatsAppUrl(
-    '3517662142',
-    `Hola Cristian, quiero activar Impulso Liceo gratis por 2 meses para ${local?.name || account?.businessName || 'mi comercio'}. Entiendo que se baja solo y no se cobra nada si no decido seguir.`,
-  )
   const [publishStatus, setPublishStatus] = useState('')
+  const [publishing, setPublishing] = useState(false)
   const publishMissing = [
     !String(offerDraft.title || '').trim() && 'titulo',
     offerDraft.hasPrice && !String(offerDraft.price || '').trim() && 'precio o desactivar precio',
     !String(offerDraft.description || '').trim() && 'descripcion corta',
     !local?.whatsapp && 'WhatsApp del local',
-    founderMonthlyLimitReached && 'cupo extra mensual',
   ].filter(Boolean)
-  const canSendOffer = canPublish && publishMissing.length === 0 && canUseExtraPost
+  const canSendOffer = canPublish && publishMissing.length === 0
   const updateOfferDraft = (field, value) => {
     setOfferDraft((current) => ({ ...current, [field]: value }))
     setPublishStatus('')
@@ -119,10 +93,12 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
   }
 
   const publishPreparedOffer = async () => {
+    if (publishing) return
     if (!canSendOffer) {
       setPublishStatus(canPublish ? `Falta completar: ${publishMissing.join(', ')}.` : 'Primero carga la ficha del local.')
       return
     }
+    setPublishing(true)
     setPublishStatus('Guardando la promo...')
     try {
       const result = await onPublishOffer({
@@ -137,6 +113,8 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
       setPublishStatus(result?.message || 'No pudimos confirmar la publicacion. Intenta nuevamente.')
     } catch (error) {
       setPublishStatus(error?.message || 'No se pudo guardar la promo. Intenta nuevamente.')
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -151,8 +129,8 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
       </header>
       <HomeReturnStrip onHome={onHome} />
 
-      <section className={`publish-hero publish-hero-simple ${founderActive ? 'founder' : ''}`}>
-        <span>{isEditingOffer ? 'Editar promo' : founderActive ? 'Impulso activo' : canPublish ? 'Promo gratis' : 'Falta local'}</span>
+      <section className="publish-hero publish-hero-simple">
+        <span>{isEditingOffer ? 'Editar promo' : canPublish ? 'Promo gratis' : 'Falta local'}</span>
         <h1>{isEditingOffer ? 'Edita la promo.' : 'Nueva promo.'}</h1>
         <p>{canPublish ? 'Subi una foto, escribi que ofreces y publicala. Corta, clara y por WhatsApp.' : 'Primero completa tu ficha gratis para aparecer en la guia.'}</p>
       </section>
@@ -168,21 +146,6 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
         </button>
       </section>
 
-      {founderActive && (
-        <section className="publish-quota publish-quota-simple founder-publish-quota" aria-label="Cupo de publicaciones Impulso Liceo">
-          <article className={freePostUsed ? '' : 'is-free'}>
-            <span>Gratis semanal</span>
-            <strong>{freePostUsed ? 'Usada' : 'Disponible'}</strong>
-            <small>{freePostUsed ? 'Esta promo sale extra.' : 'Usala primero.'}</small>
-          </article>
-          <article className={isFounderExtraPost ? 'is-free' : ''}>
-            <span>Extras Impulso</span>
-            <strong>{founderExtraLeft}/{founderExtraLimit}</strong>
-            <small>Mes actual.</small>
-          </article>
-        </section>
-      )}
-
       <section className="upload-stage upload-stage-simple">
         <div>
           <Camera size={24} />
@@ -190,7 +153,7 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
           <span>{isUploadedImage(offerDraft.image) ? 'Se va a ver en el inicio.' : 'Opcional, pero ayuda mucho.'}</span>
         </div>
         <label className="file-pill">
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleOfferPhoto} />
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleOfferPhoto} />
           {isUploadedImage(offerDraft.image) ? 'Cambiar foto' : 'Agregar foto'}
         </label>
       </section>
@@ -245,7 +208,7 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
         </div>
       </section>
 
-      {founderActive && (
+      {hasCatalogAccess(local) && (
       <section className="delivery-setup delivery-setup-simple">
         <div className="delivery-setup-copy">
           <span>WhatsApp</span>
@@ -300,26 +263,20 @@ export function PublishScreen({ account, local, template, offers = [], onBack, o
       <button
         className="primary-action publish-main-submit"
         type="button"
-        onClick={canPublish
-          ? (freePostUsed && !founderActive ? () => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer') : publishPreparedOffer)
-          : onMerchantPanel}
+        disabled={publishing}
+        onClick={canPublish ? publishPreparedOffer : onMerchantPanel}
       >
-        {canPublish ? (canSendOffer ? (isEditingOffer ? 'Guardar promo' : freePostUsed ? 'Publicar extra' : 'Publicar promo gratis') : freePostUsed && !founderActive && !isEditingOffer ? 'Probar Impulso gratis' : `Falta ${publishMissing[0]}`) : 'Completar local primero'}
+        {publishing ? 'Publicando...' : canPublish ? (isEditingOffer ? 'Guardar promo' : 'Publicar promo gratis') : 'Completar local primero'}
       </button>
 
       <section className="publish-rules-card">
         <span>Como funciona</span>
-        <strong>Tenes 1 publicacion gratis por semana.</strong>
-        <p>Dura 3 o 4 dias y se baja sola. Si queres probar mas herramientas, Impulso Liceo suma 4 promos extra, catalogo y pedidos por WhatsApp gratis por 2 meses.</p>
-        {!founderActive && (
-          <button type="button" onClick={() => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer')}>
-            Probar Impulso gratis
-          </button>
-        )}
+        <strong>Publicar es gratis hoy y siempre.</strong>
+        <p>Sin tarjeta, sin comisiones ni vencimiento de tu cuenta. Cada promo dura 3 o 4 dias para que el vecino vea ofertas vigentes. Podes volver a publicarla.</p>
       </section>
 
       <div className="publish-checks">
-        <span><Check size={15} /> 1 semanal gratis</span>
+        <span><Check size={15} /> Siempre gratis</span>
         <span><Check size={15} /> Precio opcional</span>
         <span><Check size={15} /> Baja automatica</span>
         <span><Check size={15} /> Sin comision</span>

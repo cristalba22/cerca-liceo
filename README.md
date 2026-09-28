@@ -1,6 +1,6 @@
 # Cerca Liceo
 
-Guia barrial para que vecinos de Liceo encuentren ofertas vigentes, locales, emprendimientos, horarios, ubicacion y contacto directo por WhatsApp.
+Gratis hoy y siempre para comerciantes y vecinos de Liceo. Las ofertas del barrio en un solo lugar, para que no se pierdan entre mensajes de WhatsApp. Sin tarjeta, comisiones ni planes pagos.
 
 [![Produccion](https://img.shields.io/badge/produccion-cercaliceo.com.ar-9bea16)](https://www.cercaliceo.com.ar/)
 [![Quality](https://github.com/cristalba22/cerca-liceo/actions/workflows/quality.yml/badge.svg)](https://github.com/cristalba22/cerca-liceo/actions/workflows/quality.yml)
@@ -31,7 +31,7 @@ Cerca Liceo centraliza esa informacion en una experiencia simple:
 - El vecino entra gratis, busca y escribe directo por WhatsApp.
 - El comercio carga su ficha gratis para aparecer en la guia.
 - Las ofertas duran pocos dias y se bajan solas para evitar publicaciones viejas.
-- El administrador revisa locales, activa extras manuales y mantiene la calidad del barrio.
+- El administrador revisa locales y mantiene la calidad del barrio, sin activar planes.
 
 ## Funciones Principales
 
@@ -48,10 +48,10 @@ Cerca Liceo centraliza esa informacion en una experiencia simple:
 - Crear cuenta de comercio.
 - Publicar ficha gratuita con nombre, rubro, WhatsApp, zona, horarios y foto.
 - Usar la app con local fisico o como emprendimiento sin direccion publica.
-- Publicar 1 promo semanal gratis con vencimiento automatico.
+- Publicar ofertas gratis con vencimiento automatico, sin cupos ligados a planes.
 - Republicar promos vencidas.
 - Ver metricas simples: vistas de ficha, vistas de promos y clicks en WhatsApp.
-- Probar Impulso Liceo por 2 meses para catalogo, pedidos por WhatsApp y publicaciones extra.
+- Cargar catalogo y recibir pedidos por WhatsApp, gratis y sin activacion de un plan.
 
 ### Administrador
 
@@ -108,7 +108,7 @@ El frontend mantiene la navegacion y el estado compartido en `src/App.jsx`, mien
 3. Comerciante completa foto, ubicacion y horarios.
 4. Comerciante publica una promo gratis.
 5. Admin recibe aviso por email y revisa calidad.
-6. Si el comercio pide Impulso Liceo, el admin activa la prueba gratuita por 2 meses.
+6. El comercio puede agregar su catalogo y publicar mas ofertas gratis, sin aprobacion de un plan.
 
 ## Seguridad Y Privacidad
 
@@ -162,7 +162,11 @@ GitHub Actions ejecuta en cada push y pull request:
 - 12 pruebas de reglas de negocio y seguridad.
 - Build de produccion.
 
-Las pruebas cubren formato de WhatsApp argentino, vencimiento y pausa de promociones, horarios cortados y especiales de fin de semana, proteccion de notas administrativas y limite semanal del lado servidor.
+Las pruebas cubren formato de WhatsApp argentino, vencimiento y pausa de promociones, horarios cortados y especiales de fin de semana, proteccion de notas administrativas y acceso gratuito al catalogo y publicaciones.
+
+### Modelo Gratuito
+
+Aplicar `supabase/free-forever.sql` despues de los scripts anteriores de seguridad y feed publico. Quita condiciones de plan y fechas de pago del catalogo y del RPC de publicaciones anterior, conservando RLS, propiedad y visibilidad. Los campos de planes antiguos se conservan por compatibilidad, pero no conceden ni restringen herramientas. Las ofertas siguen venciendo; las cuentas no tienen periodo de prueba.
 
 ## Produccion
 
@@ -174,6 +178,16 @@ Ver [DEPLOY.md](./DEPLOY.md) y [BACKEND.md](./BACKEND.md).
 - Migrar partes sensibles del core a TypeScript.
 - Mejorar SEO con prerender o migracion gradual a SSR/SSG.
 - Sumar reportes simples para comercios: vistas, clicks y promos que mejor funcionan.
+
+## Calidad De Produccion
+
+- Playwright recorre home, buscador, accesos y páginas públicas en perfiles iPhone, Android de 360 px y escritorio.
+- Axe revisa automáticamente errores serios o críticos de accesibilidad, incluido contraste.
+- Una suite protegida por secretos prueba registro, confirmación, foto, ficha y promo con una cuenta descartable.
+- Los errores inesperados del navegador se registran y el primer fallo de cada sesión envía un aviso al administrador.
+- HEIC/HEIF y fotos de hasta 30 MB se convierten bajo demanda y se reducen antes de subir.
+- El build genera una URL, metadata, datos estructurados y sitemap para cada comercio público.
+- GitHub Actions puede desplegar a Cloudflare Pages después de aprobar todos los controles.
 
 ## Contacto
 

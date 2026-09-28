@@ -2690,7 +2690,11 @@ select:focus-visible {
 }
 
 .bottom-nav button.active {
-  color: #86ad12;
+  color: #4f6d00;
+}
+
+.night-mode .bottom-nav button.active {
+  color: #b9f55b;
 }
 
 .bottom-nav button.publish svg {
@@ -3214,7 +3218,7 @@ select:focus-visible {
 
 .live-map-local small {
   margin-top: 3px;
-  color: #756d60;
+  color: #625b50;
   font-size: 10px;
   font-weight: 850;
 }
@@ -4655,7 +4659,7 @@ select:focus-visible {
 }
 
 .info-item span {
-  color: #7a7367;
+  color: #625b50;
   font-size: 11px;
   font-weight: 1000;
   text-transform: uppercase;
@@ -13955,7 +13959,7 @@ button:active,
 }
 
 .local-decision-strip span {
-  color: #756d60;
+  color: #625b50;
   font-size: 10px;
   font-weight: 1000;
   text-transform: uppercase;
@@ -15160,7 +15164,8 @@ html.android-compat .contact-actions a {
   background: #a7e92a !important;
 }
 
-html.android-compat .contact-actions a:last-child {
+html.android-compat .contact-actions a:last-child,
+html.android-compat .contact-actions button {
   color: #172112 !important;
   background: #eee6d5 !important;
 }
@@ -16211,4 +16216,32 @@ html.android-compat .today-lead-image {
     min-width: 0;
     padding-inline: 10px;
   }
+}
+
+.feed-retry-notice {
+  padding: 16px 0;
+  border-block: 1px solid #d99831;
+  line-height: 1.45;
+}
+
+.feed-retry-notice p { margin: 6px 0 12px; }
+.feed-retry-notice button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #b0ed26;
+  color: #15200e;
+  font-weight: 700;
+}
+.feed-retry-notice button:disabled { opacity: 0.6; }
+.business-card-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.business-card-title-link:focus-visible {
+  outline: 3px solid #78bd00;
+  outline-offset: 3px;
+  border-radius: 3px;
 }

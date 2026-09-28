@@ -252,36 +252,8 @@ const hasBusinessPublicAddress = (business = {}) => {
   )
 }
 
-const isFounderPlanActive = (business = {}) => {
-  const safeBusiness = business || {}
-  const plan = safeBusiness.plan === 'orders' ? 'pedidos' : safeBusiness.plan
-  if (plan !== 'pedidos' || safeBusiness.planStatus !== 'active') return false
-  if (!safeBusiness.paidUntil) return true
-  const paidUntil = new Date(`${safeBusiness.paidUntil}T23:59:59`)
-  return Number.isNaN(paidUntil.getTime()) || paidUntil.getTime() >= Date.now()
-}
-
-const isFounderPlanRequested = (business = {}) => {
-  const safeBusiness = business || {}
-  const plan = safeBusiness.plan === 'orders' ? 'pedidos' : safeBusiness.plan
-  return plan === 'pedidos' && safeBusiness.planStatus !== 'active'
-}
-
-const isFounderPlanExpired = (business = {}) => {
-  const safeBusiness = business || {}
-  const plan = safeBusiness.plan === 'orders' ? 'pedidos' : safeBusiness.plan
-  if (plan !== 'pedidos' || safeBusiness.planStatus !== 'active' || !safeBusiness.paidUntil) return false
-  const paidUntil = new Date(`${safeBusiness.paidUntil}T23:59:59`)
-  return !Number.isNaN(paidUntil.getTime()) && paidUntil.getTime() < Date.now()
-}
-
-const IMPULSO_TRIAL_DAYS = 60
-
-const getFounderPaidUntil = (days = IMPULSO_TRIAL_DAYS) => {
-  const date = new Date()
-  date.setDate(date.getDate() + days)
-  return date.toISOString().slice(0, 10)
-}
+// Legacy plan fields no longer control access. Ownership and visibility are enforced by RLS.
+const hasCatalogAccess = (business) => Boolean(business && (business.id || business.name))
 
 const MS_DAY = 86400000
 
@@ -290,13 +262,6 @@ const getDaysLeft = (dateValue) => {
   const end = new Date(String(dateValue).includes('T') ? dateValue : `${dateValue}T23:59:59`)
   if (Number.isNaN(end.getTime())) return null
   return Math.ceil((end.getTime() - Date.now()) / MS_DAY)
-}
-
-const getFounderDaysLeft = (business = {}) => getDaysLeft(business.paidUntil)
-
-const isFounderExpiringSoon = (business = {}) => {
-  const days = getFounderDaysLeft(business)
-  return isFounderPlanActive(business) && days !== null && days <= 5
 }
 
 const isOfferExpired = (offer = {}) => {
@@ -655,6 +620,22 @@ const isUploadedImage = (image) => typeof image === 'string' && (
   image.startsWith('http')
 )
 
+const slugifyPublicText = (value = '') => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '')
+  .slice(0, 64)
+
+const getBusinessSlug = (business = {}) => {
+  const name = slugifyPublicText(business.name) || 'comercio'
+  const id = String(business.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toLowerCase()
+  return id ? `${name}-${id}` : name
+}
+
+const getBusinessPublicPath = (business = {}) => `/comercios/${getBusinessSlug(business)}/`
+
 export {
   normalizeSearchText,
   getMapPointFromCoordinates,
@@ -678,15 +659,9 @@ export {
   makeInstagramUrl,
   getBusinessMenu,
   hasBusinessPublicAddress,
-  isFounderPlanActive,
-  isFounderPlanRequested,
-  isFounderPlanExpired,
-  IMPULSO_TRIAL_DAYS,
-  getFounderPaidUntil,
+  hasCatalogAccess,
   MS_DAY,
   getDaysLeft,
-  getFounderDaysLeft,
-  isFounderExpiringSoon,
   isOfferExpired,
   isOfferPaused,
   isOfferActiveNow,
@@ -709,4 +684,7 @@ export {
   buildLocalDraft,
   buildInitialBusinessDraftFromAccount,
   isUploadedImage,
+  slugifyPublicText,
+  getBusinessSlug,
+  getBusinessPublicPath,
 }

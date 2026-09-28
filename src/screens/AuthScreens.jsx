@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { ArrowLeft, Bell, Check, EyeOff, Flame, Heart, Eye, List, MessageCircle, Share2, ShieldCheck, ShoppingBasket, Store, UserRound } from 'lucide-react'
+import { ArrowLeft, Bell, Check, EyeOff, Flame, Heart, Eye, List, MessageCircle, Share2, ShieldCheck, Store, UserRound } from 'lucide-react'
 import { sections, commerceCategories } from '../lib/appConfig.js'
 import {
-  parseMapCoordinates, hasBusinessPin, getBusinessMapUrl, isFounderPlanActive,
-  isFounderPlanRequested, hasBusinessPublicAddress, isValidArgentineWhatsapp,
+  parseMapCoordinates, hasBusinessPin, getBusinessMapUrl,
+  hasBusinessPublicAddress, isValidArgentineWhatsapp,
   makeWhatsAppUrl, normalizeArgentineWhatsapp,
 } from '../lib/businessRules'
 import { RealLocationPicker } from '../components/RealLocationPicker'
@@ -142,7 +142,7 @@ export function LoginScreen({ authNotice, onBack, onLogin, onForgotPassword, onQ
             <Store size={22} />
             <span>Soy comerciante</span>
             <strong>Panel, local y publicaciones</strong>
-            <small>Ficha gratis + 1 promo semanal.</small>
+            <small>Ficha, ofertas y catalogo. Siempre gratis.</small>
           </button>
         </section>
       )}
@@ -344,14 +344,6 @@ export function ProfileScreen({ account, local, onBack, onLogin, onRegister, onM
   const isLogged = Boolean(account)
   const isMerchant = account?.type === 'merchant'
   const isAdmin = account?.role === 'admin' || !cercaApi.isSupabaseEnabled()
-  const founderActive = isMerchant && local ? isFounderPlanActive(local) : false
-  const founderRequested = isMerchant && local ? isFounderPlanRequested(local) : false
-  const showProfileFounderTrial = isMerchant && local && !founderActive
-  const profileFounderUrl = makeWhatsAppUrl(
-    '3517662142',
-    `Hola Cristian, quiero activar Impulso Liceo gratis por 2 meses para ${local?.name || account?.businessName || 'mi comercio'}. Entiendo que se baja solo y no se cobra nada si no decido seguir.`
-  )
-
   if (isAndroidCompatMode()) {
     return (
       <div className="android-safe-screen">
@@ -421,7 +413,7 @@ export function ProfileScreen({ account, local, onBack, onLogin, onRegister, onM
                   </button>
                   <button type="button" onClick={onPublish}>
                     <strong>Publicar promo</strong>
-                    <small>Usa tu publicacion semanal gratis.</small>
+                    <small>Publica tus ofertas gratis.</small>
                   </button>
                 </>
               )}
@@ -449,23 +441,14 @@ export function ProfileScreen({ account, local, onBack, onLogin, onRegister, onM
               </button>
             </section>
 
-            {showProfileFounderTrial && (
-              <section className="android-safe-card android-founder-teaser">
-                <span>{founderRequested ? 'Solicitud enviada' : 'Gratis 2 meses'}</span>
-                <h2>{founderRequested ? 'Impulso pendiente.' : 'Proba Impulso Liceo.'}</h2>
-                <p>{founderRequested ? 'Cristian te contacta para activarlo.' : 'Catalogo, pedidos por WhatsApp y 4 promos extra. Gratis por 2 meses y se baja solo.'}</p>
-                <button type="button" onClick={() => window.open(profileFounderUrl, '_blank', 'noopener,noreferrer')}>
-                  {founderRequested ? 'Escribir a Cristian' : 'Quiero probar gratis'}
-                </button>
-              </section>
-            )}
+
           </>
         )}
 
         <section className="android-safe-card">
           <span>Comercios</span>
-          <h2>Arrancas gratis.</h2>
-          <p>La ficha del local o emprendimiento puede aparecer con foto, zona, horario y contacto. Los extras se activan solo si el comercio los pide.</p>
+          <h2>Gratis hoy y siempre.</h2>
+          <p>Tu ficha, tus ofertas y tu catalogo son gratis hoy y siempre. Sin tarjeta ni comisiones.</p>
         </section>
 
         <section className="android-safe-card">
@@ -489,7 +472,7 @@ export function ProfileScreen({ account, local, onBack, onLogin, onRegister, onM
 
       {isLogged && (
         <section className="profile-head">
-          <div className="profile-avatar">{account.name.slice(0, 2).toUpperCase()}</div>
+          <div className="profile-avatar">{String(account.name || account.businessName || 'Mi cuenta').slice(0, 2).toUpperCase()}</div>
           <div>
             <span>{isMerchant ? 'Cuenta comercio' : 'Cuenta vecino'}</span>
             <h1>{account.name}</h1>
@@ -584,18 +567,7 @@ export function ProfileScreen({ account, local, onBack, onLogin, onRegister, onM
         </section>
       )}
 
-      {showProfileFounderTrial && (
-        <section className={`profile-founder-teaser ${founderRequested ? 'is-requested' : ''}`} aria-label="Probar Impulso Liceo gratis">
-          <div>
-            <span>{founderRequested ? 'Solicitud enviada' : 'Gratis 2 meses'}</span>
-            <h2>{founderRequested ? 'Impulso pendiente.' : 'Proba Impulso Liceo.'}</h2>
-            <p>{founderRequested ? 'Cristian te contacta para activarlo.' : 'Catalogo, pedidos por WhatsApp y 4 promos extra. Gratis por 2 meses, sin tarjeta y sin cobro automatico.'}</p>
-          </div>
-          <button type="button" onClick={() => window.open(profileFounderUrl, '_blank', 'noopener,noreferrer')}>
-            {founderRequested ? 'Escribir' : 'Quiero probar'}
-          </button>
-        </section>
-      )}
+
 
       {isMerchant && !local && (
         <section className="merchant-entry-card">
@@ -619,41 +591,12 @@ export function ProfileScreen({ account, local, onBack, onLogin, onRegister, onM
         </section>
       )}
 
-      <section className="merchant-plans-card" id="planes-comercio">
+      <section className="merchant-plans-card" aria-label="Siempre gratis">
         <div className="merchant-plans-head">
-          <span>Opciones para comercios</span>
-          <h2>Arrancas gratis y sumas extras solo si te sirven.</h2>
-          <p>La ficha del local no se cobra: sirve para aparecer en la guia, mostrar datos claros y publicar una promo semanal que vence sola.</p>
+          <span>Para el barrio</span>
+          <h2>Gratis hoy y siempre.</h2>
+          <p>Tu comercio, tus ofertas y tu catalogo en un solo lugar. Los vecinos te encuentran y te escriben por WhatsApp. Sin tarjeta, sin comisiones y sin planes pagos.</p>
         </div>
-        <div className="merchant-plan-list">
-          <article>
-            <Store size={18} />
-            <strong>Plan gratis</strong>
-            <p>Ficha del local con foto, direccion, horarios, WhatsApp, rubro y 1 publicacion semanal gratis.</p>
-            <span>La promo dura 3 dias y se baja sola</span>
-          </article>
-          <article>
-            <Flame size={18} />
-            <strong>4 publicaciones extra</strong>
-            <p>Para subir mas promos en el mes cuando hay combos, cambios de precio o ventas puntuales.</p>
-            <span>Incluido en Impulso Liceo</span>
-          </article>
-          <article>
-            <ShoppingBasket size={18} />
-            <strong>Catalogo + pedidos</strong>
-            <p>El vecino elige productos o servicios, suma la consulta y la envia armada al WhatsApp del comercio.</p>
-            <span>Gratis 2 meses en lanzamiento</span>
-          </article>
-        </div>
-        <a
-          className="founder-plan-cta merchant-plan-cta"
-          href={makeWhatsAppUrl('3517662142', 'Hola Cristian, quiero activar Impulso Liceo gratis por 2 meses para mi comercio. Entiendo que se baja solo y no se cobra nada si no decido seguir.')}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <MessageCircle size={16} />
-          Probar Impulso gratis
-        </a>
       </section>
 
       <ContactFooter onPrivacy={onPrivacy} />
@@ -1161,7 +1104,7 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
             <article>
               <b>3</b>
               <strong>Primer promo</strong>
-              <span>Gratis semanal</span>
+              <span>Siempre gratis</span>
             </article>
           </section>
         )}
@@ -1204,7 +1147,7 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
           <article>
             <b>3</b>
             <strong>Promos</strong>
-            <span>1 gratis semanal</span>
+            <span>Siempre gratis</span>
           </article>
         </section>
       )}
@@ -1370,7 +1313,7 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
           <ShieldCheck size={19} />
           <div>
             <strong>Alta gratis y sin compromiso</strong>
-            <span>La ficha del local puede quedar visible gratis. Los planes son extras opcionales.</span>
+            <span>Tu comercio y tus ofertas, gratis hoy y siempre. Sin tarjeta ni comisiones.</span>
           </div>
         </section>
       )}

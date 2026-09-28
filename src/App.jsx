@@ -23,9 +23,10 @@ import {
 } from './lib/appConfig.js'
 import {
   normalizeSearchText, getMapPointFromCoordinates, hasBusinessPin, getBusinessMapUrl,
-  isFounderPlanActive, getFounderPaidUntil, isOfferPaused, isOfferActiveNow,
+  hasCatalogAccess, isOfferPaused, isOfferActiveNow,
   getOpenStatus, getOfferOpenStatus, mergeUniqueById, buildInitialBusinessDraftFromAccount, toNoticeText,
   isUploadedImage,
+  getBusinessSlug, getBusinessPublicPath,
 } from './lib/businessRules'
 import { imageSurfaceProps } from './lib/media'
 import { ContactFooter } from './components/AppChrome'
@@ -83,6 +84,9 @@ function App() {
   const [feedBusinesses, setFeedBusinesses] = useState(realDataMode ? [] : businesses)
   const [offersLoading, setOffersLoading] = useState(realDataMode)
   const [businessesLoading, setBusinessesLoading] = useState(realDataMode)
+  const [offersError, setOffersError] = useState(false)
+  const [businessesError, setBusinessesError] = useState(false)
+  const [feedRetry, setFeedRetry] = useState(0)
   const [adminBusinesses, setAdminBusinesses] = useState([])
   const [adminOffers, setAdminOffers] = useState([])
   const [adminMetrics, setAdminMetrics] = useState({
@@ -104,6 +108,25 @@ function App() {
   const [pageViews, setPageViews] = useState(() => Number(window.localStorage.getItem('cerca-liceo-page-views') || 0))
   const [sessionHydrated, setSessionHydrated] = useState(false)
   const [analyticsExcluded, setAnalyticsExcluded] = useState(() => window.localStorage.getItem('cerca-liceo-exclude-analytics') === 'true')
+
+  const showBusiness = (business, { replace = false } = {}) => {
+    if (!business) return
+    setSelectedBusiness(business)
+    setScreen('business-detail')
+    const path = getBusinessPublicPath(business)
+    if (window.location.pathname !== path) {
+      window.history[replace ? 'replaceState' : 'pushState']({ screen: 'business-detail' }, '', path)
+    }
+  }
+
+  const showHome = ({ replace = false } = {}) => {
+    setSelectedBusiness(null)
+    setSelectedOffer(null)
+    setScreen('home')
+    if (window.location.pathname !== '/') {
+      window.history[replace ? 'replaceState' : 'pushState']({ screen: 'home' }, '', '/')
+    }
+  }
 
   useEffect(() => {
     const currentViews = Number(window.localStorage.getItem('cerca-liceo-page-views') || 0)
@@ -237,15 +260,21 @@ function App() {
 
     const loadOffers = async () => {
       setOffersLoading(true)
-      const { offers: nextOffers, error } = await cercaApi.listOffers({
-        section: selectedSection,
-        category: selectedCategory,
-        query,
-      })
-      if (!ignore && !error) {
-        setFeedOffers(nextOffers)
+      try {
+        const { offers: nextOffers, error } = await cercaApi.listOffers({
+          section: selectedSection,
+          category: selectedCategory,
+          query,
+        })
+        if (!ignore) {
+          setOffersError(Boolean(error))
+          if (!error || nextOffers?.length) setFeedOffers(nextOffers || [])
+        }
+      } catch {
+        if (!ignore) setOffersError(true)
+      } finally {
+        if (!ignore) setOffersLoading(false)
       }
-      if (!ignore) setOffersLoading(false)
     }
 
     loadOffers()
@@ -253,7 +282,7 @@ function App() {
     return () => {
       ignore = true
     }
-  }, [query, selectedCategory, selectedSection])
+  }, [query, selectedCategory, selectedSection, feedRetry])
 
   useEffect(() => {
     let ignore = false
@@ -274,14 +303,22 @@ function App() {
       } catch { /* sesión inaccesible, continuar */ }
 
       setBusinessesLoading(true)
-      const { businesses: nextBusinesses, error } = await cercaApi.listBusinesses()
-      if (!ignore && !error && nextBusinesses?.length) {
-        setFeedBusinesses(nextBusinesses)
-        try {
-          window.sessionStorage.setItem(cacheKey, JSON.stringify({ data: nextBusinesses, ts: Date.now() }))
-        } catch { /* storage lleno, no crítico */ }
+      try {
+        const { businesses: nextBusinesses, error } = await cercaApi.listBusinesses()
+        if (!ignore) {
+          setBusinessesError(Boolean(error))
+          if (!error || nextBusinesses?.length) setFeedBusinesses(nextBusinesses || [])
+          if (!error) {
+            try {
+              window.sessionStorage.setItem(cacheKey, JSON.stringify({ data: nextBusinesses || [], ts: Date.now() }))
+            } catch { /* storage unavailable */ }
+          }
+        }
+      } catch {
+        if (!ignore) setBusinessesError(true)
+      } finally {
+        if (!ignore) setBusinessesLoading(false)
       }
-      if (!ignore) setBusinessesLoading(false)
     }
 
     loadBusinesses()
@@ -289,7 +326,27 @@ function App() {
     return () => {
       ignore = true
     }
-  }, [])
+  }, [feedRetry])
+
+  useEffect(() => {
+    const syncPublicRoute = () => {
+      const match = window.location.pathname.match(/^\/comercios\/([^/]+)\/?$/)
+      if (!match) return
+      const business = feedBusinesses.find((item) => getBusinessSlug(item) === decodeURIComponent(match[1]))
+      if (business) showBusiness(business, { replace: true })
+    }
+
+    syncPublicRoute()
+    window.addEventListener('popstate', syncPublicRoute)
+    return () => window.removeEventListener('popstate', syncPublicRoute)
+  }, [feedBusinesses])
+
+  useEffect(() => {
+    const title = screen === 'business-detail' && selectedBusiness
+      ? `${selectedBusiness.name} - ${selectedBusiness.category} en ${selectedBusiness.section} | Cerca Liceo`
+      : 'Cerca Liceo - Ofertas y locales del barrio'
+    document.title = title
+  }, [screen, selectedBusiness])
 
   useEffect(() => {
     let ignore = false
@@ -444,7 +501,7 @@ function App() {
       const without = current.filter((item) => item.id !== nextBusiness.id)
       return nextBusiness.isPublic === false ? without : [nextBusiness, ...without]
     })
-    if (isFounderPlanActive(nextBusiness)) {
+    if (hasCatalogAccess(nextBusiness)) {
       const { businesses: refreshedBusinesses } = await cercaApi.listBusinesses()
       if (refreshedBusinesses?.length) {
         setFeedBusinesses(refreshedBusinesses)
@@ -811,6 +868,7 @@ function App() {
             onBack={() => {
               setScreen('directory')
               setSelectedBusiness(null)
+              window.history.pushState({ screen: 'directory' }, '', '/')
             }}
           />
         )}
@@ -822,8 +880,7 @@ function App() {
             onBack={() => setScreen('home')}
             onOpen={(business) => {
               trackInteraction({ type: 'business_view', businessId: business.id })
-              setSelectedBusiness(business)
-              setScreen('business-detail')
+              showBusiness(business)
             }}
           />
         )}
@@ -899,18 +956,6 @@ function App() {
               business,
               { verified: !business.verified },
               business.verified ? 'Local marcado como no verificado.' : 'Local verificado.',
-            )}
-            onActivateOrders={(business) => updateAdminBusiness(
-              business,
-              isFounderPlanActive(business)
-                ? { plan: 'gratis', planStatus: 'free', paidUntil: '' }
-                : { plan: 'pedidos', planStatus: 'active', paidUntil: getFounderPaidUntil() },
-              isFounderPlanActive(business) ? 'Impulso Liceo desactivado.' : 'Impulso Liceo activado gratis por 2 meses.',
-            )}
-            onRenewFounder={(business) => updateAdminBusiness(
-              business,
-              { plan: 'pedidos', planStatus: 'active', paidUntil: getFounderPaidUntil() },
-              'Impulso Liceo renovado gratis por 2 meses.',
             )}
             onSaveNote={(business, adminNotes) => updateAdminBusiness(
               business,
@@ -1096,10 +1141,7 @@ function App() {
                     type: 'Local',
                     title: business.name,
                     meta: `${business.category} · ${business.section}`,
-                    action: () => {
-                      setSelectedBusiness(business)
-                      setScreen('business-detail')
-                    },
+                    action: () => showBusiness(business),
                   })), ...instantHomeResults.categories.map((category) => ({
                     id: category.name,
                     type: 'Rubro',
@@ -1127,6 +1169,15 @@ function App() {
               )}
             </div>
 
+            {(offersError || businessesError) && (
+              <section className="feed-retry-notice" role="status">
+                <strong>No pudimos actualizar las ofertas y locales.</strong>
+                <p>Revisa tu conexion. Los datos guardados pueden estar desactualizados.</p>
+                <button type="button" disabled={offersLoading || businessesLoading} onClick={() => setFeedRetry((value) => value + 1)}>
+                  {offersLoading || businessesLoading ? 'Reintentando...' : 'Volver a intentar'}
+                </button>
+              </section>
+            )}
             <HomeAccessCard
               account={account}
               local={merchantLocal}
@@ -1223,8 +1274,8 @@ function App() {
               ) : (
                 <div className="today-empty">
                   <Sparkles size={20} />
-                  <strong>{offersLoading ? 'Cargando promos del barrio' : showOpenNowOnly ? 'No vemos abiertos ahora' : 'Todavia no hay promos vigentes'}</strong>
-                  <span>{offersLoading ? 'En unos segundos aparecen las ofertas publicadas.' : showOpenNowOnly ? 'Toca "Ver todos" para mirar comercios aunque esten cerrados.' : 'Cuando carguen una promo, aparece aca arriba.'}</span>
+                  <strong>{offersLoading ? 'Cargando promos del barrio' : offersError ? 'No pudimos cargar las promos' : showOpenNowOnly ? 'No vemos abiertos ahora' : 'Todavia no hay promos vigentes'}</strong>
+                  <span>{offersLoading ? 'En unos segundos aparecen las ofertas publicadas.' : offersError ? 'Toca "Volver a intentar" para actualizar.' : showOpenNowOnly ? 'Toca "Ver todos" para mirar comercios aunque esten cerrados.' : 'Cuando carguen una promo, aparece aca arriba.'}</span>
                 </div>
               )}
             </section>
@@ -1234,8 +1285,7 @@ function App() {
                 businesses={liveMapBusinesses}
                 loading={businessesLoading}
                 onOpen={(business) => {
-                  setSelectedBusiness(business)
-                  setScreen('business-detail')
+                  showBusiness(business)
                 }}
                 onDirectory={() => setScreen('directory')}
               />
@@ -1254,10 +1304,7 @@ function App() {
                   <BusinessCard
                     business={feedBusinesses[featuredBusinessIndex % feedBusinesses.length]}
                     key={feedBusinesses[featuredBusinessIndex % feedBusinesses.length].name}
-                    onOpen={() => {
-                      setSelectedBusiness(feedBusinesses[featuredBusinessIndex % feedBusinesses.length])
-                      setScreen('business-detail')
-                    }}
+                    onOpen={() => showBusiness(feedBusinesses[featuredBusinessIndex % feedBusinesses.length])}
                   />
                 ) : businessesLoading ? (
                   <div className="empty-state is-loading">
@@ -1350,10 +1397,7 @@ function App() {
               <button
                 className="active"
                 type="button"
-                onClick={() => {
-                  setSelectedOffer(null)
-                  setSelectedBusiness(null)
-                }}
+                onClick={() => showHome()}
                 aria-label="Inicio"
               >
                 <Home size={21} />
@@ -1394,7 +1438,7 @@ function HomeAccessCard({ account, local, onLogin, onRegisterMerchant, onUpgrade
         <div>
           <span>Tu comercio</span>
           <strong>{local?.name || account.businessName || 'Completa tu ficha'}</strong>
-          <small>{local ? 'Edita datos o publica una oferta en pocos toques.' : 'Carga tu local gratis para aparecer en la guia.'}</small>
+          <small>{local ? 'Tus ofertas y tu catalogo, gratis hoy y siempre.' : 'Carga tu local gratis para aparecer en la guia.'}</small>
         </div>
         <div className="home-access-actions">
           <button className="primary" type="button" onClick={onMerchantPanel}>
@@ -1415,7 +1459,7 @@ function HomeAccessCard({ account, local, onLogin, onRegisterMerchant, onUpgrade
       <div>
         <span>{account ? 'Cuenta activa' : 'Acceso'}</span>
         <strong>{account ? 'Queres publicar como comercio?' : 'Entrar o registrarte.'}</strong>
-        <small>{account ? 'Activa el panel comercio con esta misma cuenta.' : 'Si tenes un local o emprendimiento, registrate y carga tu ficha gratis. Si ya tenes cuenta, inicia sesion.'}</small>
+        <small>{account ? 'Activa el panel comercio con esta misma cuenta.' : 'Gratis hoy y siempre para comercios y vecinos. Que las ofertas no se pierdan entre mensajes de WhatsApp.'}</small>
       </div>
       <div className={`home-access-actions ${account ? 'single' : 'login-choice'}`}>
         <button className="primary" type="button" onClick={merchantAction}>

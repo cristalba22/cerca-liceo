@@ -3,7 +3,7 @@ import { ArrowLeft, BadgeCheck, Bell, ChevronRight, Clock3, Heart, MapPin, Messa
 import { sections, categories, liceoMapEmbedUrl, liceoMapUrl, MAX_MENU_ITEMS, MENU_SECTION_SIZE, menuCatalogSections } from '../lib/appConfig.js'
 import {
   hasBusinessPin, getBusinessMapUrl, makeWhatsAppUrl, makeInstagramUrl, getBusinessMenu,
-  hasBusinessPublicAddress, isFounderPlanActive, buildCercaWhatsAppMessage, getOpenStatus,
+  hasBusinessPublicAddress, hasCatalogAccess, buildCercaWhatsAppMessage, getBusinessPublicPath, getOpenStatus,
   getOfferOpenStatus, getOfferWhatsappUrl,
 } from '../lib/businessRules'
 import { imageSurfaceProps } from '../lib/media'
@@ -136,7 +136,7 @@ export function BusinessCard({ business, onOpen, large = false, motionOrder = 0 
   const locationText = hasBusinessPin(business)
     ? `${business.section} - pin aproximado`
     : business.address
-  const founderActive = isFounderPlanActive(business)
+  const catalogAvailable = hasCatalogAccess(business)
   const availableMenu = getBusinessMenu(business).filter((item) => item.available !== false && item.name?.trim())
   const mapUrl = getBusinessMapUrl(business)
   const whatsappUrl = makeWhatsAppUrl(
@@ -158,7 +158,19 @@ export function BusinessCard({ business, onOpen, large = false, motionOrder = 0 
       <div {...imageSurfaceProps(business.image, 'business-photo', business)}></div>
       <div className="business-info">
         <small>{business.category} - {business.section}</small>
-        <h3>{business.name}</h3>
+        <h3>
+          <a
+            className="business-card-title-link"
+            href={getBusinessPublicPath(business)}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              onOpen()
+            }}
+          >
+            {business.name}
+          </a>
+        </h3>
         <div className="business-trust-row">
           {business.verified && (
             <span>
@@ -184,7 +196,7 @@ export function BusinessCard({ business, onOpen, large = false, motionOrder = 0 
             <span>{business.followers} seguidores</span>
           </div>
         )}
-        {founderActive && availableMenu.length > 0 && (
+        {catalogAvailable && availableMenu.length > 0 && (
           <ul>
             {availableMenu.slice(0, large ? 5 : 2).map((item, index) => (
               <li key={`${item.name}-${index}`}>
@@ -224,7 +236,7 @@ export function BusinessCard({ business, onOpen, large = false, motionOrder = 0 
 
 export function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack }) {
   const publicAddress = hasBusinessPublicAddress(business)
-  const founderActive = isFounderPlanActive(business)
+  const catalogAvailable = hasCatalogAccess(business)
   const mapQuery = hasBusinessPin(business)
     ? `${business.locationLat},${business.locationLng}`
     : `${business.address || business.section}, Cordoba, Argentina`
@@ -240,7 +252,7 @@ export function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack 
   const [note, setNote] = useState('')
   const orderModes = business.hasDelivery ? ['Retiro', 'Envio', 'Consultar'] : ['Retiro', 'Consultar']
   const priceToNumber = (price) => Number(String(price || '').replace(/[^\d]/g, ''))
-  const availableMenu = founderActive
+  const availableMenu = catalogAvailable
     ? getBusinessMenu(business)
       .slice(0, MAX_MENU_ITEMS)
       .map((item, index) => ({
@@ -332,7 +344,7 @@ export function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack 
           <article>
             <MessageCircle size={15} />
             <span>Contacto</span>
-            <strong>{founderActive ? 'Pedido armado por WhatsApp' : 'Consulta directa por WhatsApp'}</strong>
+            <strong>{catalogAvailable ? 'Pedido armado por WhatsApp' : 'Consulta directa por WhatsApp'}</strong>
           </article>
           <article className={business.hasDelivery ? 'good' : 'muted'}>
             <Navigation size={15} />
@@ -345,14 +357,14 @@ export function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack 
           <InfoItem icon={<Clock3 size={18} />} label="Horario" value={business.hours} />
           <InfoItem icon={<Store size={18} />} label="Rubro" value={business.category} />
         </div>
-        <section className="photo-strip" aria-label="Fotos del local">
+        <section className="photo-strip" aria-label="Fotos del local" tabIndex="0">
           {[0, 1, 2].map((item) => (
             <div {...imageSurfaceProps(business.image, 'photo-tile', business)} key={item}>
               <span>{item === 0 ? 'Producto' : item === 1 ? 'Local' : 'Promo'}</span>
             </div>
           ))}
         </section>
-        {founderActive && (
+        {catalogAvailable && (
           <>
             <div className="delivery-panel">
               <div>
@@ -443,7 +455,7 @@ export function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack 
             </div>
           </>
         )}
-        {!founderActive && (
+        {!catalogAvailable && (
           <section className="order-studio locked-feature public-contact-only">
             <div className="order-studio-head">
               <span>Ficha gratis</span>
@@ -485,14 +497,14 @@ export function BusinessDetailScreen({ business, onBack, onToggleTheme, onTrack 
             </div>
           </section>
         )}
-        {founderActive && (
+        {catalogAvailable && (
         <a className={`detail-whatsapp ${cartItems.length ? '' : 'is-disabled'}`} href={cartItems.length ? whatsappUrl : undefined} target="_blank" rel="noreferrer" aria-disabled={!cartItems.length} onClick={() => cartItems.length && onTrack?.({ type: 'whatsapp_click', businessId: business.id })}>
           <MessageCircle size={19} />
           {cartItems.length ? 'Consultar por WhatsApp' : 'Elegir items primero'}
         </a>
         )}
       </section>
-      {founderActive && cartItems.length > 0 && (
+      {catalogAvailable && cartItems.length > 0 && (
         <div className="order-cart-bar">
           <div>
             <span>{selectedCount} items</span>

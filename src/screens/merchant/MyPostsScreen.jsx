@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, ChevronRight, Clock3, Camera, Flame, Eye, List, MapPin, MessageCircle, Navigation, ShieldCheck, ShoppingBasket, Store, Timer, UserRound } from 'lucide-react'
+import { ArrowLeft, Check, ChevronRight, Clock3, Camera, Flame, Eye, List, MapPin, MessageCircle, Navigation, ShieldCheck, ShoppingBasket, Store, UserRound } from 'lucide-react'
 import { sections, weekDays, commerceCategories, MAX_MENU_ITEMS, MENU_SECTION_SIZE, menuCatalogSections } from '../../lib/appConfig.js'
 import {
   parseMapCoordinates, hasBusinessPin, getBusinessMapUrl, formatSchedule,
-  normalizeArgentineWhatsapp, isValidArgentineWhatsapp, makeWhatsAppUrl,
-  hasBusinessPublicAddress, isFounderPlanActive, isFounderPlanRequested,
-  getFounderDaysLeft, isFounderExpiringSoon, isOfferExpired, isOfferPaused,
+  normalizeArgentineWhatsapp, isValidArgentineWhatsapp,
+  hasBusinessPublicAddress, hasCatalogAccess,
+  isOfferExpired, isOfferPaused,
   isOfferActiveNow, getOfferDaysLeft, createMenuSlot, ensureMenuSlots,
   buildFilledMenuSections, buildLocalDraft, isUploadedImage,
 } from '../../lib/businessRules'
@@ -224,8 +224,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
     : hasPinLocation
       ? `${localDraft.section} - pin aproximado`
       : localDraft.address || 'Direccion pendiente'
-  const founderActive = isFounderPlanActive(localDraft)
-  const founderRequested = isFounderPlanRequested(localDraft)
+  const catalogAvailable = hasCatalogAccess(localDraft)
   const requiredTasks = [
     {
       id: 'basic',
@@ -249,29 +248,19 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
       optional: true,
     },
   ]
-  const optionalTasks = [
-    {
-      id: 'menu',
-      done: founderActive,
-      title: 'Catalogo opcional',
-      meta: founderActive ? 'Impulso activo' : founderRequested ? 'Solicitud pendiente' : 'Impulso gratis',
-      optional: true,
-    },
-    {
-      id: 'plan',
-      done: Boolean(localDraft.plan),
-      title: 'Impulso opcional',
-      meta: founderActive ? 'Impulso activo' : founderRequested ? 'Impulso pendiente' : 'Ficha gratis',
-      optional: true,
-    },
-  ]
+  const optionalTasks = [{
+    id: 'menu',
+    done: Boolean(localDraft.menu?.some((item) => item.name?.trim())),
+    title: 'Catalogo opcional',
+    meta: 'Incluido gratis',
+    optional: true,
+  }]
   const dashboardTasks = [...requiredTasks, ...qualityTasks, ...optionalTasks]
   const pendingTasks = requiredTasks.filter((task) => !task.done)
   const pendingQualityTasks = qualityTasks.filter((task) => !task.done)
   const nextPanel = pendingTasks[0]?.id || 'preview'
   const localIsPublic = Boolean(local)
   const fichaFirstMode = !localIsPublic || pendingTasks.length > 0
-  const showFounderTrial = localIsPublic && !founderActive
   const essentialFichaSteps = [
     {
       id: 'basic',
@@ -302,10 +291,6 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
         ? 'Ficha gratis activa'
         : 'Ficha completa'
     : 'Alta pendiente'
-  const founderPlanUrl = makeWhatsAppUrl(
-    '3517662142',
-    `Hola Cristian, quiero activar Impulso Liceo gratis por 2 meses para ${localDraft.name || account?.businessName || 'mi comercio'}. Entiendo que se baja solo y no se cobra nada si no decido seguir.`
-  )
   const menuSlots = ensureMenuSlots(localDraft.menu)
   const filledMenuItems = menuSlots
     .map((item, index) => ({
@@ -351,10 +336,9 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
     const days = getOfferDaysLeft(offer)
     return days !== null && days <= 1
   })
-  const founderDaysLeft = getFounderDaysLeft(localDraft)
   const handlePublishFromPanel = () => {
     if (!local) {
-      setSaveStatus('Primero guarda la ficha gratis. Despues podes publicar tu promo semanal.')
+      setSaveStatus('Primero guarda la ficha gratis. Despues podes publicar tus ofertas.')
       setOpenPanel(nextPanel === 'preview' ? 'basic' : nextPanel)
       return
     }
@@ -397,27 +381,6 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
     }
 
     const safePhotoSrc = isUploadedImage(localDraft.image) ? localDraft.image : ''
-    const requestFounderPlan = async () => {
-      const nextDraft = {
-        ...localDraft,
-        plan: 'pedidos',
-        planStatus: 'manual_pending',
-        menu: ensureMenuSlots(localDraft.menu),
-      }
-      setLocalDraft(nextDraft)
-      setSaveStatus('Guardando solicitud de Impulso Liceo...')
-      const result = await onSaveLocal({
-        ...nextDraft,
-        name: nextDraft.name || 'Nombre del comercio',
-        hours: formatSchedule(nextDraft),
-        ready: true,
-      })
-      setSaveStatus(result?.ok === false
-        ? (result.error?.message || 'No se pudo guardar la solicitud.')
-        : 'Solicitud enviada. Cristian activa Impulso gratis por 2 meses. No se cobra nada.')
-      window.open(founderPlanUrl, '_blank', 'noopener,noreferrer')
-    }
-
     return (
       <div className="android-safe-screen">
         <header className="android-safe-header">
@@ -432,7 +395,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
           <span>{publicStateLabel}</span>
           <h1>{localDraft.name || 'Tu comercio'}</h1>
           <p>
-            Carga lo basico para aparecer gratis en la guia. Impulso Liceo suma extras gratis por 2 meses y se baja solo.
+            Tu ficha, tus promos y tu catalogo son gratis hoy y siempre. Sin tarjeta ni comisiones.
           </p>
         </section>
 
@@ -482,13 +445,13 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
             <Flame size={20} />
             <span>
               <strong>Publicar promo</strong>
-              <small>{pendingTasks.length || !localIsPublic ? 'Despues de la ficha' : '1 gratis semanal'}</small>
+              <small>{pendingTasks.length || !localIsPublic ? 'Despues de la ficha' : 'Siempre gratis'}</small>
             </span>
           </button>
-          <button className={`safe-action-menu ${openPanel === 'menu' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(founderActive ? (openPanel === 'menu' ? '' : 'menu') : (openPanel === 'plan' ? '' : 'plan'))}>
+          <button className={`safe-action-menu ${openPanel === 'menu' ? 'active' : ''}`} type="button" onClick={() => setOpenPanel(openPanel === 'menu' ? '' : 'menu')}>
             <List size={20} />
             <span>
-              <strong>{founderActive ? 'Catalogo' : 'Impulso Liceo'}</strong>
+              <strong>Catalogo</strong>
               <small>Opcional</small>
             </span>
           </button>
@@ -670,7 +633,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
 
           <label>
             <span>Foto del comercio o producto</span>
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLocalPhoto} />
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleLocalPhoto} />
           </label>
 
           <div className="android-safe-photo-preview">
@@ -691,29 +654,10 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
         </section>
         )}
 
-        {openPanel === 'plan' && (
-        <>
-        <section className="android-safe-card android-safe-plan-card">
-          <span>Plan gratis</span>
-          <h2>Ficha + 1 promo semanal.</h2>
-          <p>La publicacion gratis dura 3 dias y se vence sola. No necesitas Impulso para aparecer en la guia.</p>
-        </section>
-
-        <section className="android-safe-card android-safe-plan-card">
-          <span>Impulso Liceo</span>
-          <h2>Catalogo + pedidos.</h2>
-          <p>Gratis por 2 meses: catalogo, pedidos por WhatsApp y 4 publicaciones extra. Se baja solo y no se cobra nada si no queres seguir.</p>
-          <button type="button" onClick={requestFounderPlan}>
-            {founderRequested || founderActive ? 'Consultar por WhatsApp' : 'Probar gratis 2 meses'}
-          </button>
-        </section>
-        </>
-        )}
-
-        {openPanel === 'menu' && founderActive ? (
+        {openPanel === 'menu' ? (
           <section className="android-safe-form android-safe-menu-form">
             <div className="android-safe-field-title">
-              <span>Impulso activo</span>
+              <span>Incluido gratis</span>
               <strong>Catalogo del comercio</strong>
             </div>
             <div className="android-safe-menu-summary">
@@ -761,12 +705,6 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
                 <button type="button" onClick={() => clearMenuItem(activeMenuIndexSafe)}>Limpiar</button>
               </div>
             </div>
-          </section>
-        ) : openPanel === 'menu' ? (
-          <section className="android-safe-card android-safe-plan-card">
-            <span>{founderRequested ? 'Solicitud pendiente' : 'Catalogo bloqueado'}</span>
-            <h2>{founderRequested ? 'Cristian debe activar el plan.' : 'Primero va la ficha gratis.'}</h2>
-            <p>{founderRequested ? 'Cuando Cristian active Impulso, aca vas a poder cargar catalogo y pedidos.' : 'El catalogo, pedidos y 4 extras se habilitan con Impulso Liceo.'}</p>
           </section>
         ) : null}
 
@@ -854,7 +792,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
         <div className="merchant-hero-copy">
           <span>{publicStateLabel}</span>
           <h1>{localDraft.name || 'Tu local'}</h1>
-          <p>{localIsPublic ? `Aparece en la guia como ${localDraft.category} en ${localDraft.section}. ${pendingTasks.length ? 'Completa lo basico para que el vecino entienda como contactarte.' : pendingQualityTasks.length ? 'Ya puede recibir consultas. Una foto real lo hace mas confiable.' : 'Ya esta listo para recibir consultas.'}` : 'Completa lo basico y guarda la ficha gratis. Despues podes publicar tu promo semanal.'}</p>
+          <p>{localIsPublic ? `Aparece en la guia como ${localDraft.category} en ${localDraft.section}. ${pendingTasks.length ? 'Completa lo basico para que el vecino entienda como contactarte.' : pendingQualityTasks.length ? 'Ya puede recibir consultas. Una foto real lo hace mas confiable.' : 'Ya esta listo para recibir consultas.'}` : 'Completa lo basico y guarda la ficha gratis. Despues podes publicar tus ofertas.'}</p>
         </div>
         <div className="merchant-score-card">
           <strong>{completion}%</strong>
@@ -911,31 +849,10 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
         <div>
           <span>{localIsPublic && !pendingTasks.length ? 'Ficha publicada' : 'Primer paso'}</span>
           <strong>{localIsPublic && !pendingTasks.length ? 'Tu ficha ya aparece.' : 'Publica tu ficha gratis.'}</strong>
-          <p>{localIsPublic && !pendingTasks.length ? 'Ahora podes publicar una promo semanal gratis o editar tus datos cuando cambien.' : `Falta ${pendingTasks[0]?.title.toLowerCase() || 'guardar la ficha'}. Es lo primero para aparecer en la guia.`}</p>
+          <p>{localIsPublic && !pendingTasks.length ? 'Ahora podes publicar ofertas gratis o editar tus datos cuando cambien.' : `Falta ${pendingTasks[0]?.title.toLowerCase() || 'guardar la ficha'}. Es lo primero para aparecer en la guia.`}</p>
         </div>
         <button type="button" onClick={saveLocal}>{localIsPublic && !pendingTasks.length ? 'Actualizar' : 'Publicar ficha'}</button>
       </section>
-      )}
-
-      {showFounderTrial && (
-        <section className={`founder-trial-card ${founderRequested ? 'is-requested' : ''}`} aria-label="Probar Impulso Liceo gratis">
-          <div>
-            <span>{founderRequested ? 'Solicitud enviada' : 'Gratis 2 meses'}</span>
-            <strong>{founderRequested ? 'Impulso pendiente.' : 'Proba Impulso Liceo.'}</strong>
-            <p>{founderRequested ? 'Cristian lo activa y despues se baja solo. No se cobra nada.' : 'Catalogo, pedidos por WhatsApp y 4 promos extra. Se baja solo: no se cobra nada si no decidis seguir.'}</p>
-          </div>
-          {!founderRequested && (
-            <div className="founder-trial-chips" aria-label="Incluye">
-              <b>Sin tarjeta</b>
-              <b>Se baja solo</b>
-              <b>Sin cobro automatico</b>
-            </div>
-          )}
-          <button type="button" onClick={() => window.open(founderPlanUrl, '_blank', 'noopener,noreferrer')}>
-            {founderRequested ? 'Escribir a Cristian' : 'Activar gratis 2 meses'}
-          </button>
-          {!founderRequested && <small>Cuando termina, vuelve a ficha gratis. Cristian te consulta si queres seguir.</small>}
-        </section>
       )}
 
       {localIsPublic && pendingTasks.length === 0 && (
@@ -970,14 +887,8 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
         </section>
       )}
 
-      {(expiringLocalOffers.length > 0 || isFounderExpiringSoon(localDraft)) && (
+      {(expiringLocalOffers.length > 0) && (
         <section className="merchant-alert-strip" aria-label="Avisos importantes">
-          {isFounderExpiringSoon(localDraft) && (
-            <article>
-              <Timer size={17} />
-              <span>Impulso vence en {Math.max(founderDaysLeft, 0)} dias. Si no queres seguir, vuelve solo a ficha gratis.</span>
-            </article>
-          )}
           {expiringLocalOffers.length > 0 && (
             <article>
               <Flame size={17} />
@@ -1121,7 +1032,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
                   <strong>{isUploadedImage(localDraft.image) ? 'Foto propia cargada' : localDraft.category || 'Rubro'}</strong>
                   <p>La foto puede ser del frente, mostrador o producto estrella. Tiene que ayudar al vecino a reconocer el local rapido.</p>
                   <label className="file-pill wide-file">
-                    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLocalPhoto} />
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleLocalPhoto} />
                     {isUploadedImage(localDraft.image) ? 'Cambiar foto del local' : 'Cargar foto del local'}
                   </label>
                   {isUploadedImage(localDraft.image) && (
@@ -1324,29 +1235,9 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
             </div>
           )}
 
-          {!fichaFirstMode && panelButton('menu', 'Catalogo', 'Productos o servicios', founderActive ? `${filledMenuItems.length}/${MAX_MENU_ITEMS} items` : founderRequested ? 'Pendiente' : 'Impulso', ShoppingBasket)}
+          {!fichaFirstMode && panelButton('menu', 'Catalogo', 'Productos o servicios', `${filledMenuItems.length}/${MAX_MENU_ITEMS} items`, ShoppingBasket)}
           {!fichaFirstMode && openPanel === 'menu' && (
             <div className="merchant-panel-body">
-              {!founderActive ? (
-                <section className="paid-feature-preview locked-feature">
-                  <div>
-                    <span>{founderRequested ? 'Solicitud pendiente' : 'Impulso Liceo'}</span>
-                    <h3>El catalogo se activa cuando el admin habilita el plan.</h3>
-                    <p>
-                      Tu ficha gratis puede aparecer igual con foto, WhatsApp, horario y 1 promo semanal.
-                      El catalogo, pedidos por WhatsApp y 4 publicaciones extra se prueban gratis 2 meses con Impulso.
-                    </p>
-                  </div>
-                  <ul>
-                    <li><Check size={14} /> Catalogo de productos o servicios</li>
-                    <li><Check size={14} /> Pedido armado por WhatsApp</li>
-                    <li><Check size={14} /> 4 publicaciones extra por mes</li>
-                  </ul>
-                  <button type="button" onClick={() => setOpenPanel('plan')}>
-                    {founderRequested ? 'Ver solicitud' : 'Probar Impulso gratis'}
-                  </button>
-                </section>
-              ) : (
                 <section className="menu-editor menu-editor-standalone" aria-label="Catalogo del comercio">
                 <div className="menu-editor-intro">
                   <div>
@@ -1419,92 +1310,6 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
                   <button type="button" onClick={saveLocal}>Guardar catalogo</button>
                 </div>
               </section>
-              )}
-            </div>
-          )}
-
-          {!fichaFirstMode && panelButton('plan', 'Impulso', 'Gratis 2 meses', founderActive ? 'Activo' : founderRequested ? 'Pendiente' : 'Disponible', ShoppingBasket)}
-          {!fichaFirstMode && openPanel === 'plan' && (
-            <div className="merchant-panel-body">
-              <section className="local-plan-selector" aria-label="Plan del comercio">
-                <button
-                  className={!founderActive && !founderRequested ? 'active' : ''}
-                  type="button"
-                  onClick={() => {
-                    updateLocalDraft('plan', 'gratis')
-                    updateLocalDraft('planStatus', 'free')
-                  }}
-                >
-                  <span>Gratis</span>
-                  <strong>Ficha + 1 promo semanal</strong>
-                  <small>Nombre, foto, direccion, WhatsApp, horario y 1 publicacion gratis por semana. Dura 3 dias y se vence sola.</small>
-                  <b>$0</b>
-                </button>
-                <button
-                  className={founderActive || founderRequested ? 'active paid' : 'paid'}
-                  type="button"
-                  onClick={() => {
-                    if (!founderActive) {
-                      updateLocalDraft('plan', 'pedidos')
-                      updateLocalDraft('planStatus', 'manual_pending')
-                    }
-                  }}
-                >
-                  <span>{founderActive ? 'Activo por admin' : founderRequested ? 'Pendiente de admin' : 'Prueba gratis'}</span>
-                  <strong>Impulso Liceo</strong>
-                  <small>Catalogo, 4 publicaciones extra al mes y pedido armado por WhatsApp. Gratis 2 meses.</small>
-                  <b>Sin cobro automatico</b>
-                </button>
-              </section>
-
-              <section className={`paid-feature-preview ${founderActive ? 'is-active' : ''}`}>
-                <div>
-                  <span>{founderActive ? 'Impulso activo' : founderRequested ? 'Solicitud pendiente' : 'Disponible gratis'}</span>
-                  <h3>Catalogo y pedido por WhatsApp</h3>
-                  <p>{founderActive ? 'El vecino elige productos o servicios, suma la consulta y la manda lista al comercio.' : founderRequested ? 'Tu solicitud queda pendiente hasta que Cristian active el plan desde administracion.' : 'En el plan gratis la ficha aparece igual, con 1 publicacion semanal que dura 3 dias.'}</p>
-                </div>
-                <ul>
-                  <li><Check size={14} /> Catalogo de productos o servicios</li>
-                  <li><Check size={14} /> 4 publicaciones extra por mes</li>
-                  <li><Check size={14} /> Pedido armado al WhatsApp del comercio</li>
-                  <li><Check size={14} /> Precio opcional</li>
-                </ul>
-                <a
-                  className="founder-plan-cta"
-                  href={founderPlanUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => {
-                    if (!founderActive) {
-                      updateLocalDraft('plan', 'pedidos')
-                      updateLocalDraft('planStatus', 'manual_pending')
-                    }
-                  }}
-                >
-                  <MessageCircle size={16} />
-                  {founderRequested ? 'Avisar por WhatsApp' : founderActive ? 'Consultar Impulso' : 'Probar gratis 2 meses'}
-                </a>
-                {founderRequested && !founderActive && (
-                  <button className="founder-plan-cta secondary" type="button" onClick={saveLocal}>
-                    Guardar solicitud
-                  </button>
-                )}
-              </section>
-
-              <section className="local-visibility-comparison" aria-label="Diferencia entre ficha gratis y plan pago">
-                <article className={!founderActive && !founderRequested ? 'active' : ''}>
-                  <span>Cuenta gratis</span>
-                  <strong>Ficha publica del local</strong>
-                  <p>Aparece en la guia con foto, direccion, WhatsApp, horarios, rubro y 1 publicacion semanal gratis que dura 3 dias.</p>
-                  <b>Siempre $0</b>
-                </article>
-                <article className={founderActive || founderRequested ? 'active paid' : 'paid'}>
-                  <span>Impulso Liceo</span>
-                  <strong>Catalogo + pedidos + extras</strong>
-                  <p>Gratis por 2 meses. Incluye catalogo, 4 publicaciones extra al mes y pedido armado por WhatsApp.</p>
-                  <b>Vuelve solo a ficha gratis</b>
-                </article>
-              </section>
             </div>
           )}
 
@@ -1514,7 +1319,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
               <section className="public-local-preview">
                 <div className="public-local-head">
                   <span>Asi lo ve el vecino</span>
-                  <strong>{founderActive ? 'Pedidos activos' : founderRequested ? 'Ficha gratis + solicitud pendiente' : 'Ficha gratis'}</strong>
+                  <strong>Siempre gratis</strong>
                 </div>
                 <div className="public-local-card">
                   <div {...imageSurfaceProps(localDraft.image, 'public-local-image', localDraft)}></div>
@@ -1535,7 +1340,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
                       <b>{localDraft.paymentMethods || 'Medios de pago a definir'}</b>
                       {localDraft.instagram && <b>{localDraft.instagram}</b>}
                     </div>
-                    {founderActive ? (
+                    {catalogAvailable ? (
                       <div className="public-menu-list">
                         {publicMenuSections.length ? publicMenuSections.map((section) => (
                           <div className="public-menu-group" key={`preview-${section.title}`}>
@@ -1556,12 +1361,12 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
                     ) : (
                       <div className="public-menu-locked">
                         <ShieldCheck size={14} />
-                        <span>Catalogo y pedidos se muestran cuando el admin activa Impulso Liceo.</span>
+                        <span>Agrega productos o servicios a tu catalogo gratis.</span>
                       </div>
                     )}
                   </div>
                 </div>
-                {founderActive && (
+                {catalogAvailable && (
                   <div className="public-order-strip">
                     <span>Mini menu</span>
                     <strong>3 items seleccionados</strong>
@@ -1604,10 +1409,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
               hasDelivery: (local.delivery || '').toLowerCase().includes('delivery'),
               orderHours: local.hours ? `Pedidos ${local.hours}` : 'Pedidos a definir',
               distance: 'cerca',
-              menu: [
-                { name: 'Producto destacado' },
-                { name: 'Agregar productos o servicios al catalogo' },
-              ],
+              menu: local.menu || [],
             }}
             onOpen={() => {}}
             large
@@ -1682,9 +1484,9 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
       </section>
 
       <section className="boost-card">
-        <span>Extra opcional</span>
+        <span>Siempre gratis</span>
         <h2>Mas publicaciones cuando haga falta.</h2>
-        <p>La ficha y una promo semanal quedan gratis. Si una semana queres publicar mas ofertas, ahi se cobra extra.</p>
+        <p>Tu ficha, tus ofertas y tu catalogo son gratis hoy y siempre. Sin tarjeta, sin comisiones ni planes pagos.</p>
         <button type="button" onClick={handlePublishFromPanel}>Preparar otra promo</button>
       </section>
     </div>

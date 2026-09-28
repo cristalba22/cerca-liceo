@@ -16,9 +16,10 @@ describe('contrato de seguridad de Supabase', () => {
     expect(publicGrant).not.toContain('admin_notes')
   })
 
-  it('protege el limite semanal con una funcion del servidor', () => {
-    const sql = readSql('merchant-product-hardening.sql')
+  it('mantiene el RPC anterior para clientes viejos y exige propietario', () => {
+    const sql = readSql('free-forever.sql')
     expect(sql).toMatch(/function public\.can_create_weekly_free_offer/i)
     expect(sql).toMatch(/grant execute on function public\.can_create_weekly_free_offer\(uuid\) to authenticated/i)
+    expect(sql).toContain('b.owner_id = auth.uid()')
   })
 })

@@ -2,11 +2,9 @@ import { useState } from 'react'
 import { ArrowLeft, Bell, Check, EyeOff, Flame, Heart, Eye, List, MessageCircle, Share2, ShieldCheck, Store, UserRound } from 'lucide-react'
 import { sections, commerceCategories } from '../lib/appConfig.js'
 import {
-  parseMapCoordinates, hasBusinessPin, getBusinessMapUrl,
   hasBusinessPublicAddress, isValidArgentineWhatsapp,
   makeWhatsAppUrl, normalizeArgentineWhatsapp,
 } from '../lib/businessRules'
-import { RealLocationPicker } from '../components/RealLocationPicker'
 import { ContactFooter, ThemeToggle } from '../components/AppChrome'
 import { cercaApi } from '../lib/cercaApi'
 
@@ -690,16 +688,13 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
     instagram: '',
     address: '',
     reference: '',
-    locationMode: 'address',
+    locationMode: 'none',
     locationLat: '',
     locationLng: '',
     locationPrecision: 'approximate',
     locationNote: '',
   })
   const isMerchant = accountType === 'merchant'
-  const registerLocationMode = form.businessType === 'entrepreneur' ? 'none' : (form.locationMode || 'address')
-  const registerHasPinLocation = registerLocationMode === 'pin' && hasBusinessPin(form)
-  const registerMapUrl = getBusinessMapUrl({ ...form, section: form.section || 'Liceo Procrear' })
   const updateForm = (field, value) => {
     const cleanValue = field === 'whatsapp'
       ? value.replace(/\D/g, '').slice(0, 15)
@@ -710,39 +705,10 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
     setForm((current) => ({
       ...current,
       businessType,
-      locationMode: businessType === 'entrepreneur' ? 'none' : current.locationMode === 'none' ? 'address' : current.locationMode,
-    }))
-  }
-  const updateRegisterLocationMode = (locationMode) => {
-    setForm((current) => ({
-      ...current,
-      locationMode,
-      address: locationMode === 'none' ? '' : current.address,
-      locationLat: locationMode === 'pin' ? current.locationLat : '',
-      locationLng: locationMode === 'pin' ? current.locationLng : '',
-    }))
-  }
-  const updateRegisterMapLink = (value) => {
-    const coords = parseMapCoordinates(value)
-    setForm((current) => ({
-      ...current,
-      locationMode: 'pin',
-      locationLat: coords?.lat ?? current.locationLat,
-      locationLng: coords?.lng ?? current.locationLng,
-      locationPrecision: coords ? 'exact' : current.locationPrecision,
-      locationNote: value,
-      address: current.address || `${current.section || 'Liceo Procrear'} - ubicacion marcada`,
-    }))
-  }
-  const updateRegisterMapCoordinates = ({ lat, lng }) => {
-    setForm((current) => ({
-      ...current,
-      locationMode: 'pin',
-      locationLat: lat,
-      locationLng: lng,
-      locationPrecision: 'exact',
-      locationNote: `${lat}, ${lng}`,
-      address: current.address || `${current.section || 'Liceo Procrear'} - ubicacion marcada`,
+      locationMode: 'none',
+      address: '',
+      locationLat: '',
+      locationLng: '',
     }))
   }
   const validateRegisterForm = () => {
@@ -753,6 +719,9 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
     }
     if (isMerchant && !form.whatsapp.trim()) {
       return 'Para comercio hace falta un WhatsApp argentino. Ejemplo: 3517662142.'
+    }
+    if (isMerchant && !form.businessName.trim()) {
+      return 'Escribi el nombre del comercio para que los vecinos puedan encontrarlo.'
     }
     if (form.whatsapp && !isValidArgentineWhatsapp(form.whatsapp)) {
       return 'El WhatsApp tiene que ser argentino, solo numeros y sin 0 ni 15. Ejemplo: 3517662142.'
@@ -793,11 +762,11 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
         category: form.category || 'Comida',
         salesMode: form.salesMode,
         instagram: form.instagram,
-        address: form.businessType === 'entrepreneur' || registerLocationMode === 'none' ? '' : form.address,
+        address: '',
         reference: form.reference,
-        locationMode: registerLocationMode,
-        locationLat: registerLocationMode === 'pin' ? form.locationLat : '',
-        locationLng: registerLocationMode === 'pin' ? form.locationLng : '',
+        locationMode: 'none',
+        locationLat: '',
+        locationLng: '',
         locationPrecision: form.locationPrecision || 'approximate',
         locationNote: form.locationNote || form.reference,
       })
@@ -832,13 +801,13 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
           <section className="android-safe-card android-safe-intro">
             <span>{isMerchant ? 'Comercio registrado' : 'Cuenta creada'}</span>
             <h1>Revisa tu email.</h1>
-            <p>Te va a llegar un correo de Cerca Liceo. Abrilo y toca confirmar cuenta. Despues entra y seguimos con tu ficha basica.</p>
+            <p>Te va a llegar un correo de Cerca Liceo. Abrilo, confirma la cuenta y volve para publicar tu comercio.</p>
           </section>
 
           <section className="android-safe-actions">
             <button type="button" onClick={onLogin || onBack}>
-              <strong>Ya confirme</strong>
-              <small>Ir a iniciar sesion.</small>
+              <strong>{isMerchant ? 'Siguiente: publicar mi comercio' : 'Ya confirme'}</strong>
+              <small>Ingresar con tu email y clave.</small>
             </button>
           </section>
         </div>
@@ -948,47 +917,9 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
                   Emprendo sin local
                 </button>
               </section>
-              <p>{form.businessType === 'entrepreneur' ? 'No hace falta publicar direccion. Despues cargas zona, WhatsApp e Instagram.' : 'Despues podes cargar direccion, horario y boton para llegar.'}</p>
-              {form.businessType !== 'entrepreneur' && (
-                <>
-                  <div className="android-safe-mini-toggle location-safe-toggle" aria-label="Ubicacion inicial">
-                    <button className={registerLocationMode === 'address' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('address')}>
-                      Direccion
-                    </button>
-                    <button className={registerLocationMode === 'pin' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('pin')}>
-                      Pin mapa
-                    </button>
-                    <button className={registerLocationMode === 'none' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('none')}>
-                      Despues
-                    </button>
-                  </div>
-                  {registerLocationMode === 'pin' && (
-                    <div className="tap-map-editor real-pin-editor android-safe-map-picker">
-                      <RealLocationPicker location={form} mapUrl={registerMapUrl} onPick={updateRegisterMapCoordinates} />
-                      <label className="map-coordinates-field">
-                        <span>Opcional: pegar link o coordenadas</span>
-                        <input
-                          value={form.locationNote || ''}
-                          onChange={(event) => updateRegisterMapLink(event.target.value)}
-                          placeholder="-31.36782, -64.129397 o link de Maps"
-                        />
-                      </label>
-                      <div className="tap-map-help">
-                        <strong>{registerHasPinLocation ? 'Ubicacion real marcada' : 'Todavia falta el punto real'}</strong>
-                        <span>{registerHasPinLocation ? 'Se guarda para que el vecino abra Maps.' : 'Si no lo tenes ahora, podes cargarlo despues.'}</span>
-                      </div>
-                    </div>
-                  )}
-                  {registerLocationMode !== 'none' && (
-                    <label>
-                      <span>{registerLocationMode === 'pin' ? 'Referencia para llegar' : 'Direccion o referencia'}</span>
-                      <input value={form.address} onChange={(event) => updateForm('address', event.target.value)} placeholder={registerLocationMode === 'pin' ? 'Ej: Frente a la plaza, manzana 12' : 'Ej: Calle, manzana o referencia'} />
-                    </label>
-                  )}
-                </>
-              )}
+              <p>Con nombre, rubro, zona y WhatsApp alcanza. Foto, horarios y direccion se agregan despues.</p>
               <label>
-                <span>{form.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre comercial'}</span>
+                <span>{form.businessType === 'entrepreneur' ? 'Nombre del emprendimiento' : 'Nombre del comercio'}</span>
                 <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder={form.businessType === 'entrepreneur' ? 'Ej: Hecho en Casa' : 'Ej: Almacen del Barrio'} />
               </label>
               <label>
@@ -998,18 +929,6 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
                   {commerceCategories.map((category) => (
                     <option key={category.name} value={category.name}>{category.name}</option>
                   ))}
-                </select>
-              </label>
-              <label>
-                <span>Como vendes hoy</span>
-                <select value={form.salesMode} onChange={(event) => updateForm('salesMode', event.target.value)}>
-                  <option value="">Seleccionar</option>
-                  <option>Local fisico</option>
-                  <option>WhatsApp</option>
-                  <option>Instagram</option>
-                  <option>Delivery propio</option>
-                  <option>Por encargo</option>
-                  <option>Retiro coordinado</option>
                 </select>
               </label>
             </>
@@ -1039,7 +958,7 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
           <h1>{isMerchant ? 'Confirma el mail para activar tu comercio.' : 'Confirma el mail para activar tu cuenta.'}</h1>
           <p>
             Entra a <strong>{form.email || 'tu email'}</strong>, abri el correo de <strong>Cerca Liceo</strong> y toca el boton de confirmacion.
-            Despues volve a la pagina e inicia sesion con tu email y clave. Si sos comercio, con esos datos ya armamos tu ficha basica.
+            Despues volve e inicia sesion. Si sos comercio, vas directo a publicar tu ficha con cuatro datos.
           </p>
           <p className="mail-trust-note">
             Este paso protege tu cuenta y evita que otra persona publique usando el nombre de tu local.
@@ -1059,7 +978,7 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
               <span>Volver e ingresar</span>
             </article>
           </div>
-          <button type="button" onClick={onLogin || onBack}>Ya confirme, iniciar sesion</button>
+          <button type="button" onClick={onLogin || onBack}>{isMerchant ? 'Siguiente: publicar mi comercio' : 'Ya confirme, iniciar sesion'}</button>
           <small>Si no aparece, revisa spam o escribi por WhatsApp al 351 766 2142.</small>
         </section>
       </div>
@@ -1079,10 +998,10 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
 
         <section className="register-success">
           <span>{isMerchant ? 'Comercio listo' : 'Vecino listo'}</span>
-          <h1>{isMerchant ? 'Tu ficha basica ya esta.' : 'Ya podes guardar favoritos.'}</h1>
+          <h1>{isMerchant ? 'Tu comercio ya puede aparecer.' : 'Ya podes guardar favoritos.'}</h1>
           <p>
             {isMerchant
-              ? 'Con los datos del registro ya dejamos el local creado. Desde el panel podes sumar foto, horarios y tu primera promo gratis.'
+              ? 'Con nombre, rubro, zona y WhatsApp ya publicamos la ficha. La foto, los horarios y la direccion se completan despues.'
               : 'Recorda que Cerca Liceo se puede usar igual sin cuenta. La cuenta solo suma preferencias y avisos.'}
           </p>
           <button type="button" onClick={onBack}>
@@ -1098,8 +1017,8 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
             </article>
             <article>
               <b>2</b>
-              <strong>Completar ficha</strong>
-              <span>Foto y horarios</span>
+              <strong>Comercio visible</strong>
+              <span>Con cuatro datos</span>
             </article>
             <article>
               <b>3</b>
@@ -1127,7 +1046,7 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
         <h1>{isMerchant ? 'Crea tu comercio sin pagar nada.' : 'Usa Cerca Liceo a tu manera.'}</h1>
         <p>
           {isMerchant
-            ? 'Primero registras datos basicos. Puede ser local fisico o emprendimiento sin direccion publica.'
+            ? 'Completa tus datos y publica el comercio. La foto, los horarios y la direccion pueden esperar.'
             : 'Para buscar ofertas no hace falta registrarse. La cuenta sirve para guardar favoritos, seguir locales y recibir avisos utiles.'}
         </p>
       </section>
@@ -1141,8 +1060,8 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
           </article>
           <article>
             <b>2</b>
-            <strong>Local</strong>
-            <span>Direccion y horarios</span>
+            <strong>Publicar</strong>
+            <span>Nombre, rubro y zona</span>
           </article>
           <article>
             <b>3</b>
@@ -1199,7 +1118,7 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
         {isMerchant ? (
           <>
             <label className="wide">
-              <span>Nombre comercial si ya lo tenes</span>
+              <span>Nombre del comercio</span>
               <input value={form.businessName} onChange={(event) => updateForm('businessName', event.target.value)} placeholder={form.businessType === 'entrepreneur' ? 'Ej: Hecho en Casa' : 'Ej: Almacen del Barrio'} />
             </label>
             <div className="merchant-type-register wide">
@@ -1220,48 +1139,8 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
                   Sin local
                 </button>
               </div>
-              <small>{form.businessType === 'entrepreneur' ? 'Contacto por WhatsApp o Instagram.' : 'Direccion y Maps visibles.'}</small>
+              <small>La direccion es opcional y se agrega despues.</small>
             </div>
-            {form.businessType !== 'entrepreneur' && (
-              <div className="location-picker-card register-location-picker wide">
-                <strong>Ubicacion inicial</strong>
-                <div className="location-mode-tabs">
-                  <button className={registerLocationMode === 'address' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('address')}>
-                    Direccion
-                  </button>
-                  <button className={registerLocationMode === 'pin' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('pin')}>
-                    Pin mapa
-                  </button>
-                  <button className={registerLocationMode === 'none' ? 'active' : ''} type="button" onClick={() => updateRegisterLocationMode('none')}>
-                    Despues
-                  </button>
-                </div>
-                {registerLocationMode === 'pin' && (
-                  <div className="tap-map-editor real-pin-editor">
-                    <RealLocationPicker location={form} mapUrl={registerMapUrl} onPick={updateRegisterMapCoordinates} />
-                    <label className="map-coordinates-field">
-                      <span>Opcional: pegar link o coordenadas</span>
-                      <input
-                        value={form.locationNote || ''}
-                        onChange={(event) => updateRegisterMapLink(event.target.value)}
-                        placeholder="-31.36782, -64.129397 o link de Maps"
-                      />
-                    </label>
-                    <div className="tap-map-help">
-                      <strong>{registerHasPinLocation ? 'Ubicacion real marcada' : 'Todavia falta el punto real'}</strong>
-                      <span>{registerHasPinLocation ? 'Se guarda para que el vecino abra Maps.' : 'Si no lo tenes ahora, podes cargarlo despues.'}</span>
-                    </div>
-                  </div>
-                )}
-                {registerLocationMode !== 'none' && (
-                  <label>
-                    <span>{registerLocationMode === 'pin' ? 'Referencia para llegar' : 'Direccion o referencia'}</span>
-                    <input value={form.address} onChange={(event) => updateForm('address', event.target.value)} placeholder={registerLocationMode === 'pin' ? 'Ej: Frente a la plaza, manzana 12' : 'Ej: Calle, manzana o referencia'} />
-                  </label>
-                )}
-                {registerLocationMode === 'none' && <p className="no-location-note">Podes cargar la ubicacion despues desde el panel comercio.</p>}
-              </div>
-            )}
             <label>
               <span>Rubro principal</span>
               <select value={form.category} onChange={(event) => updateForm('category', event.target.value)}>
@@ -1269,16 +1148,6 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
                 {commerceCategories.map((category) => (
                   <option key={category.name} value={category.name}>{category.name}</option>
                 ))}
-              </select>
-            </label>
-            <label>
-              <span>Como vendes hoy</span>
-              <select value={form.salesMode} onChange={(event) => updateForm('salesMode', event.target.value)}>
-                <option value="" disabled>Seleccionar</option>
-                <option>Solo retiro</option>
-                <option>Delivery propio</option>
-                <option>Por encargo</option>
-                <option>Local fisico</option>
               </select>
             </label>
           </>
@@ -1300,10 +1169,10 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
 
       <section className="register-next">
         <span>{isMerchant ? 'Que pasa despues' : 'Privacidad clara'}</span>
-        <h2>{isMerchant ? 'Primero entrar, despues vender.' : 'Podes entrar sin cuenta.'}</h2>
+        <h2>{isMerchant ? 'Cuatro datos y ya apareces.' : 'Podes entrar sin cuenta.'}</h2>
         <p>
           {isMerchant
-            ? 'Desde el panel cargas tu ficha gratis. Si no tenes local, dejas la direccion vacia y te contactan por WhatsApp o Instagram.'
+            ? 'Nombre comercial, rubro, zona y WhatsApp. Foto, direccion, horarios y promociones se agregan cuando quieras.'
             : 'La cuenta no bloquea el uso de la app. Solo mejora favoritos, avisos y preferencias del barrio.'}
         </p>
       </section>

@@ -557,9 +557,9 @@ const buildInitialBusinessDraftFromAccount = (account = {}) => {
       : address.trim()
         ? 'address'
         : 'none'
-  const openDays = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
-  const openTime = '09:00'
-  const closeTime = '21:00'
+  const openDays = []
+  const openTime = ''
+  const closeTime = ''
   const name = (account.businessName || account.name || 'Comercio del barrio').trim().replace(/\s+/g, ' ')
 
   return {
@@ -575,7 +575,7 @@ const buildInitialBusinessDraftFromAccount = (account = {}) => {
     locationLng: locationMode === 'pin' ? account.locationLng || '' : '',
     locationPrecision: locationMode === 'pin' ? account.locationPrecision || 'exact' : 'approximate',
     locationNote: locationMode === 'pin' ? account.locationNote || account.reference || '' : account.reference || '',
-    hours: formatSchedule({ openDays, openTime, closeTime }),
+    hours: 'Horario a definir',
     openDays,
     openTime,
     closeTime,
@@ -599,7 +599,7 @@ const buildInitialBusinessDraftFromAccount = (account = {}) => {
     paidUntil: '',
     adminNotes: '',
     isPublic: true,
-    open: true,
+    open: false,
     image: '',
     imageZoom: 120,
     imagePosition: 'center center',

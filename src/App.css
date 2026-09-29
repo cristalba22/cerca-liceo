@@ -15769,6 +15769,26 @@ html.android-compat .night-mode .android-safe-offers-list article small {
   line-height: 1.25;
 }
 
+.merchant-first-later {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px;
+  color: #5f594f;
+  background: #f1ead8;
+  border-radius: 17px;
+}
+
+.merchant-first-later span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 950;
+}
+
 .merchant-first-form label {
   display: grid;
   gap: 7px;
@@ -15839,6 +15859,7 @@ html.android-compat .night-mode .android-safe-offers-list article small {
 .night-mode .merchant-first-hero p,
 .night-mode .merchant-first-type strong,
 .night-mode .merchant-first-type small,
+.night-mode .merchant-first-later,
 .night-mode .merchant-first-help,
 .night-mode .merchant-first-form label span {
   color: #fffbea;
@@ -15851,6 +15872,10 @@ html.android-compat .night-mode .android-safe-offers-list article small {
   color: #fffbea;
   background: #182515;
   border-color: rgba(255, 251, 234, 0.12);
+}
+
+.night-mode .merchant-first-later {
+  background: #182515;
 }
 
 .night-mode .merchant-first-type button.active,
@@ -15874,6 +15899,10 @@ html.android-compat .merchant-first-type button {
 
   .merchant-first-days {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  .merchant-first-later {
+    grid-template-columns: 1fr;
   }
 }
 

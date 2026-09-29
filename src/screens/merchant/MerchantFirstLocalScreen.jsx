@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { ArrowLeft, Check, Home, Store, UserRound } from 'lucide-react'
-import { sections, weekDays, commerceCategories } from '../../lib/appConfig.js'
+import { ArrowLeft, Camera, Check, Clock, Home, Store, UserRound } from 'lucide-react'
+import { sections, commerceCategories } from '../../lib/appConfig.js'
 import {
-  formatSchedule, normalizeArgentineWhatsapp, isValidArgentineWhatsapp,
+  buildLocalDraft, ensureMenuSlots, normalizeArgentineWhatsapp, isValidArgentineWhatsapp,
 } from '../../lib/businessRules'
 import { ThemeToggle } from '../../components/AppChrome'
 
@@ -14,10 +14,10 @@ export function MerchantFirstLocalScreen({ account, onSaveLocal, onBack, onHome,
     section: account?.section || 'Liceo Procrear',
     category: account?.category || 'Comida',
     businessType: account?.businessType || 'local',
-    locationMode: account?.businessType === 'entrepreneur' ? 'none' : 'address',
-    openDays: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
-    openTime: '09:00',
-    closeTime: '21:00',
+    locationMode: 'none',
+    openDays: [],
+    openTime: '',
+    closeTime: '',
     delivery: account?.salesMode || 'WhatsApp',
   }))
   const [status, setStatus] = useState('')
@@ -43,16 +43,6 @@ export function MerchantFirstLocalScreen({ account, onSaveLocal, onBack, onHome,
     setStatus('')
   }
 
-  const toggleDay = (day) => {
-    setDraft((current) => {
-      const nextDays = current.openDays.includes(day)
-        ? current.openDays.filter((item) => item !== day)
-        : weekDays.filter((item) => [...current.openDays, day].includes(item))
-      return { ...current, openDays: nextDays }
-    })
-    setStatus('')
-  }
-
   const submitFirstLocal = async () => {
     if (saving) return
     const missing = [
@@ -60,8 +50,6 @@ export function MerchantFirstLocalScreen({ account, onSaveLocal, onBack, onHome,
       !draft.whatsapp.trim() && 'WhatsApp',
       !draft.category && 'rubro',
       !draft.section && 'zona',
-      !draft.openDays.length && 'dias',
-      (!draft.openTime || !draft.closeTime) && 'horario',
     ].filter(Boolean)
 
     if (missing.length) {
@@ -84,7 +72,7 @@ export function MerchantFirstLocalScreen({ account, onSaveLocal, onBack, onHome,
       address: hasAddress ? draft.address.trim() : '',
       hasPublicAddress: hasAddress,
       locationMode: hasAddress ? 'address' : 'none',
-      hours: formatSchedule(draft),
+      hours: draft.hours || '',
       menu: ensureMenuSlots(draft.menu),
       ready: true,
       isPublic: true,
@@ -155,9 +143,9 @@ export function MerchantFirstLocalScreen({ account, onSaveLocal, onBack, onHome,
       </header>
 
       <section className="merchant-first-hero">
-        <span>Paso final</span>
-        <h1>Publica tu comercio gratis.</h1>
-        <p>Completa lo basico para aparecer en Cerca Liceo. Despues podes sumar foto, mapa y promos.</p>
+        <span>Un solo paso</span>
+        <h1>Hace visible tu comercio.</h1>
+        <p>Completa cuatro datos y publica. No hace falta tener foto, direccion ni horarios ahora.</p>
       </section>
 
       <section className="merchant-first-form">
@@ -210,38 +198,16 @@ export function MerchantFirstLocalScreen({ account, onSaveLocal, onBack, onHome,
           <input inputMode="numeric" value={draft.whatsapp} onChange={(event) => updateDraft('whatsapp', event.target.value)} placeholder="3510000000" />
         </label>
 
-        <label>
-          <span>{draft.businessType === 'entrepreneur' ? 'Zona o forma de entrega' : 'Direccion o referencia opcional'}</span>
-          <input
-            value={draft.address}
-            onChange={(event) => updateDraft('address', event.target.value)}
-            placeholder={draft.businessType === 'entrepreneur' ? 'Ej: Entrego por Liceo Procrear' : 'Ej: Mza 12, frente a la plaza'}
-          />
-        </label>
-
-        <div className="merchant-first-days" aria-label="Dias que abre">
-          {weekDays.map((day) => (
-            <button className={draft.openDays.includes(day) ? 'active' : ''} type="button" key={day} onClick={() => toggleDay(day)}>
-              {day}
-            </button>
-          ))}
-        </div>
-
-        <div className="merchant-first-grid">
-          <label>
-            <span>Desde</span>
-            <input type="time" value={draft.openTime} onChange={(event) => updateDraft('openTime', event.target.value)} />
-          </label>
-          <label>
-            <span>Hasta</span>
-            <input type="time" value={draft.closeTime} onChange={(event) => updateDraft('closeTime', event.target.value)} />
-          </label>
+        <div className="merchant-first-later" aria-label="Datos que podes agregar despues">
+          <span><Camera size={17} /> Foto</span>
+          <span><Clock size={17} /> Horarios</span>
+          <span><Store size={17} /> Direccion</span>
         </div>
 
         <button className="merchant-first-submit" type="button" disabled={saving} onClick={submitFirstLocal}>
           {saving ? 'Guardando...' : 'Publicar mi comercio gratis'}
         </button>
-        <small className="merchant-first-help">No se pide tarjeta. Si algo falta, lo podes corregir despues desde Panel comercio.</small>
+        <small className="merchant-first-help">Listo: apareces en la guia. La foto, los horarios y la direccion se agregan despues desde tu panel.</small>
       </section>
     </div>
   )

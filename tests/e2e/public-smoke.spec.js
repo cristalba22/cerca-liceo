@@ -27,6 +27,24 @@ test('acciones principales y acceso siguen disponibles', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /entrar es opcional/i })).toBeVisible()
 })
 
+test('el alta de comercio muestra solo los datos iniciales necesarios', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: /registrarme gratis/i }).click()
+
+  await expect(page.getByRole('heading', { name: /crea tu comercio sin pagar nada|registrar comercio/i })).toBeVisible()
+  await expect(page.getByLabel(/nombre del comercio/i)).toBeVisible()
+  await expect(page.getByLabel(/rubro principal/i)).toBeVisible()
+  await expect(page.getByText(/foto.*horarios.*direccion.*despues|foto.*direccion.*horarios.*cuando quieras/i)).toBeVisible()
+  await expect(page.getByText(/ubicacion inicial/i)).toHaveCount(0)
+  await expect(page.getByText(/como vendes hoy/i)).toHaveCount(0)
+
+  const dimensions = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }))
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth + 1)
+})
+
 test('home no tiene problemas serios o criticos de accesibilidad', async ({ page }) => {
   await page.goto('/')
   await page.waitForTimeout(1000)

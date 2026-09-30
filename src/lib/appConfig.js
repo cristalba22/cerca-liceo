@@ -17,7 +17,7 @@ import {
   Wrench,
 } from 'lucide-react'
 
-const sections = ['Todos', 'Liceo Procrear', 'Liceo 1ra', 'Liceo 2da', 'Liceo 3ra']
+const sections = ['Todos', 'Liceo Procrear', 'Liceo 1ra', 'Liceo 2da', 'Liceo 3ra', 'Newbery']
 const weekDays = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
 
 const categories = [

@@ -48,7 +48,7 @@ export function DirectoryScreen({ businesses, onBack, onOpen, onToggleTheme }) {
         <div>
           <MapPin size={20} />
           <strong>{filteredBusinesses.length} locales encontrados</strong>
-          <span>{filteredBusinesses.filter((business) => getOpenStatus(business).open).length} abiertos ahora - {businessSection === 'Todos' ? 'todo Liceo' : businessSection}</span>
+          <span>{filteredBusinesses.filter((business) => getOpenStatus(business).open).length} abiertos ahora - {businessSection === 'Todos' ? 'todas las zonas' : businessSection}</span>
         </div>
         <a href={liceoMapUrl} target="_blank" rel="noreferrer">Abrir Maps</a>
       </section>
@@ -83,7 +83,7 @@ export function DirectoryScreen({ businesses, onBack, onOpen, onToggleTheme }) {
             type="button"
             onClick={() => setBusinessSection('Todos')}
           >
-            Todo Liceo
+            Todas las zonas
           </button>
           <button
             className={openOnly ? 'active' : ''}

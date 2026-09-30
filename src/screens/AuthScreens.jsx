@@ -1109,10 +1109,9 @@ export function RegisterScreen({ initialType = 'neighbor', onComplete, onBack, o
           <span>Seccion</span>
           <select value={form.section} onChange={(event) => updateForm('section', event.target.value)}>
             <option value="" disabled>Elegir seccion</option>
-            <option>Liceo Procrear</option>
-            <option>Liceo 1ra</option>
-            <option>Liceo 2da</option>
-            <option>Liceo 3ra</option>
+            {sections.filter((section) => section !== 'Todos').map((section) => (
+              <option key={section} value={section}>{section}</option>
+            ))}
           </select>
         </label>
         {isMerchant ? (

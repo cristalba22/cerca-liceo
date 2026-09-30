@@ -15,6 +15,7 @@ describe('alta simple de comercios', () => {
     expect(html).toContain('Nombre del comercio')
     expect(html).toContain('Rubro principal')
     expect(html).toContain('<option value="Polirubro">Polirubro</option>')
+    expect(html).toContain('<option value="Newbery">Newbery</option>')
     expect(html).toContain('Foto, direccion, horarios y promociones se agregan cuando quieras')
     expect(html).not.toContain('Ubicacion inicial')
     expect(html).not.toContain('Como vendes hoy')

@@ -1211,28 +1211,18 @@ export const cercaApi = {
     if ('instagram' in changes) payload.instagram = changes.instagram || null
     payload.updated_at = new Date().toISOString()
 
-    const { data, error } = await supabase
-      .from('businesses')
-      .update(payload)
-      .eq('id', businessId)
-      .select('id')
-      .single()
+    const { data, error } = await supabase.rpc('admin_update_business', {
+      p_business_id: businessId,
+      p_changes: payload,
+    })
 
-    if (error || !data?.id) return { business: null, error }
+    if (error) return { business: null, error }
 
-    const { data: rpcRows, error: rpcError } = await supabase.rpc('admin_list_businesses')
-    if (!rpcError && Array.isArray(rpcRows)) {
-      const row = rpcRows.find((business) => business.id === businessId)
-      if (row) return { business: mapBusinessRow(row), error: null }
+    const row = Array.isArray(data) ? data[0] : data
+    return {
+      business: row ? mapBusinessRow(row) : null,
+      error: row ? null : new Error('El local no devolvio los datos actualizados.'),
     }
-
-    const { data: refreshed, error: refreshError } = await supabase
-      .from('businesses')
-      .select('*, products(*)')
-      .eq('id', businessId)
-      .single()
-
-    return { business: refreshed ? mapBusinessRow(refreshed) : null, error: refreshError }
   },
 
   async deleteBusinessAdmin({ businessId }) {

@@ -22,4 +22,12 @@ describe('contrato de seguridad de Supabase', () => {
     expect(sql).toMatch(/grant execute on function public\.can_create_weekly_free_offer\(uuid\) to authenticated/i)
     expect(sql).toContain('b.owner_id = auth.uid()')
   })
+
+  it('protege la edicion administrativa de comercios', () => {
+    const sql = readSql('admin-update-business.sql')
+    expect(sql).toMatch(/function public\.admin_update_business/i)
+    expect(sql).toContain('if not public.is_admin()')
+    expect(sql).toMatch(/revoke all on function public\.admin_update_business\(uuid, jsonb\) from public, anon/i)
+    expect(sql).toMatch(/grant execute on function public\.admin_update_business\(uuid, jsonb\) to authenticated/i)
+  })
 })

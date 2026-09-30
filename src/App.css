@@ -5733,6 +5733,25 @@ select:focus-visible {
   background: #a7e92a;
 }
 
+.night-mode .weekend-day-schedule > strong {
+  color: #fffbea;
+}
+
+.night-mode .weekend-second-shift {
+  color: #fffbea;
+  background: #303426;
+  border-color: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .weekend-second-shift.active {
+  color: #172112;
+  background: #a7e92a;
+}
+
+.night-mode .weekend-second-shift small {
+  color: inherit;
+}
+
 .night-mode .photo-adjust-panel {
   background: rgba(255, 251, 234, 0.08);
 }
@@ -7658,6 +7677,76 @@ select:focus-visible {
   background: rgba(246, 238, 220, 0.64);
   border: 1px solid rgba(16, 21, 15, 0.07);
   border-radius: 17px;
+}
+
+.weekend-schedule-grid.weekend-schedule-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.weekend-day-schedule {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.weekend-day-schedule + .weekend-day-schedule {
+  padding-top: 12px;
+  border-top: 1px solid rgba(16, 21, 15, 0.1);
+}
+
+.weekend-day-schedule > strong {
+  color: #172112;
+  font-size: 13px;
+}
+
+.weekend-turn-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.weekend-second-shift {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 9px;
+  min-width: 0;
+  padding: 9px 10px;
+  align-items: center;
+  color: #172112;
+  background: #fffdf7;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 13px;
+  cursor: pointer;
+}
+
+.weekend-second-shift.active {
+  background: #dfff9f;
+  border-color: rgba(105, 142, 16, 0.42);
+}
+
+.weekend-second-shift input {
+  width: 19px;
+  height: 19px;
+  margin: 0;
+  accent-color: #76b900;
+}
+
+.weekend-second-shift span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.weekend-second-shift strong {
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.weekend-second-shift small {
+  color: #665f50;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .schedule-preview {

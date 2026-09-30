@@ -126,14 +126,20 @@ const buildScheduleSlots = (schedule = {}) => {
     if (!days.includes(day)) return result
     const isSaturday = day === 'Sab'
     const isSunday = day === 'Dom'
-    const weekendSlot = schedule.weekendHours && (
-      isSaturday && schedule.satOpenTime && schedule.satCloseTime
-        ? [{ open: schedule.satOpenTime, close: schedule.satCloseTime }]
-        : isSunday && schedule.sunOpenTime && schedule.sunCloseTime
-          ? [{ open: schedule.sunOpenTime, close: schedule.sunCloseTime }]
-          : null
-    )
-    result[day] = weekendSlot || [...mainSlot, ...splitSlot]
+    let weekendSlots = null
+    if (schedule.weekendHours && isSaturday && schedule.satOpenTime && schedule.satCloseTime) {
+      weekendSlots = [{ open: schedule.satOpenTime, close: schedule.satCloseTime }]
+      if (schedule.satSplitHours && schedule.satSplitOpenTime && schedule.satSplitCloseTime) {
+        weekendSlots.push({ open: schedule.satSplitOpenTime, close: schedule.satSplitCloseTime })
+      }
+    }
+    if (schedule.weekendHours && isSunday && schedule.sunOpenTime && schedule.sunCloseTime) {
+      weekendSlots = [{ open: schedule.sunOpenTime, close: schedule.sunCloseTime }]
+      if (schedule.sunSplitHours && schedule.sunSplitOpenTime && schedule.sunSplitCloseTime) {
+        weekendSlots.push({ open: schedule.sunSplitOpenTime, close: schedule.sunSplitCloseTime })
+      }
+    }
+    result[day] = weekendSlots || [...mainSlot, ...splitSlot]
     return result
   }, {})
 }
@@ -478,9 +484,12 @@ const inferScheduleDraft = (local = {}) => {
   const sundaySlots = parsed.Dom || []
   const primary = mondaySlots[0] || saturdaySlots[0] || sundaySlots[0] || {}
   const split = mondaySlots[1] || {}
+  const saturdaySplit = saturdaySlots[1] || {}
+  const sundaySplit = sundaySlots[1] || {}
   const hasWeekendHours = Boolean(
     (saturdaySlots[0] && (saturdaySlots[0].open !== primary.open || saturdaySlots[0].close !== primary.close)) ||
-    (sundaySlots[0] && (sundaySlots[0].open !== primary.open || sundaySlots[0].close !== primary.close))
+    (sundaySlots[0] && (sundaySlots[0].open !== primary.open || sundaySlots[0].close !== primary.close)) ||
+    saturdaySplit.open || sundaySplit.open
   )
 
   return {
@@ -492,8 +501,14 @@ const inferScheduleDraft = (local = {}) => {
     weekendHours: hasWeekendHours,
     satOpenTime: saturdaySlots[0]?.open || '',
     satCloseTime: saturdaySlots[0]?.close || '',
+    satSplitHours: Boolean(saturdaySplit.open && saturdaySplit.close),
+    satSplitOpenTime: saturdaySplit.open || '',
+    satSplitCloseTime: saturdaySplit.close || '',
     sunOpenTime: sundaySlots[0]?.open || '',
     sunCloseTime: sundaySlots[0]?.close || '',
+    sunSplitHours: Boolean(sundaySplit.open && sundaySplit.close),
+    sunSplitOpenTime: sundaySplit.open || '',
+    sunSplitCloseTime: sundaySplit.close || '',
   }
 }
 
@@ -522,8 +537,14 @@ const buildLocalDraft = (local, account) => {
   weekendHours: local?.weekendHours || scheduleDraft.weekendHours,
   satOpenTime: local?.satOpenTime || scheduleDraft.satOpenTime,
   satCloseTime: local?.satCloseTime || scheduleDraft.satCloseTime,
+  satSplitHours: local?.satSplitHours || scheduleDraft.satSplitHours,
+  satSplitOpenTime: local?.satSplitOpenTime || scheduleDraft.satSplitOpenTime,
+  satSplitCloseTime: local?.satSplitCloseTime || scheduleDraft.satSplitCloseTime,
   sunOpenTime: local?.sunOpenTime || scheduleDraft.sunOpenTime,
   sunCloseTime: local?.sunCloseTime || scheduleDraft.sunCloseTime,
+  sunSplitHours: local?.sunSplitHours || scheduleDraft.sunSplitHours,
+  sunSplitOpenTime: local?.sunSplitOpenTime || scheduleDraft.sunSplitOpenTime,
+  sunSplitCloseTime: local?.sunSplitCloseTime || scheduleDraft.sunSplitCloseTime,
   whatsapp: local?.whatsapp || account?.whatsapp || '',
   instagram: local?.instagram || account?.instagram || '',
   description: local?.description || '',
@@ -592,8 +613,14 @@ const buildInitialBusinessDraftFromAccount = (account = {}) => {
     weekendHours: false,
     satOpenTime: '',
     satCloseTime: '',
+    satSplitHours: false,
+    satSplitOpenTime: '',
+    satSplitCloseTime: '',
     sunOpenTime: '',
     sunCloseTime: '',
+    sunSplitHours: false,
+    sunSplitOpenTime: '',
+    sunSplitCloseTime: '',
     whatsapp: account.whatsapp || '',
     instagram: account.instagram || '',
     description: isEntrepreneur

@@ -95,10 +95,30 @@ describe('gratis hoy y siempre', () => {
     expect(html).toContain('Abre sabado')
     expect(html).toContain('Abre domingo')
     expect(html).toContain('¿El sabado tiene otro horario?')
-    expect(html).toContain('Sabado abre')
-    expect(html).toContain('Sabado cierra')
-    expect(html).not.toContain('Domingo abre')
-    expect(html).not.toContain('Domingo cierra')
+    expect(html).toContain('Horario del sabado')
+    expect(html).toContain('Primer turno abre')
+    expect(html).toContain('Primer turno cierra')
+    expect(html).not.toContain('Horario del domingo')
+  })
+
+  it('permite agregar un segundo turno solamente al sabado', () => {
+    const html = renderToStaticMarkup(<WeekendHoursFields
+      draft={{
+        openDays: ['Sab'],
+        weekendHours: true,
+        satOpenTime: '08:00',
+        satCloseTime: '12:00',
+        satSplitHours: true,
+        satSplitOpenTime: '16:00',
+        satSplitCloseTime: '20:00',
+      }}
+      onUpdate={() => {}}
+    />)
+
+    expect(html).toContain('Agregar segundo turno')
+    expect(html).toContain('Segundo turno abre')
+    expect(html).toContain('Segundo turno cierra')
+    expect(html).not.toContain('Horario del domingo')
   })
 
   it('la migracion mantiene propietario y visibilidad, sin condiciones comerciales', () => {

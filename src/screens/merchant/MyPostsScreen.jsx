@@ -44,6 +44,50 @@ export function SplitHoursFields({ draft, onUpdate, optionsClassName = 'schedule
   )
 }
 
+function WeekendDaySchedule({ dayLabel, fieldPrefix, draft, onUpdate }) {
+  const openField = `${fieldPrefix}OpenTime`
+  const closeField = `${fieldPrefix}CloseTime`
+  const splitField = `${fieldPrefix}SplitHours`
+  const splitOpenField = `${fieldPrefix}SplitOpenTime`
+  const splitCloseField = `${fieldPrefix}SplitCloseTime`
+  const hasSecondShift = Boolean(draft[splitField])
+
+  return (
+    <section className="weekend-day-schedule">
+      <strong>Horario del {dayLabel.toLowerCase()}</strong>
+      <div className="weekend-turn-grid">
+        <label>
+          <span>Primer turno abre</span>
+          <input type="time" value={draft[openField] || ''} onChange={(event) => onUpdate(openField, event.target.value)} />
+        </label>
+        <label>
+          <span>Primer turno cierra</span>
+          <input type="time" value={draft[closeField] || ''} onChange={(event) => onUpdate(closeField, event.target.value)} />
+        </label>
+      </div>
+      <label className={`weekend-second-shift ${hasSecondShift ? 'active' : ''}`}>
+        <input type="checkbox" checked={hasSecondShift} onChange={(event) => onUpdate(splitField, event.target.checked)} />
+        <span>
+          <strong>Agregar segundo turno</strong>
+          <small>Ej: vuelve a abrir por la tarde.</small>
+        </span>
+      </label>
+      {hasSecondShift && (
+        <div className="weekend-turn-grid">
+          <label>
+            <span>Segundo turno abre</span>
+            <input type="time" value={draft[splitOpenField] || ''} onChange={(event) => onUpdate(splitOpenField, event.target.value)} />
+          </label>
+          <label>
+            <span>Segundo turno cierra</span>
+            <input type="time" value={draft[splitCloseField] || ''} onChange={(event) => onUpdate(splitCloseField, event.target.value)} />
+          </label>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function WeekendHoursFields({ draft, onUpdate, optionsClassName = 'schedule-options', fieldsClassName = 'weekend-schedule-grid' }) {
   const opensSaturday = draft.openDays?.includes('Sab')
   const opensSunday = draft.openDays?.includes('Dom')
@@ -91,31 +135,9 @@ export function WeekendHoursFields({ draft, onUpdate, optionsClassName = 'schedu
         </div>
       )}
       {draft.weekendHours && (opensSaturday || opensSunday) && (
-        <div className={fieldsClassName}>
-          {opensSaturday && (
-            <>
-              <label>
-                <span>Sabado abre</span>
-                <input type="time" value={draft.satOpenTime} onChange={(event) => onUpdate('satOpenTime', event.target.value)} />
-              </label>
-              <label>
-                <span>Sabado cierra</span>
-                <input type="time" value={draft.satCloseTime} onChange={(event) => onUpdate('satCloseTime', event.target.value)} />
-              </label>
-            </>
-          )}
-          {opensSunday && (
-            <>
-              <label>
-                <span>Domingo abre</span>
-                <input type="time" value={draft.sunOpenTime} onChange={(event) => onUpdate('sunOpenTime', event.target.value)} />
-              </label>
-              <label>
-                <span>Domingo cierra</span>
-                <input type="time" value={draft.sunCloseTime} onChange={(event) => onUpdate('sunCloseTime', event.target.value)} />
-              </label>
-            </>
-          )}
+        <div className={`${fieldsClassName} weekend-schedule-list`}>
+          {opensSaturday && <WeekendDaySchedule dayLabel="Sabado" fieldPrefix="sat" draft={draft} onUpdate={onUpdate} />}
+          {opensSunday && <WeekendDaySchedule dayLabel="Domingo" fieldPrefix="sun" draft={draft} onUpdate={onUpdate} />}
         </div>
       )}
     </>
@@ -252,7 +274,9 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
       (!localDraft.openTime.trim() || !localDraft.closeTime.trim()) && 'horario',
       localDraft.splitHours && (!localDraft.splitOpenTime.trim() || !localDraft.splitCloseTime.trim()) && 'horario de tarde',
       localDraft.weekendHours && localDraft.openDays.includes('Sab') && (!localDraft.satOpenTime.trim() || !localDraft.satCloseTime.trim()) && 'horario del sabado',
+      localDraft.weekendHours && localDraft.openDays.includes('Sab') && localDraft.satSplitHours && (!localDraft.satSplitOpenTime.trim() || !localDraft.satSplitCloseTime.trim()) && 'segundo turno del sabado',
       localDraft.weekendHours && localDraft.openDays.includes('Dom') && (!localDraft.sunOpenTime.trim() || !localDraft.sunCloseTime.trim()) && 'horario del domingo',
+      localDraft.weekendHours && localDraft.openDays.includes('Dom') && localDraft.sunSplitHours && (!localDraft.sunSplitOpenTime.trim() || !localDraft.sunSplitCloseTime.trim()) && 'segundo turno del domingo',
     ].filter(Boolean)
 
     if (missing.length) {

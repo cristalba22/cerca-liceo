@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  buildLocalDraft,
   formatSchedule,
   getOpenStatus,
   isOfferActiveNow,
@@ -131,5 +132,31 @@ describe('horarios del comercio', () => {
       sunOpenTime: '',
       sunCloseTime: '',
     })).toBe('Lun a Vie - 08:00 a 20:00 | Sab - 20:00 a 23:00')
+  })
+
+  it('guarda, recupera y calcula un sabado con dos turnos', () => {
+    const saturdaySchedule = {
+      openDays: ['Sab'],
+      openTime: '08:00',
+      closeTime: '20:00',
+      weekendHours: true,
+      satOpenTime: '08:00',
+      satCloseTime: '12:00',
+      satSplitHours: true,
+      satSplitOpenTime: '16:00',
+      satSplitCloseTime: '20:00',
+    }
+    const hours = formatSchedule(saturdaySchedule)
+    expect(hours).toBe('Sab - 08:00 a 12:00 y 16:00 a 20:00')
+
+    const restored = buildLocalDraft({ hours, openDays: ['Sab'] }, {})
+    expect(restored.satSplitHours).toBe(true)
+    expect(restored.satSplitOpenTime).toBe('16:00')
+    expect(restored.satSplitCloseTime).toBe('20:00')
+
+    vi.setSystemTime(new Date('2026-08-08T14:00:00-03:00'))
+    expect(getOpenStatus({ ...saturdaySchedule, hours }).open).toBe(false)
+    vi.setSystemTime(new Date('2026-08-08T17:00:00-03:00'))
+    expect(getOpenStatus({ ...saturdaySchedule, hours }).open).toBe(true)
   })
 })

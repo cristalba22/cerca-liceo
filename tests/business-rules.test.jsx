@@ -119,4 +119,17 @@ describe('horarios del comercio', () => {
     vi.setSystemTime(new Date('2026-08-08T18:00:00-03:00'))
     expect(getOpenStatus(splitSchedule).open).toBe(false)
   })
+
+  it('formatea solo el sabado cuando el domingo esta cerrado', () => {
+    expect(formatSchedule({
+      openDays: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
+      openTime: '08:00',
+      closeTime: '20:00',
+      weekendHours: true,
+      satOpenTime: '20:00',
+      satCloseTime: '23:00',
+      sunOpenTime: '',
+      sunCloseTime: '',
+    })).toBe('Lun a Vie - 08:00 a 20:00 | Sab - 20:00 a 23:00')
+  })
 })

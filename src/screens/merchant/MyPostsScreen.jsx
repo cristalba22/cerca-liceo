@@ -27,9 +27,6 @@ export function SplitHoursFields({ draft, onUpdate, optionsClassName = 'schedule
             <small>Activalo para cargar manana y tarde.</small>
           </span>
         </label>
-        <button className={draft.weekendHours ? 'active' : ''} type="button" onClick={() => onUpdate('weekendHours', !draft.weekendHours)}>
-          Sab/Dom distinto
-        </button>
       </div>
       {draft.splitHours && (
         <div className={fieldsClassName}>
@@ -41,6 +38,63 @@ export function SplitHoursFields({ draft, onUpdate, optionsClassName = 'schedule
             <span>Tarde cierra</span>
             <input type="time" value={draft.splitCloseTime} onChange={(event) => onUpdate('splitCloseTime', event.target.value)} />
           </label>
+        </div>
+      )}
+    </>
+  )
+}
+
+export function WeekendHoursFields({ draft, onUpdate, optionsClassName = 'schedule-options', fieldsClassName = 'weekend-schedule-grid' }) {
+  const opensSaturday = draft.openDays?.includes('Sab')
+  const opensSunday = draft.openDays?.includes('Dom')
+  if (!opensSaturday && !opensSunday) return null
+
+  const question = opensSaturday && opensSunday
+    ? '¿Sabado y domingo tienen otro horario?'
+    : opensSaturday
+      ? '¿El sabado tiene otro horario?'
+      : '¿El domingo tiene otro horario?'
+  const help = opensSaturday && opensSunday
+    ? 'Podes cargar un horario diferente para cada dia.'
+    : `Solo pediremos el horario del ${opensSaturday ? 'sabado' : 'domingo'}.`
+
+  return (
+    <>
+      <div className={optionsClassName}>
+        <label className={`split-hours-toggle ${draft.weekendHours ? 'active' : ''}`}>
+          <input type="checkbox" checked={draft.weekendHours} onChange={(event) => onUpdate('weekendHours', event.target.checked)} />
+          <span>
+            <strong>{question}</strong>
+            <small>{help}</small>
+          </span>
+        </label>
+      </div>
+      {draft.weekendHours && (
+        <div className={fieldsClassName}>
+          {opensSaturday && (
+            <>
+              <label>
+                <span>Sabado abre</span>
+                <input type="time" value={draft.satOpenTime} onChange={(event) => onUpdate('satOpenTime', event.target.value)} />
+              </label>
+              <label>
+                <span>Sabado cierra</span>
+                <input type="time" value={draft.satCloseTime} onChange={(event) => onUpdate('satCloseTime', event.target.value)} />
+              </label>
+            </>
+          )}
+          {opensSunday && (
+            <>
+              <label>
+                <span>Domingo abre</span>
+                <input type="time" value={draft.sunOpenTime} onChange={(event) => onUpdate('sunOpenTime', event.target.value)} />
+              </label>
+              <label>
+                <span>Domingo cierra</span>
+                <input type="time" value={draft.sunCloseTime} onChange={(event) => onUpdate('sunCloseTime', event.target.value)} />
+              </label>
+            </>
+          )}
         </div>
       )}
     </>
@@ -615,27 +669,7 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
           </div>
 
           <SplitHoursFields draft={localDraft} onUpdate={updateLocalDraft} fieldsClassName="android-safe-two-cols" />
-
-          {localDraft.weekendHours && (
-            <div className="weekend-schedule-grid">
-              <label>
-                <span>Sab desde</span>
-                <input type="time" value={localDraft.satOpenTime} onChange={(event) => updateLocalDraft('satOpenTime', event.target.value)} />
-              </label>
-              <label>
-                <span>Sab hasta</span>
-                <input type="time" value={localDraft.satCloseTime} onChange={(event) => updateLocalDraft('satCloseTime', event.target.value)} />
-              </label>
-              <label>
-                <span>Dom desde</span>
-                <input type="time" value={localDraft.sunOpenTime} onChange={(event) => updateLocalDraft('sunOpenTime', event.target.value)} />
-              </label>
-              <label>
-                <span>Dom hasta</span>
-                <input type="time" value={localDraft.sunCloseTime} onChange={(event) => updateLocalDraft('sunCloseTime', event.target.value)} />
-              </label>
-            </div>
-          )}
+          <WeekendHoursFields draft={localDraft} onUpdate={updateLocalDraft} />
 
           <label>
             <span>Descripcion corta</span>
@@ -1194,26 +1228,12 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
                   optionsClassName="schedule-options wide"
                   fieldsClassName="split-schedule-grid wide"
                 />
-                {localDraft.weekendHours && (
-                  <div className="weekend-schedule-grid wide">
-                    <label>
-                      <span>Sab desde</span>
-                      <input type="time" value={localDraft.satOpenTime} onChange={(event) => updateLocalDraft('satOpenTime', event.target.value)} />
-                    </label>
-                    <label>
-                      <span>Sab hasta</span>
-                      <input type="time" value={localDraft.satCloseTime} onChange={(event) => updateLocalDraft('satCloseTime', event.target.value)} />
-                    </label>
-                    <label>
-                      <span>Dom desde</span>
-                      <input type="time" value={localDraft.sunOpenTime} onChange={(event) => updateLocalDraft('sunOpenTime', event.target.value)} />
-                    </label>
-                    <label>
-                      <span>Dom hasta</span>
-                      <input type="time" value={localDraft.sunCloseTime} onChange={(event) => updateLocalDraft('sunCloseTime', event.target.value)} />
-                    </label>
-                  </div>
-                )}
+                <WeekendHoursFields
+                  draft={localDraft}
+                  onUpdate={updateLocalDraft}
+                  optionsClassName="schedule-options wide"
+                  fieldsClassName="weekend-schedule-grid wide"
+                />
                 <div className="schedule-preview wide">
                   <Clock3 size={15} />
                   <strong>{scheduleLabel}</strong>

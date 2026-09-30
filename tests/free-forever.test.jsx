@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { hasCatalogAccess } from '../src/lib/businessRules.js'
 import { PublishScreen } from '../src/screens/merchant/PublishScreen.jsx'
-import { MyPostsScreen, SplitHoursFields } from '../src/screens/merchant/MyPostsScreen.jsx'
+import { MyPostsScreen, SplitHoursFields, WeekendHoursFields } from '../src/screens/merchant/MyPostsScreen.jsx'
 import { ProfileScreen } from '../src/screens/AuthScreens.jsx'
 import { BusinessDetailScreen } from '../src/screens/PublicScreens.jsx'
 
@@ -77,6 +77,26 @@ describe('gratis hoy y siempre', () => {
     expect(html).toContain('¿Cierra al mediodia?')
     expect(html).toContain('Tarde abre')
     expect(html).toContain('Tarde cierra')
+  })
+
+  it('si abre solo el sabado no pide horarios del domingo', () => {
+    const html = renderToStaticMarkup(<WeekendHoursFields
+      draft={{
+        openDays: ['Sab'],
+        weekendHours: true,
+        satOpenTime: '20:00',
+        satCloseTime: '23:00',
+        sunOpenTime: '',
+        sunCloseTime: '',
+      }}
+      onUpdate={() => {}}
+    />)
+
+    expect(html).toContain('¿El sabado tiene otro horario?')
+    expect(html).toContain('Sabado abre')
+    expect(html).toContain('Sabado cierra')
+    expect(html).not.toContain('Domingo abre')
+    expect(html).not.toContain('Domingo cierra')
   })
 
   it('la migracion mantiene propietario y visibilidad, sin condiciones comerciales', () => {

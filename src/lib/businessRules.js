@@ -464,6 +464,13 @@ const mergeUniqueById = (items) => {
   })
 }
 
+const rotateListFromIndex = (items = [], index = 0, limit = items.length) => {
+  if (!items.length || limit <= 0) return []
+  const start = ((Number(index) || 0) % items.length + items.length) % items.length
+  const count = Math.min(Math.max(0, limit), items.length)
+  return Array.from({ length: count }, (_, offset) => items[(start + offset) % items.length])
+}
+
 const inferScheduleDraft = (local = {}) => {
   const parsed = parseScheduleLabel(local.hours || '')
   const mondaySlots = parsed.Lun || []
@@ -680,6 +687,7 @@ export {
   buildMenuSections,
   buildFilledMenuSections,
   mergeUniqueById,
+  rotateListFromIndex,
   inferScheduleDraft,
   buildLocalDraft,
   buildInitialBusinessDraftFromAccount,

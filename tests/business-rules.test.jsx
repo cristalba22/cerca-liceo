@@ -7,6 +7,7 @@ import {
   isValidArgentineWhatsapp,
   normalizeSearchText,
   normalizeArgentineWhatsapp,
+  rotateListFromIndex,
 } from '../src/lib/businessRules.js'
 
 describe('busqueda tolerante', () => {
@@ -14,6 +15,18 @@ describe('busqueda tolerante', () => {
     expect(normalizeSearchText('Mr. Food')).toBe('mr food')
     expect(normalizeSearchText('Mr Food')).toBe('mr food')
     expect(normalizeSearchText('Bien-Argentino   CBA')).toBe('bien argentino cba')
+  })
+})
+
+describe('rotacion pareja de promociones', () => {
+  const offers = ['A', 'B', 'C', 'D']
+
+  it('mueve la oferta protagonista y conserva el orden circular', () => {
+    expect(rotateListFromIndex(offers, 2, 3)).toEqual(['C', 'D', 'A'])
+  })
+
+  it('no repite ofertas cuando hay menos que el limite visual', () => {
+    expect(rotateListFromIndex(['A', 'B'], 1, 3)).toEqual(['B', 'A'])
   })
 })
 

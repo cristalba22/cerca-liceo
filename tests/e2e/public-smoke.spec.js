@@ -27,6 +27,18 @@ test('acciones principales y acceso siguen disponibles', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /entrar es opcional/i })).toBeVisible()
 })
 
+test('las promociones protagonistas rotan automaticamente', async ({ page }) => {
+  await page.goto('/')
+  const leadOffer = page.locator('.today-lead-offer')
+  const secondaryOffers = page.locator('.today-offer-card')
+  await expect(leadOffer).toBeVisible()
+
+  if (await secondaryOffers.count() === 0) return
+
+  const initialOffer = await leadOffer.innerText()
+  await expect.poll(async () => leadOffer.innerText(), { timeout: 5000 }).not.toBe(initialOffer)
+})
+
 test('el alta de comercio muestra solo los datos iniciales necesarios', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: /registrarme gratis/i }).click()

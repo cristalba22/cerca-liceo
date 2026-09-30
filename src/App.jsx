@@ -25,7 +25,7 @@ import {
   normalizeSearchText, getMapPointFromCoordinates, hasBusinessPin, getBusinessMapUrl,
   hasCatalogAccess, isOfferPaused, isOfferActiveNow,
   getOpenStatus, getOfferOpenStatus, mergeUniqueById, buildInitialBusinessDraftFromAccount, toNoticeText,
-  isUploadedImage,
+  isUploadedImage, rotateListFromIndex,
   getBusinessSlug, getBusinessPublicPath,
 } from './lib/businessRules'
 import { imageSurfaceProps } from './lib/media'
@@ -76,6 +76,8 @@ function App() {
   const [showOpenNowOnly, setShowOpenNowOnly] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
   const [featuredBusinessIndex, setFeaturedBusinessIndex] = useState(0)
+  const [featuredOfferIndex, setFeaturedOfferIndex] = useState(0)
+  const [isOfferCarouselPaused, setIsOfferCarouselPaused] = useState(false)
   const [registerType, setRegisterType] = useState('neighbor')
   const [account, setAccount] = useState(() => readStoredJson('cerca-liceo-account'))
   const [merchantLocal, setMerchantLocal] = useState(() => readStoredJson('cerca-liceo-business'))
@@ -752,9 +754,33 @@ function App() {
     feedBusinesses.filter((business) => business.isPublic !== false && getOpenStatus(business).open)
   ), [feedBusinesses])
   const visibleFeedOffers = showOpenNowOnly ? openNowOffers : publicFeedOffers
-  const todayHighlights = visibleFeedOffers.slice(0, 3)
+  const todayHighlights = rotateListFromIndex(visibleFeedOffers, featuredOfferIndex, 3)
   const todayLeadOffer = todayHighlights[0]
   const todayPromoLabel = `${visibleFeedOffers.length} ${visibleFeedOffers.length === 1 ? 'promo vigente' : 'promos vigentes'}`
+
+  useEffect(() => {
+    const offerCount = visibleFeedOffers.length
+    if (offerCount <= 1) {
+      setFeaturedOfferIndex(0)
+      return undefined
+    }
+
+    setFeaturedOfferIndex(Math.floor(Date.now() / 3000) % offerCount)
+    return undefined
+  }, [visibleFeedOffers.length])
+
+  useEffect(() => {
+    const offerCount = visibleFeedOffers.length
+    if (offerCount <= 1) return undefined
+    if (screen !== 'home' || isOfferCarouselPaused) return undefined
+
+    const timer = window.setInterval(() => {
+      if (document.hidden) return
+      setFeaturedOfferIndex((index) => (index + 1) % offerCount)
+    }, 3000)
+
+    return () => window.clearInterval(timer)
+  }, [isOfferCarouselPaused, screen, visibleFeedOffers.length])
 
   const filteredOffers = useMemo(() => {
     const normalizedQuery = normalizeSearchText(query)
@@ -1195,12 +1221,19 @@ function App() {
               onPublish={() => openPublish()}
             />
 
-            <section className="today-panel today-panel-featured" aria-label="Que hay hoy en Liceo" data-motion-reveal style={{ '--motion-order': 3 }}>
+            <section
+              className="today-panel today-panel-featured"
+              aria-label="Que hay hoy en Liceo"
+              data-motion-reveal
+              style={{ '--motion-order': 3 }}
+              onFocusCapture={() => setIsOfferCarouselPaused(true)}
+              onBlurCapture={() => setIsOfferCarouselPaused(false)}
+            >
               <div className="today-panel-head">
                 <div>
                   <span>Que hay ahora</span>
                   <strong>{showOpenNowOnly ? 'Locales abiertos' : 'Promos cerca tuyo'}</strong>
-                  <small>{openNowBusinesses.length} abiertos ahora · {todayPromoLabel}</small>
+                  <small>{openNowBusinesses.length} abiertos ahora · {todayPromoLabel}{visibleFeedOffers.length > 1 ? ' · rotan solas' : ''}</small>
                 </div>
                 <button
                   className={showOpenNowOnly ? 'active' : ''}
@@ -1217,6 +1250,7 @@ function App() {
                   <button
                     className={`today-lead-offer offer-${todayLeadOffer.tone || getOfferTone(todayLeadOffer.category, 0)}`}
                     type="button"
+                    key={todayLeadOffer.id || `${todayLeadOffer.business}-${todayLeadOffer.title}`}
                     onClick={() => {
                       trackInteraction({ type: 'offer_view', businessId: todayLeadOffer.businessId, offerId: todayLeadOffer.id })
                       setSelectedOffer(todayLeadOffer)

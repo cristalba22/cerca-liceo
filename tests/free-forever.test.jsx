@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { hasCatalogAccess } from '../src/lib/businessRules.js'
 import { PublishScreen } from '../src/screens/merchant/PublishScreen.jsx'
-import { MyPostsScreen } from '../src/screens/merchant/MyPostsScreen.jsx'
+import { MyPostsScreen, SplitHoursFields } from '../src/screens/merchant/MyPostsScreen.jsx'
 import { ProfileScreen } from '../src/screens/AuthScreens.jsx'
 import { BusinessDetailScreen } from '../src/screens/PublicScreens.jsx'
 
@@ -61,6 +61,22 @@ describe('gratis hoy y siempre', () => {
     vi.stubGlobal('document', { documentElement: { classList: { contains: () => false } } })
     const html = renderToStaticMarkup(<MyPostsScreen account={account} local={{ ...local, menu: [] }} />)
     expect(html).not.toContain('Producto destacado')
+  })
+
+  it('explica y muestra los dos turnos del horario cortado', () => {
+    const html = renderToStaticMarkup(<SplitHoursFields
+      draft={{
+        splitHours: true,
+        splitOpenTime: '16:00',
+        splitCloseTime: '20:00',
+        weekendHours: false,
+      }}
+      onUpdate={() => {}}
+    />)
+
+    expect(html).toContain('¿Cierra al mediodia?')
+    expect(html).toContain('Tarde abre')
+    expect(html).toContain('Tarde cierra')
   })
 
   it('la migracion mantiene propietario y visibilidad, sin condiciones comerciales', () => {

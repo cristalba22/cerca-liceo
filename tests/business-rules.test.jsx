@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  formatSchedule,
   getOpenStatus,
   isOfferActiveNow,
   isOfferExpired,
@@ -88,6 +89,17 @@ describe('horarios del comercio', () => {
     satOpenTime: '10:00',
     satCloseTime: '14:00',
   }
+
+  it('guarda un turno de manana y otro de tarde en una sola ficha', () => {
+    expect(formatSchedule({
+      openDays: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie'],
+      openTime: '08:00',
+      closeTime: '12:00',
+      splitHours: true,
+      splitOpenTime: '16:00',
+      splitCloseTime: '20:00',
+    })).toBe('Lun a Vie - 08:00 a 12:00 y 16:00 a 20:00')
+  })
 
   it('abre durante el primer turno', () => {
     vi.setSystemTime(new Date('2026-08-03T10:30:00-03:00'))

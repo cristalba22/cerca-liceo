@@ -26,6 +26,7 @@ const categories = [
   { name: 'Verduleria', icon: ShoppingBasket, tone: 'green' },
   { name: 'Carniceria', icon: Store, tone: 'red' },
   { name: 'Despensa', icon: Store, tone: 'yellow' },
+  { name: 'Polirubro', icon: Grid2X2, tone: 'coral' },
   { name: 'Ferreteria', icon: Wrench, tone: 'teal' },
   { name: 'Panaderia', icon: Wheat, tone: 'amber' },
   { name: 'Belleza', icon: Sparkles, tone: 'pink' },

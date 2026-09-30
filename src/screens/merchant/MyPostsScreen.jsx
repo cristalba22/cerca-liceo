@@ -47,7 +47,13 @@ export function SplitHoursFields({ draft, onUpdate, optionsClassName = 'schedule
 export function WeekendHoursFields({ draft, onUpdate, optionsClassName = 'schedule-options', fieldsClassName = 'weekend-schedule-grid' }) {
   const opensSaturday = draft.openDays?.includes('Sab')
   const opensSunday = draft.openDays?.includes('Dom')
-  if (!opensSaturday && !opensSunday) return null
+  const updateWeekendDay = (day, checked) => {
+    const currentDays = draft.openDays || []
+    const nextDays = checked
+      ? weekDays.filter((currentDay) => currentDays.includes(currentDay) || currentDay === day)
+      : currentDays.filter((currentDay) => currentDay !== day)
+    onUpdate('openDays', nextDays)
+  }
 
   const question = opensSaturday && opensSunday
     ? '¿Sabado y domingo tienen otro horario?'
@@ -60,16 +66,31 @@ export function WeekendHoursFields({ draft, onUpdate, optionsClassName = 'schedu
 
   return (
     <>
-      <div className={optionsClassName}>
-        <label className={`split-hours-toggle ${draft.weekendHours ? 'active' : ''}`}>
-          <input type="checkbox" checked={draft.weekendHours} onChange={(event) => onUpdate('weekendHours', event.target.checked)} />
-          <span>
-            <strong>{question}</strong>
-            <small>{help}</small>
-          </span>
-        </label>
+      <div className="weekend-days-choice" role="group" aria-label="Dias que abre el fin de semana">
+        <span>Fin de semana</span>
+        <div>
+          <label className={opensSaturday ? 'active' : ''}>
+            <input type="checkbox" checked={opensSaturday} onChange={(event) => updateWeekendDay('Sab', event.target.checked)} />
+            <strong>Abre sabado</strong>
+          </label>
+          <label className={opensSunday ? 'active' : ''}>
+            <input type="checkbox" checked={opensSunday} onChange={(event) => updateWeekendDay('Dom', event.target.checked)} />
+            <strong>Abre domingo</strong>
+          </label>
+        </div>
       </div>
-      {draft.weekendHours && (
+      {(opensSaturday || opensSunday) && (
+        <div className={optionsClassName}>
+          <label className={`split-hours-toggle ${draft.weekendHours ? 'active' : ''}`}>
+            <input type="checkbox" checked={draft.weekendHours} onChange={(event) => onUpdate('weekendHours', event.target.checked)} />
+            <span>
+              <strong>{question}</strong>
+              <small>{help}</small>
+            </span>
+          </label>
+        </div>
+      )}
+      {draft.weekendHours && (opensSaturday || opensSunday) && (
         <div className={fieldsClassName}>
           {opensSaturday && (
             <>

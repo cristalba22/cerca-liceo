@@ -92,6 +92,8 @@ describe('gratis hoy y siempre', () => {
       onUpdate={() => {}}
     />)
 
+    expect(html).toContain('Abre sabado')
+    expect(html).toContain('Abre domingo')
     expect(html).toContain('¿El sabado tiene otro horario?')
     expect(html).toContain('Sabado abre')
     expect(html).toContain('Sabado cierra')

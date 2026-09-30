@@ -5718,6 +5718,21 @@ select:focus-visible {
   color: inherit;
 }
 
+.night-mode .weekend-days-choice > span {
+  color: #bfb6a4;
+}
+
+.night-mode .weekend-days-choice label {
+  color: #fffbea;
+  background: #303426;
+  border-color: rgba(255, 251, 234, 0.08);
+}
+
+.night-mode .weekend-days-choice label.active {
+  color: #172112;
+  background: #a7e92a;
+}
+
 .night-mode .photo-adjust-panel {
   background: rgba(255, 251, 234, 0.08);
 }
@@ -7561,6 +7576,58 @@ select:focus-visible {
   font-size: 10px;
   font-weight: 800;
   line-height: 1.2;
+}
+
+.weekend-days-choice {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 7px;
+}
+
+.weekend-days-choice > span {
+  color: #665f50;
+  font-size: 11px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.weekend-days-choice > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.weekend-days-choice label {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 9px 11px;
+  align-items: center;
+  color: #172112;
+  background: #fffdf7;
+  border: 1px solid rgba(16, 21, 15, 0.1);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.weekend-days-choice label.active {
+  background: #dfff9f;
+  border-color: rgba(105, 142, 16, 0.42);
+}
+
+.weekend-days-choice input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: #76b900;
+}
+
+.weekend-days-choice strong {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.15;
 }
 
 .schedule-options button {

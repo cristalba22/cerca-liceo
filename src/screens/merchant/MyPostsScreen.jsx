@@ -1126,10 +1126,9 @@ export function MyPostsScreen({ account, local, offers = [], metrics = {}, onSav
                 <label>
                   <span>Seccion</span>
                   <select value={localDraft.section} onChange={(event) => updateLocalDraft('section', event.target.value)}>
-                    <option>Liceo Procrear</option>
-                    <option>Liceo 1ra</option>
-                    <option>Liceo 2da</option>
-                    <option>Liceo 3ra</option>
+                    {sections.filter((section) => section !== 'Todos').map((section) => (
+                      <option key={section} value={section}>{section}</option>
+                    ))}
                   </select>
                 </label>
                 {localDraft.businessType !== 'entrepreneur' && locationMode !== 'pin' && locationMode !== 'none' && (
